@@ -1,0 +1,785 @@
+// Prisma Schema for Chogiare Backend
+// Generated from database_schema.dbml
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Enums
+enum UserRoleEnum {
+  buyer
+  seller
+  admin
+}
+
+enum ProductCondition {
+  new
+  like_new
+  good
+  fair
+  poor
+}
+
+enum ProductStatus {
+  draft
+  active
+  sold
+  archived
+  suspended
+}
+
+enum ProductBadge {
+  NEW
+  FEATURED
+  PROMO
+  HOT
+  SALE
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  ready_for_pickup
+  completed
+  cancelled
+  refunded
+}
+
+enum PaymentMethod {
+  momo
+  zalopay
+  stripe
+  paypal
+  bank_transfer
+}
+
+enum PaymentStatus {
+  pending
+  completed
+  failed
+  refunded
+}
+
+enum BoostType {
+  payPerView
+  payPerDay
+  featuredSlot
+  boostToCategory
+}
+
+enum BoostStatus {
+  active
+  expired
+  cancelled
+}
+
+enum NotificationType {
+  order
+  product
+  payment
+  system
+  promotion
+}
+
+enum TransactionType {
+  deposit
+  sale
+  refund
+  commission
+  bonus
+  boost
+}
+
+enum InventoryStatus {
+  in_stock
+  low_stock
+  out_of_stock
+  discontinued
+}
+
+enum ConversationType {
+  direct
+  group
+}
+
+enum MessageType {
+  text
+  image
+  file
+}
+
+enum Language {
+  vi
+  en
+}
+
+// Core User Management - Authentication Tables
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  username       String?  @unique
+  hashedPassword String   @map("hashed_password")
+  isVerified     Boolean  @default(false) @map("is_verified")
+  status         Boolean  @default(true)
+  language       String   @default("vi")
+  createdAt      BigInt   @map("created_at")
+  updatedAt      BigInt   @map("updated_at")
+
+  // Relations
+  sessions           Session[]
+  emailVerifications EmailVerification[]
+  passwordResets     PasswordReset[]
+  userRoles          UserRole[]
+  userInfo           UserInfo?
+  stores             Store[]
+  products           Product[]
+  cart               Cart?
+  orders             Order[]
+  reviews            Review[]
+  productBoosts      ProductBoost[]
+  transactions       Transaction[]
+  userBalance        UserBalance?
+  conversationParticipants ConversationParticipant[]
+  chatMessages       ChatMessage[]
+  notifications      Notification[]
+  stockInRecords     StockInRecord[]
+  reviewHelpful      ReviewHelpful[]
+
+  @@index([email])
+  @@index([username])
+  @@map("users")
+}
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  userId       String   @map("user_id")
+  refreshToken String   @map("refresh_token")
+  expiresAt    BigInt   @map("expires_at")
+  createdAt    BigInt   @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshToken])
+  @@map("sessions")
+}
+
+model EmailVerification {
+  id        Int      @id @default(autoincrement())
+  userId    String   @map("user_id")
+  code      String
+  expiresAt BigInt   @map("expires_at")
+  createdAt BigInt   @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([code])
+  @@map("email_verifications")
+}
+
+model PasswordReset {
+  id         Int      @id @default(autoincrement())
+  userId     String   @map("user_id")
+  resetToken String   @map("reset_token")
+  expiresAt  BigInt   @map("expires_at")
+  createdAt  BigInt   @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([resetToken])
+  @@map("password_resets")
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  createdAt   BigInt   @map("created_at")
+
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  createdAt   BigInt   @map("created_at")
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       Int @map("role_id")
+  permissionId Int @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId String @map("user_id")
+  roleId Int    @map("role_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model UserInfo {
+  id           Int      @id @default(autoincrement())
+  userId       String   @unique @map("user_id")
+  fullName     String?  @map("full_name")
+  avatarUrl    String?  @map("avatar_url")
+  gender       String?
+  dateOfBirth  String?  @map("date_of_birth")
+  phoneNumber  String?  @map("phone_number")
+  address      String?
+  country      String?
+  createdAt    BigInt   @map("created_at")
+  updatedAt    BigInt   @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_info")
+}
+
+// Store Management
+model Store {
+  id                        String   @id @default(uuid())
+  userId                    String   @map("user_id")
+  name                      String
+  slug                      String   @unique
+  description               String?
+  shortDescription          String?  @map("short_description")
+  logo                      String?
+  banner                    String?
+  category                  String?
+  subcategory               String?
+  establishedYear           Int?     @map("established_year")
+  businessType              String?  @map("business_type")
+  taxCode                   String?  @map("tax_code")
+  businessLicense           String?  @map("business_license")
+  addressStreet             String?  @map("address_street")
+  addressWard               String?  @map("address_ward")
+  addressDistrict           String?  @map("address_district")
+  addressCity               String?  @map("address_city")
+  addressPostalCode         String?  @map("address_postal_code")
+  addressLat                Decimal? @map("address_lat") @db.Decimal
+  addressLng                Decimal? @map("address_lng") @db.Decimal
+  contactPhone              String?  @map("contact_phone")
+  contactEmail              String?  @map("contact_email")
+  contactWebsite            String?  @map("contact_website")
+  contactFacebook           String?  @map("contact_facebook")
+  contactInstagram          String?  @map("contact_instagram")
+  contactTiktok             String?  @map("contact_tiktok")
+  contactYoutube            String?  @map("contact_youtube")
+  businessHoursMondayOpen   String?  @map("business_hours_monday_open")
+  businessHoursMondayClose  String?  @map("business_hours_monday_close")
+  businessHoursMondayIsOpen Boolean? @map("business_hours_monday_is_open")
+  businessHoursTuesdayOpen  String?  @map("business_hours_tuesday_open")
+  businessHoursTuesdayClose String?  @map("business_hours_tuesday_close")
+  businessHoursTuesdayIsOpen Boolean? @map("business_hours_tuesday_is_open")
+  businessHoursWednesdayOpen String? @map("business_hours_wednesday_open")
+  businessHoursWednesdayClose String? @map("business_hours_wednesday_close")
+  businessHoursWednesdayIsOpen Boolean? @map("business_hours_wednesday_is_open")
+  businessHoursThursdayOpen String? @map("business_hours_thursday_open")
+  businessHoursThursdayClose String? @map("business_hours_thursday_close")
+  businessHoursThursdayIsOpen Boolean? @map("business_hours_thursday_is_open")
+  businessHoursFridayOpen   String?  @map("business_hours_friday_open")
+  businessHoursFridayClose  String?  @map("business_hours_friday_close")
+  businessHoursFridayIsOpen Boolean? @map("business_hours_friday_is_open")
+  businessHoursSaturdayOpen String?  @map("business_hours_saturday_open")
+  businessHoursSaturdayClose String? @map("business_hours_saturday_close")
+  businessHoursSaturdayIsOpen Boolean? @map("business_hours_saturday_is_open")
+  businessHoursSundayOpen   String?  @map("business_hours_sunday_open")
+  businessHoursSundayClose  String?  @map("business_hours_sunday_close")
+  businessHoursSundayIsOpen Boolean? @map("business_hours_sunday_is_open")
+  returnPolicy              String?  @map("return_policy")
+  shippingPolicy            String?  @map("shipping_policy")
+  rating                    Decimal  @default(0) @db.Decimal
+  reviewCount               Int      @default(0) @map("review_count")
+  productCount              Int      @default(0) @map("product_count")
+  followerCount             Int      @default(0) @map("follower_count")
+  isVerified                Boolean  @default(false) @map("is_verified")
+  isActive                  Boolean  @default(true) @map("is_active")
+  createdAt                 BigInt   @map("created_at")
+  updatedAt                 BigInt   @map("updated_at")
+
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products Product[]
+  orders   Order[]
+
+  @@index([userId])
+  @@index([slug])
+  @@map("stores")
+}
+
+// Category Management
+model Category {
+  id           String     @id @default(uuid())
+  name         String
+  slug         String     @unique
+  description  String?
+  image        String?
+  parentId     String?    @map("parent_id")
+  productCount Int        @default(0) @map("product_count")
+  isActive     Boolean    @default(true) @map("is_active")
+  createdAt    BigInt     @map("created_at")
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+  products Product[]
+
+  @@index([parentId])
+  @@index([slug])
+  @@map("categories")
+}
+
+// Product Management
+model Product {
+  id             String          @id @default(uuid())
+  title          String
+  description    String?
+  price          Decimal         @db.Decimal
+  originalPrice  Decimal?        @map("original_price") @db.Decimal
+  categoryId     String          @map("category_id")
+  sellerId       String          @map("seller_id")
+  storeId        String?         @map("store_id")
+  condition      ProductCondition
+  tags           String[]
+  location       String?
+  stock          Int             @default(0)
+  minStock       Int             @default(0) @map("min_stock")
+  maxStock       Int?            @map("max_stock")
+  reservedStock  Int             @default(0) @map("reserved_stock")
+  availableStock Int             @default(0) @map("available_stock")
+  costPrice      Decimal?        @map("cost_price") @db.Decimal
+  sellingPrice   Decimal?        @map("selling_price") @db.Decimal
+  profit         Decimal?        @db.Decimal
+  profitMargin   Decimal?        @map("profit_margin") @db.Decimal
+  sku            String?          @unique
+  barcode        String?
+  weight         Decimal?        @db.Decimal
+  dimensions     String?
+  supplier       String?
+  status         ProductStatus   @default(draft)
+  badges         ProductBadge[]
+  rating         Decimal         @default(0) @db.Decimal
+  reviewCount    Int             @default(0) @map("review_count")
+  viewCount      Int             @default(0) @map("view_count")
+  salesCount     Int             @default(0) @map("sales_count")
+  isFeatured     Boolean         @default(false) @map("is_featured")
+  isPromoted     Boolean         @default(false) @map("is_promoted")
+  isActive       Boolean         @default(true) @map("is_active")
+  createdAt      BigInt          @map("created_at")
+  updatedAt      BigInt          @map("updated_at")
+
+  category      Category        @relation(fields: [categoryId], references: [id])
+  seller        User            @relation(fields: [sellerId], references: [id])
+  store         Store?          @relation(fields: [storeId], references: [id])
+  images        ProductImage[]
+  stockInRecords StockInRecord[]
+  stockAlerts   StockAlert[]
+  cartItems     CartItem[]
+  reviews       Review[]
+  productBoosts ProductBoost[]
+
+  @@index([categoryId])
+  @@index([sellerId])
+  @@index([storeId])
+  @@index([status])
+  @@index([sku])
+  @@map("products")
+}
+
+model ProductImage {
+  id           Int      @id @default(autoincrement())
+  productId    String   @map("product_id")
+  imageUrl     String   @map("image_url")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    BigInt   @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+// Inventory & Stock Management
+model StockInRecord {
+  id        Int      @id @default(autoincrement())
+  productId String   @map("product_id")
+  quantity  Int
+  costPrice Decimal? @map("cost_price") @db.Decimal
+  supplier  String?
+  notes     String?
+  createdBy String?  @map("created_by")
+  createdAt BigInt   @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  creator User?   @relation(fields: [createdBy], references: [id])
+
+  @@index([productId])
+  @@map("stock_in_records")
+}
+
+model StockAlert {
+  id        Int      @id @default(autoincrement())
+  productId String   @map("product_id")
+  alertType String   @map("alert_type")
+  message   String?
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt BigInt   @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([isRead])
+  @@map("stock_alerts")
+}
+
+// Cart Management
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique @map("user_id")
+  createdAt BigInt     @map("created_at")
+  updatedAt BigInt     @map("updated_at")
+
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String   @map("cart_id")
+  productId String   @map("product_id")
+  quantity  Int
+  price     Decimal  @db.Decimal
+  createdAt BigInt   @map("created_at")
+  updatedAt BigInt   @map("updated_at")
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([cartId])
+  @@index([productId])
+  @@map("cart_items")
+}
+
+// Address Management
+model Address {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  recipientName String   @map("recipient_name")
+  recipientPhone String  @map("recipient_phone")
+  street        String
+  city          String
+  state         String
+  district      String?
+  ward          String?
+  zipCode       String?  @map("zip_code")
+  country       String
+  isDefault     Boolean  @default(false) @map("is_default")
+  createdAt     BigInt   @map("created_at")
+  updatedAt     BigInt   @map("updated_at")
+
+  ordersAsShipping Order[] @relation("ShippingAddress")
+  ordersAsBilling Order[] @relation("BillingAddress")
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+// Order Management
+model Order {
+  id              String        @id @default(uuid())
+  userId          String        @map("user_id")
+  storeId         String        @map("store_id")
+  status          OrderStatus   @default(pending)
+  paymentStatus   PaymentStatus @default(pending) @map("payment_status")
+  paymentMethod   PaymentMethod? @map("payment_method")
+  subtotal        Decimal       @db.Decimal
+  tax             Decimal        @default(0) @db.Decimal
+  shipping        Decimal        @default(0) @db.Decimal
+  discount        Decimal        @default(0) @db.Decimal
+  total           Decimal        @db.Decimal
+  currency        String         @default("VND")
+  shippingAddressId String?      @map("shipping_address_id")
+  billingAddressId  String?      @map("billing_address_id")
+  notes           String?
+  sellerNotes     String?        @map("seller_notes")
+  createdAt       BigInt         @map("created_at")
+  updatedAt       BigInt         @map("updated_at")
+
+  user            User            @relation(fields: [userId], references: [id])
+  store           Store           @relation(fields: [storeId], references: [id])
+  shippingAddress Address?        @relation("ShippingAddress", fields: [shippingAddressId], references: [id])
+  billingAddress  Address?        @relation("BillingAddress", fields: [billingAddressId], references: [id])
+  items           OrderItem[]
+  shippingInfo    Shipping?
+  transactions    Transaction[]
+
+  @@index([userId])
+  @@index([storeId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String   @map("order_id")
+  productId   String   @map("product_id")
+  productName String   @map("product_name")
+  productImage String? @map("product_image")
+  price       Decimal  @db.Decimal
+  quantity    Int
+  subtotal    Decimal  @db.Decimal
+  createdAt   BigInt   @map("created_at")
+  updatedAt   BigInt   @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+// Shipping Management
+model Shipping {
+  id                String   @id @default(uuid())
+  orderId           String   @unique @map("order_id")
+  trackingNumber    String?  @unique @map("tracking_number")
+  carrier           String?
+  status            String?
+  currentLocation   String?  @map("current_location")
+  estimatedDelivery BigInt?  @map("estimated_delivery")
+  createdAt         BigInt   @map("created_at")
+  updatedAt         BigInt   @map("updated_at")
+
+  order           Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shippingHistory ShippingHistory[]
+
+  @@index([orderId])
+  @@index([trackingNumber])
+  @@map("shipping")
+}
+
+model ShippingHistory {
+  id          Int      @id @default(autoincrement())
+  shippingId  String   @map("shipping_id")
+  status      String
+  location    String?
+  description String?
+  timestamp   BigInt
+
+  shipping Shipping @relation(fields: [shippingId], references: [id], onDelete: Cascade)
+
+  @@index([shippingId])
+  @@map("shipping_history")
+}
+
+// Review Management
+model Review {
+  id           String   @id @default(uuid())
+  productId    String   @map("product_id")
+  userId       String   @map("user_id")
+  orderId      String?  @map("order_id")
+  rating       Int
+  title        String?
+  comment      String?
+  images       String[]
+  isVerified   Boolean  @default(false) @map("is_verified")
+  helpfulCount Int      @default(0) @map("helpful_count")
+  createdAt    BigInt   @map("created_at")
+  updatedAt    BigInt   @map("updated_at")
+
+  product      Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user         User           @relation(fields: [userId], references: [id])
+  reviewHelpful ReviewHelpful[]
+
+  @@index([productId])
+  @@index([userId])
+  @@map("reviews")
+}
+
+model ReviewHelpful {
+  id        Int      @id @default(autoincrement())
+  reviewId String   @map("review_id")
+  userId   String   @map("user_id")
+  createdAt BigInt   @map("created_at")
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([reviewId, userId])
+  @@index([reviewId])
+  @@index([userId])
+  @@map("review_helpful")
+}
+
+// Boost/Promotion Management
+model BoostPackage {
+  id                    String    @id
+  name                  String
+  type                  BoostType
+  price                 Decimal   @db.Decimal
+  description           String?
+  configViews           Int?      @map("config_views")
+  configDays             Int?      @map("config_days")
+  configShowInBanner    Boolean?  @map("config_show_in_banner")
+  configShowInTopList   Boolean?  @map("config_show_in_top_list")
+  configPricePer1000Views Decimal? @map("config_price_per_1000_views") @db.Decimal
+  isActive              Boolean   @default(true) @map("is_active")
+  createdAt             BigInt    @map("created_at")
+
+  productBoosts ProductBoost[]
+
+  @@map("boost_packages")
+}
+
+model ProductBoost {
+  id            String      @id @default(uuid())
+  productId     String      @map("product_id")
+  boostPackageId String     @map("boost_package_id")
+  userId        String      @map("user_id")
+  status        BoostStatus @default(active)
+  viewsTarget   Int?        @map("views_target")
+  viewsActual   Int         @default(0) @map("views_actual")
+  days          Int?
+  startDate     BigInt      @map("start_date")
+  endDate       BigInt?     @map("end_date")
+  totalCost     Decimal     @map("total_cost") @db.Decimal
+  createdAt     BigInt      @map("created_at")
+  updatedAt     BigInt      @map("updated_at")
+
+  product      Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  boostPackage BoostPackage @relation(fields: [boostPackageId], references: [id])
+  user         User        @relation(fields: [userId], references: [id])
+  transactions Transaction[]
+
+  @@index([productId])
+  @@index([status])
+  @@map("product_boosts")
+}
+
+// Payment & Transaction Management
+model Transaction {
+  id            String          @id @default(uuid())
+  userId        String          @map("user_id")
+  type          TransactionType
+  amount        Decimal         @db.Decimal
+  currency      String          @default("VND")
+  status        String
+  paymentMethod PaymentMethod?  @map("payment_method")
+  reference     String?
+  description   String?
+  orderId       String?         @map("order_id")
+  boostId       String?         @map("boost_id")
+  createdAt     BigInt          @map("created_at")
+  updatedAt     BigInt          @map("updated_at")
+
+  user   User     @relation(fields: [userId], references: [id])
+  order  Order?   @relation(fields: [orderId], references: [id])
+  boost  ProductBoost? @relation(fields: [boostId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([orderId])
+  @@map("transactions")
+}
+
+model UserBalance {
+  id        Int      @id @default(autoincrement())
+  userId    String   @unique @map("user_id")
+  balance   Decimal  @default(0) @db.Decimal
+  updatedAt BigInt   @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_balance")
+}
+
+// Chat/Conversation Management
+model Conversation {
+  id        String   @id @default(uuid())
+  type      ConversationType @default(direct)
+  title     String?
+  createdAt BigInt   @map("created_at")
+  updatedAt BigInt   @map("updated_at")
+
+  participants ConversationParticipant[]
+  messages      ChatMessage[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             Int      @id @default(autoincrement())
+  conversationId String   @map("conversation_id")
+  userId         String   @map("user_id")
+  role           String?
+  joinedAt       BigInt   @map("joined_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user          User         @relation(fields: [userId], references: [id])
+
+  @@index([conversationId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+model ChatMessage {
+  id             String      @id @default(uuid())
+  conversationId String      @map("conversation_id")
+  senderId       String      @map("sender_id")
+  messageType    MessageType @default(text) @map("message_type")
+  content        String
+  attachments    String[]
+  isRead         Boolean     @default(false) @map("is_read")
+  createdAt      BigInt      @map("created_at")
+  updatedAt      BigInt      @map("updated_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id])
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@map("chat_messages")
+}
+
+// Notification Management
+model Notification {
+  id        String          @id @default(uuid())
+  userId    String          @map("user_id")
+  type      NotificationType
+  title     String
+  message   String
+  actionUrl String?         @map("action_url")
+  isRead    Boolean         @default(false) @map("is_read")
+  createdAt BigInt          @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
