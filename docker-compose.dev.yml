@@ -1,0 +1,71 @@
+version: '3.8'
+
+# Development docker-compose with hot reload
+
+services:
+  # NestJS Application (Development)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: chogiare-backend-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "9229:9229" # Debug port
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/chogiare}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-key-change-in-production}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-1h}
+      - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET:-dev-refresh-secret}
+      - REFRESH_TOKEN_EXPIRES_IN=${REFRESH_TOKEN_EXPIRES_IN:-7d}
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/dist
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - chogiare-network
+    command: npm run start:dev
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: chogiare-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-dev-data:/data
+    networks:
+      - chogiare-network
+
+  # PostgreSQL (Local development)
+  postgres:
+    image: postgres:15-alpine
+    container_name: chogiare-postgres-dev
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=chogiare
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    networks:
+      - chogiare-network
+
+volumes:
+  redis-dev-data:
+  postgres-dev-data:
+
+networks:
+  chogiare-network:
+    driver: bridge
+
+

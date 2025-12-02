@@ -1,0 +1,52 @@
+// ============================================
+// BOOST/PROMOTION MANAGEMENT
+// ============================================
+
+model BoostPackage {
+  id                    String    @id
+  name                   String
+  type                   BoostType
+  price                  Decimal    @db.Decimal(15, 2)
+  description            String?
+  configViews            Int?       @map("config_views")
+  configDays             Int?       @map("config_days")
+  configShowInBanner     Boolean?   @map("config_show_in_banner")
+  configShowInTopList    Boolean?   @map("config_show_in_top_list")
+  configPricePer1000Views Decimal?  @map("config_price_per_1000_views") @db.Decimal(15, 2)
+  isActive               Boolean    @default(true) @map("is_active")
+  createdAt              BigInt    @map("created_at")
+
+  productBoosts ProductBoost[]
+
+  @@index([type])
+  @@index([isActive])
+  @@map("boost_packages")
+}
+
+model ProductBoost {
+  id            String      @id @default(uuid())
+  productId     String      @map("product_id")
+  boostPackageId String     @map("boost_package_id")
+  userId        String      @map("user_id")
+  status        BoostStatus @default(active)
+  viewsTarget   Int?        @map("views_target")
+  viewsActual   Int         @default(0) @map("views_actual")
+  days          Int?
+  startDate     BigInt      @map("start_date")
+  endDate       BigInt?     @map("end_date")
+  totalCost     Decimal     @map("total_cost") @db.Decimal(15, 2)
+  createdAt     BigInt      @map("created_at")
+  updatedAt     BigInt      @map("updated_at")
+
+  product       Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  boostPackage  BoostPackage @relation(fields: [boostPackageId], references: [id])
+  user          User         @relation(fields: [userId], references: [id])
+  transactions  Transaction[]
+
+  @@index([productId])
+  @@index([status])
+  @@index([startDate])
+  @@index([endDate])
+  @@map("product_boosts")
+}
+

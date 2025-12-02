@@ -1,0 +1,40 @@
+// ============================================
+// REVIEW MANAGEMENT
+// ============================================
+
+model Review {
+  id          String   @id @default(uuid())
+  productId   String   @map("product_id")
+  userId      String   @map("user_id")
+  orderId     String?  @map("order_id")
+  rating      Int      // 1-5
+  title       String?
+  comment     String?
+  images      String[]
+  isVerified  Boolean  @default(false) @map("is_verified")
+  helpfulCount Int     @default(0) @map("helpful_count")
+  createdAt   BigInt   @map("created_at")
+  updatedAt   BigInt   @map("updated_at")
+
+  product       Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id])
+  helpfulVotes  ReviewHelpful[]
+
+  @@index([productId])
+  @@index([userId])
+  @@index([rating])
+  @@map("reviews")
+}
+
+model ReviewHelpful {
+  id        Int      @id @default(autoincrement())
+  reviewId String   @map("review_id")
+  userId    String   @map("user_id")
+  createdAt BigInt   @map("created_at")
+
+  @@unique([reviewId, userId])
+  @@index([reviewId])
+  @@index([userId])
+  @@map("review_helpful")
+}
+

@@ -1,0 +1,77 @@
+// ============================================
+// STORE MANAGEMENT
+// ============================================
+
+model Store {
+  id                        String   @id @default(uuid())
+  userId                    String   @map("user_id")
+  name                      String
+  slug                      String   @unique
+  description               String?
+  shortDescription          String?  @map("short_description")
+  logo                      String?
+  banner                    String?
+  category                  String?
+  subcategory               String?
+  establishedYear           Int?     @map("established_year")
+  businessType              String?  @map("business_type")
+  taxCode                   String?  @map("tax_code")
+  businessLicense           String?  @map("business_license")
+  addressStreet             String?  @map("address_street")
+  addressWard               String?  @map("address_ward")
+  addressDistrict           String?  @map("address_district")
+  addressCity               String?  @map("address_city")
+  addressPostalCode         String?  @map("address_postal_code")
+  addressLat                Decimal? @map("address_lat") @db.Decimal(10, 8)
+  addressLng               Decimal? @map("address_lng") @db.Decimal(11, 8)
+  contactPhone              String?  @map("contact_phone")
+  contactEmail              String?  @map("contact_email")
+  contactWebsite            String?  @map("contact_website")
+  contactFacebook            String?  @map("contact_facebook")
+  contactInstagram          String?  @map("contact_instagram")
+  contactTiktok            String?  @map("contact_tiktok")
+  contactYoutube            String?  @map("contact_youtube")
+  businessHoursMondayOpen   String?  @map("business_hours_monday_open")
+  businessHoursMondayClose  String?  @map("business_hours_monday_close")
+  businessHoursMondayIsOpen Boolean? @map("business_hours_monday_is_open")
+  businessHoursTuesdayOpen  String?  @map("business_hours_tuesday_open")
+  businessHoursTuesdayClose String?  @map("business_hours_tuesday_close")
+  businessHoursTuesdayIsOpen Boolean? @map("business_hours_tuesday_is_open")
+  businessHoursWednesdayOpen String?  @map("business_hours_wednesday_open")
+  businessHoursWednesdayClose String?  @map("business_hours_wednesday_close")
+  businessHoursWednesdayIsOpen Boolean? @map("business_hours_wednesday_is_open")
+  businessHoursThursdayOpen  String?  @map("business_hours_thursday_open")
+  businessHoursThursdayClose String?  @map("business_hours_thursday_close")
+  businessHoursThursdayIsOpen Boolean? @map("business_hours_thursday_is_open")
+  businessHoursFridayOpen   String?  @map("business_hours_friday_open")
+  businessHoursFridayClose  String?  @map("business_hours_friday_close")
+  businessHoursFridayIsOpen Boolean? @map("business_hours_friday_is_open")
+  businessHoursSaturdayOpen  String?  @map("business_hours_saturday_open")
+  businessHoursSaturdayClose String?  @map("business_hours_saturday_close")
+  businessHoursSaturdayIsOpen Boolean? @map("business_hours_saturday_is_open")
+  businessHoursSundayOpen    String?  @map("business_hours_sunday_open")
+  businessHoursSundayClose   String?  @map("business_hours_sunday_close")
+  businessHoursSundayIsOpen  Boolean? @map("business_hours_sunday_is_open")
+  returnPolicy               String?  @map("return_policy")
+  shippingPolicy             String?  @map("shipping_policy")
+  rating                     Decimal  @default(0) @db.Decimal(3, 2)
+  reviewCount                Int      @default(0) @map("review_count")
+  productCount               Int      @default(0) @map("product_count")
+  followerCount              Int      @default(0) @map("follower_count")
+  isVerified                 Boolean  @default(false) @map("is_verified")
+  isActive                   Boolean  @default(true) @map("is_active")
+  createdAt                  BigInt   @map("created_at")
+  updatedAt                  BigInt   @map("updated_at")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products     Product[]
+  orders       Order[]
+  warehouses   Warehouse[]
+
+  @@index([userId])
+  @@index([slug])
+  @@index([isActive])
+  @@index([isVerified])
+  @@map("stores")
+}
+

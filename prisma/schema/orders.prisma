@@ -1,0 +1,60 @@
+// ============================================
+// ORDER MANAGEMENT
+// ============================================
+
+model Order {
+  id              String        @id @default(uuid())
+  userId          String        @map("user_id")
+  storeId         String        @map("store_id")
+  status          OrderStatus   @default(pending)
+  paymentStatus   PaymentStatus @default(pending) @map("payment_status")
+  paymentMethod   PaymentMethod? @map("payment_method")
+  subtotal        Decimal       @db.Decimal(15, 2)
+  tax             Decimal       @default(0) @db.Decimal(15, 2)
+  shipping        Decimal       @default(0) @db.Decimal(15, 2)
+  discount        Decimal       @default(0) @db.Decimal(15, 2)
+  total           Decimal       @db.Decimal(15, 2)
+  currency        String        @default("VND")
+  shippingAddressId String?     @map("shipping_address_id")
+  billingAddressId  String?     @map("billing_address_id")
+  notes           String?
+  sellerNotes     String?       @map("seller_notes")
+  createdAt       BigInt        @map("created_at")
+  updatedAt       BigInt        @map("updated_at")
+
+  user            User          @relation(fields: [userId], references: [id])
+  store           Store         @relation(fields: [storeId], references: [id])
+  shippingAddress Address?      @relation("ShippingAddress", fields: [shippingAddressId], references: [id])
+  billingAddress  Address?     @relation("BillingAddress", fields: [billingAddressId], references: [id])
+  items           OrderItem[]
+  shippingInfo    Shipping?     @relation("OrderShipping")
+  transactions    Transaction[]
+
+  @@index([userId])
+  @@index([storeId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String   @map("order_id")
+  productId   String   @map("product_id")
+  productName String   @map("product_name")
+  productImage String? @map("product_image")
+  price       Decimal  @db.Decimal(15, 2)
+  quantity    Int
+  subtotal    Decimal  @db.Decimal(15, 2)
+  createdAt   BigInt   @map("created_at")
+  updatedAt   BigInt   @map("updated_at")
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+

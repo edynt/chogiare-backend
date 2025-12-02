@@ -1,0 +1,12 @@
+// Base Prisma Configuration
+generator client {
+  provider = "prisma-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Note: In Prisma 7, url can still be used in schema for migrations
+  // For Prisma Client, pass connection string via PrismaClient constructor
+  url      = env("DATABASE_URL")
+}
+

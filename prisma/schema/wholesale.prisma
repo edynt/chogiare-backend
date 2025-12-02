@@ -1,0 +1,61 @@
+// ============================================
+// WHOLESALE FEATURES
+// ============================================
+
+model CustomerGroup {
+  id          String   @id @default(uuid())
+  name        String
+  type        CustomerGroupType
+  description String?
+  discount    Decimal? @db.Decimal(5, 2) // Percentage discount
+  minOrderValue Decimal? @map("min_order_value") @db.Decimal(15, 2)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   BigInt   @map("created_at")
+  updatedAt   BigInt   @map("updated_at")
+
+  customerGroupUsers CustomerGroupUser[]
+
+  @@index([type])
+  @@index([isActive])
+  @@map("customer_groups")
+}
+
+model CustomerGroupUser {
+  id              String  @id @default(uuid())
+  userId          String  @map("user_id")
+  customerGroupId String  @map("customer_group_id")
+  createdAt       BigInt  @map("created_at")
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customerGroup CustomerGroup @relation(fields: [customerGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, customerGroupId])
+  @@index([userId])
+  @@index([customerGroupId])
+  @@map("customer_group_users")
+}
+
+model Warehouse {
+  id          String   @id @default(uuid())
+  name        String
+  storeId     String?  @map("store_id")
+  address     String
+  city        String
+  district    String?
+  ward        String?
+  postalCode  String?  @map("postal_code")
+  country     String   @default("VN")
+  lat         Decimal? @db.Decimal(10, 8)
+  lng         Decimal? @db.Decimal(11, 8)
+  status      WarehouseStatus @default(active)
+  createdAt   BigInt   @map("created_at")
+  updatedAt   BigInt   @map("updated_at")
+
+  store Store? @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  productWarehouses ProductWarehouse[]
+
+  @@index([storeId])
+  @@index([status])
+  @@map("warehouses")
+}
+

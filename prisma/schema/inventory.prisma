@@ -1,0 +1,37 @@
+// ============================================
+// INVENTORY & STOCK MANAGEMENT
+// ============================================
+
+model StockInRecord {
+  id        Int      @id @default(autoincrement())
+  productId String   @map("product_id")
+  quantity  Int
+  costPrice Decimal? @map("cost_price") @db.Decimal(15, 2)
+  supplier  String?
+  notes     String?
+  createdBy String?  @map("created_by")
+  createdAt BigInt   @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([productId])
+  @@index([createdAt])
+  @@map("stock_in_records")
+}
+
+model StockAlerts {
+  id        Int      @id @default(autoincrement())
+  productId String   @map("product_id")
+  alertType String   @map("alert_type") // 'low_stock' | 'out_of_stock'
+  message   String?
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt BigInt   @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([isRead])
+  @@map("stock_alerts")
+}
+
