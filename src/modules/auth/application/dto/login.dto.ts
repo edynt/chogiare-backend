@@ -1,13 +1,21 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  MinLength,
+  MaxLength,
+} from 'class-validator';
+import { VALIDATION_MESSAGES } from '@common/constants/messages.constants';
 
 export class LoginDto {
-  @IsEmail({}, { message: 'Email không hợp lệ' })
-  @IsNotEmpty({ message: 'Email là bắt buộc' })
+  @IsEmail({}, { message: VALIDATION_MESSAGES.IS_EMAIL })
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.IS_NOT_EMPTY })
+  @MaxLength(255, { message: VALIDATION_MESSAGES.MAX_LENGTH(255) })
   email: string;
 
-  @IsString({ message: 'Mật khẩu phải là chuỗi' })
-  @IsNotEmpty({ message: 'Mật khẩu là bắt buộc' })
-  @MinLength(6, { message: 'Mật khẩu phải có ít nhất 6 ký tự' })
+  @IsString({ message: VALIDATION_MESSAGES.IS_STRING })
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.IS_NOT_EMPTY })
+  @MinLength(6, { message: VALIDATION_MESSAGES.MIN_LENGTH(6) })
+  @MaxLength(100, { message: VALIDATION_MESSAGES.MAX_LENGTH(100) })
   password: string;
 }
-

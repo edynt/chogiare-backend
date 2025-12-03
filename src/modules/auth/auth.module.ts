@@ -11,6 +11,7 @@ import {
 } from './domain/repositories/user.repository.interface';
 import { JwtStrategy } from './infrastructure/strategies/jwt.strategy';
 import { DatabaseModule } from '@common/database/database.module';
+import { LoggerModule } from '@common/logger/logger.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { DatabaseModule } from '@common/database/database.module';
       inject: [ConfigService],
     }),
     DatabaseModule,
+    LoggerModule,
   ],
   controllers: [AuthController],
   providers: [

@@ -6,6 +6,7 @@ import {
   IUserRepository,
   USER_REPOSITORY,
 } from '@modules/auth/domain/repositories/user.repository.interface';
+import { MESSAGES } from '@common/constants/messages.constants';
 
 export interface JwtPayload {
   sub: string;
@@ -31,10 +32,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload) {
     const user = await this.userRepository.findById(payload.sub);
     if (!user) {
-      throw new UnauthorizedException('Người dùng không tồn tại');
+      throw new UnauthorizedException(MESSAGES.AUTH.USER_DOES_NOT_EXIST);
     }
     if (!user.status) {
-      throw new UnauthorizedException('Tài khoản đã bị khóa');
+      throw new UnauthorizedException(MESSAGES.AUTH.ACCOUNT_IS_LOCKED);
     }
     return {
       id: user.id,

@@ -6,6 +6,7 @@ import { RefreshTokenDto } from '@modules/auth/application/dto/refresh-token.dto
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '@common/decorators/current-user.decorator';
 import { Public } from '@common/decorators/public.decorator';
+import { MESSAGES } from '@common/constants/messages.constants';
 
 @Controller('auth')
 export class AuthController {
@@ -51,7 +52,7 @@ export class AuthController {
     await this.authService.logout(user.id, refreshToken);
     return {
       success: true,
-      message: 'Đăng xuất thành công',
+      message: MESSAGES.AUTH.LOGOUT_SUCCESS,
     };
   }
 

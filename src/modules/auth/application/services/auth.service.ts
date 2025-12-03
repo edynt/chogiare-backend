@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException, ConflictException, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  Inject,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -7,6 +12,8 @@ import {
   USER_REPOSITORY,
 } from '@modules/auth/domain/repositories/user.repository.interface';
 import { PrismaService } from '@common/database/prisma.service';
+import { LoggerService } from '@common/logger/logger.service';
+import { MESSAGES } from '@common/constants/messages.constants';
 import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
@@ -37,20 +44,31 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly logger: LoggerService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<AuthResponse> {
     // Check if user already exists
     const existingUser = await this.userRepository.findByEmail(registerDto.email);
     if (existingUser) {
-      throw new ConflictException('Email đã được sử dụng');
+      this.logger.warn(
+        `Registration attempt with existing email: ${registerDto.email}`,
+        'AuthService',
+      );
+      throw new ConflictException(MESSAGES.AUTH.EMAIL_ALREADY_EXISTS);
     }
 
     // Check username if provided
     if (registerDto.username) {
-      const existingUsername = await this.userRepository.findByUsername(registerDto.username);
+      const existingUsername = await this.userRepository.findByUsername(
+        registerDto.username,
+      );
       if (existingUsername) {
-        throw new ConflictException('Tên người dùng đã được sử dụng');
+        this.logger.warn(
+          `Registration attempt with existing username: ${registerDto.username}`,
+          'AuthService',
+        );
+        throw new ConflictException(MESSAGES.AUTH.USERNAME_ALREADY_EXISTS);
       }
     }
 
@@ -65,6 +83,11 @@ export class AuthService {
       isVerified: false,
       status: true,
       language: 'vi',
+    });
+
+    this.logger.log(`New user registered: ${user.id}`, 'AuthService', {
+      userId: user.id,
+      email: user.email,
     });
 
     // Generate tokens
@@ -90,19 +113,33 @@ export class AuthService {
     // Find user by email
     const user = await this.userRepository.findByEmail(loginDto.email);
     if (!user) {
-      throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+      this.logger.warn(
+        `Login attempt with non-existent email: ${loginDto.email}`,
+        'AuthService',
+      );
+      throw new UnauthorizedException(MESSAGES.AUTH.INVALID_CREDENTIALS);
     }
 
     // Check if user is active
     if (!user.status) {
-      throw new UnauthorizedException('Tài khoản đã bị khóa');
+      this.logger.warn(`Login attempt with locked account: ${user.id}`, 'AuthService');
+      throw new UnauthorizedException(MESSAGES.AUTH.ACCOUNT_LOCKED);
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.hashedPassword);
+    const isPasswordValid = await bcrypt.compare(
+      loginDto.password,
+      user.hashedPassword,
+    );
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+      this.logger.warn(`Invalid password attempt for user: ${user.id}`, 'AuthService');
+      throw new UnauthorizedException(MESSAGES.AUTH.INVALID_CREDENTIALS);
     }
+
+    this.logger.log(`User logged in: ${user.id}`, 'AuthService', {
+      userId: user.id,
+      email: user.email,
+    });
 
     // Generate tokens
     const tokens = await this.generateTokens(user.id, user.email);
@@ -126,9 +163,12 @@ export class AuthService {
   async refreshToken(refreshTokenDto: RefreshTokenDto): Promise<AuthTokens> {
     try {
       // Verify refresh token
-      const payload = await this.jwtService.verifyAsync(refreshTokenDto.refreshToken, {
-        secret: this.configService.get<string>('jwt.refreshSecret'),
-      });
+      const payload = await this.jwtService.verifyAsync(
+        refreshTokenDto.refreshToken,
+        {
+          secret: this.configService.get<string>('jwt.refreshSecret'),
+        },
+      );
 
       // Check if refresh token exists in database
       const session = await this.prisma.session.findFirst({
@@ -142,13 +182,17 @@ export class AuthService {
       });
 
       if (!session) {
-        throw new UnauthorizedException('Refresh token không hợp lệ hoặc đã hết hạn');
+        this.logger.warn(
+          `Invalid refresh token attempt for user: ${payload.sub}`,
+          'AuthService',
+        );
+        throw new UnauthorizedException(MESSAGES.AUTH.INVALID_REFRESH_TOKEN);
       }
 
       // Get user
       const user = await this.userRepository.findById(payload.sub);
       if (!user || !user.status) {
-        throw new UnauthorizedException('Người dùng không tồn tại hoặc đã bị khóa');
+        throw new UnauthorizedException(MESSAGES.AUTH.USER_NOT_FOUND);
       }
 
       // Generate new tokens
@@ -163,12 +207,19 @@ export class AuthService {
         },
       });
 
+      this.logger.log(`Token refreshed for user: ${user.id}`, 'AuthService');
+
       return tokens;
     } catch (error) {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      throw new UnauthorizedException('Refresh token không hợp lệ');
+      this.logger.error(
+        'Refresh token error',
+        error instanceof Error ? error.stack : undefined,
+        'AuthService',
+      );
+      throw new UnauthorizedException(MESSAGES.AUTH.INVALID_REFRESH_TOKEN);
     }
   }
 
@@ -187,6 +238,8 @@ export class AuthService {
         where: { userId },
       });
     }
+
+    this.logger.log(`User logged out: ${userId}`, 'AuthService');
   }
 
   private async generateTokens(userId: string, email: string): Promise<AuthTokens> {

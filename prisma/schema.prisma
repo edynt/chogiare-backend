@@ -120,12 +120,12 @@ enum Language {
 // Core User Management - Authentication Tables
 model User {
   id             String   @id @default(uuid())
-  email          String   @unique
-  username       String?  @unique
-  hashedPassword String   @map("hashed_password")
+  email          String   @unique @db.VarChar(255)
+  username       String?  @unique @db.VarChar(50)
+  hashedPassword String   @map("hashed_password") @db.VarChar(255)
   isVerified     Boolean  @default(false) @map("is_verified")
   status         Boolean  @default(true)
-  language       String   @default("vi")
+  language       String   @default("vi") @db.VarChar(10)
   createdAt      BigInt   @map("created_at")
   updatedAt      BigInt   @map("updated_at")
 
@@ -157,7 +157,7 @@ model User {
 model Session {
   id           Int      @id @default(autoincrement())
   userId       String   @map("user_id")
-  refreshToken String   @map("refresh_token")
+  refreshToken String   @map("refresh_token") @db.VarChar(500)
   expiresAt    BigInt   @map("expires_at")
   createdAt    BigInt   @map("created_at")
 
@@ -171,7 +171,7 @@ model Session {
 model EmailVerification {
   id        Int      @id @default(autoincrement())
   userId    String   @map("user_id")
-  code      String
+  code      String   @db.VarChar(10)
   expiresAt BigInt   @map("expires_at")
   createdAt BigInt   @map("created_at")
 
@@ -185,7 +185,7 @@ model EmailVerification {
 model PasswordReset {
   id         Int      @id @default(autoincrement())
   userId     String   @map("user_id")
-  resetToken String   @map("reset_token")
+  resetToken String   @map("reset_token") @db.VarChar(500)
   expiresAt  BigInt   @map("expires_at")
   createdAt  BigInt   @map("created_at")
 
@@ -198,8 +198,8 @@ model PasswordReset {
 
 model Role {
   id          Int      @id @default(autoincrement())
-  name        String   @unique
-  description String?
+  name        String   @unique @db.VarChar(50)
+  description String?  @db.VarChar(500)
   createdAt   BigInt   @map("created_at")
 
   rolePermissions RolePermission[]
@@ -210,8 +210,8 @@ model Role {
 
 model Permission {
   id          Int      @id @default(autoincrement())
-  name        String   @unique
-  description String?
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.VarChar(500)
   createdAt   BigInt   @map("created_at")
 
   rolePermissions RolePermission[]
@@ -244,13 +244,13 @@ model UserRole {
 model UserInfo {
   id           Int      @id @default(autoincrement())
   userId       String   @unique @map("user_id")
-  fullName     String?  @map("full_name")
-  avatarUrl    String?  @map("avatar_url")
-  gender       String?
-  dateOfBirth  String?  @map("date_of_birth")
-  phoneNumber  String?  @map("phone_number")
-  address      String?
-  country      String?
+  fullName     String?  @map("full_name") @db.VarChar(255)
+  avatarUrl    String?  @map("avatar_url") @db.VarChar(500)
+  gender       String?  @db.VarChar(20)
+  dateOfBirth  String?  @map("date_of_birth") @db.VarChar(10)
+  phoneNumber  String?  @map("phone_number") @db.VarChar(20)
+  address      String?  @db.VarChar(500)
+  country      String?  @db.VarChar(100)
   createdAt    BigInt   @map("created_at")
   updatedAt    BigInt   @map("updated_at")
 
@@ -263,55 +263,55 @@ model UserInfo {
 model Store {
   id                        String   @id @default(uuid())
   userId                    String   @map("user_id")
-  name                      String
-  slug                      String   @unique
-  description               String?
-  shortDescription          String?  @map("short_description")
-  logo                      String?
-  banner                    String?
-  category                  String?
-  subcategory               String?
+  name                      String   @db.VarChar(255)
+  slug                      String   @unique @db.VarChar(255)
+  description               String?  @db.Text
+  shortDescription          String?  @map("short_description") @db.VarChar(500)
+  logo                      String?  @db.VarChar(500)
+  banner                    String?  @db.VarChar(500)
+  category                  String?  @db.VarChar(100)
+  subcategory               String?  @db.VarChar(100)
   establishedYear           Int?     @map("established_year")
-  businessType              String?  @map("business_type")
-  taxCode                   String?  @map("tax_code")
-  businessLicense           String?  @map("business_license")
-  addressStreet             String?  @map("address_street")
-  addressWard               String?  @map("address_ward")
-  addressDistrict           String?  @map("address_district")
-  addressCity               String?  @map("address_city")
-  addressPostalCode         String?  @map("address_postal_code")
+  businessType              String?  @map("business_type") @db.VarChar(50)
+  taxCode                   String?  @map("tax_code") @db.VarChar(50)
+  businessLicense           String?  @map("business_license") @db.VarChar(100)
+  addressStreet             String?  @map("address_street") @db.VarChar(255)
+  addressWard               String?  @map("address_ward") @db.VarChar(100)
+  addressDistrict           String?  @map("address_district") @db.VarChar(100)
+  addressCity               String?  @map("address_city") @db.VarChar(100)
+  addressPostalCode         String?  @map("address_postal_code") @db.VarChar(20)
   addressLat                Decimal? @map("address_lat") @db.Decimal
   addressLng                Decimal? @map("address_lng") @db.Decimal
-  contactPhone              String?  @map("contact_phone")
-  contactEmail              String?  @map("contact_email")
-  contactWebsite            String?  @map("contact_website")
-  contactFacebook           String?  @map("contact_facebook")
-  contactInstagram          String?  @map("contact_instagram")
-  contactTiktok             String?  @map("contact_tiktok")
-  contactYoutube            String?  @map("contact_youtube")
-  businessHoursMondayOpen   String?  @map("business_hours_monday_open")
-  businessHoursMondayClose  String?  @map("business_hours_monday_close")
+  contactPhone              String?  @map("contact_phone") @db.VarChar(20)
+  contactEmail              String?  @map("contact_email") @db.VarChar(255)
+  contactWebsite            String?  @map("contact_website") @db.VarChar(500)
+  contactFacebook           String?  @map("contact_facebook") @db.VarChar(500)
+  contactInstagram          String?  @map("contact_instagram") @db.VarChar(500)
+  contactTiktok             String?  @map("contact_tiktok") @db.VarChar(500)
+  contactYoutube            String?  @map("contact_youtube") @db.VarChar(500)
+  businessHoursMondayOpen   String?  @map("business_hours_monday_open") @db.VarChar(10)
+  businessHoursMondayClose  String?  @map("business_hours_monday_close") @db.VarChar(10)
   businessHoursMondayIsOpen Boolean? @map("business_hours_monday_is_open")
-  businessHoursTuesdayOpen  String?  @map("business_hours_tuesday_open")
-  businessHoursTuesdayClose String?  @map("business_hours_tuesday_close")
+  businessHoursTuesdayOpen  String?  @map("business_hours_tuesday_open") @db.VarChar(10)
+  businessHoursTuesdayClose String?  @map("business_hours_tuesday_close") @db.VarChar(10)
   businessHoursTuesdayIsOpen Boolean? @map("business_hours_tuesday_is_open")
-  businessHoursWednesdayOpen String? @map("business_hours_wednesday_open")
-  businessHoursWednesdayClose String? @map("business_hours_wednesday_close")
+  businessHoursWednesdayOpen String? @map("business_hours_wednesday_open") @db.VarChar(10)
+  businessHoursWednesdayClose String? @map("business_hours_wednesday_close") @db.VarChar(10)
   businessHoursWednesdayIsOpen Boolean? @map("business_hours_wednesday_is_open")
-  businessHoursThursdayOpen String? @map("business_hours_thursday_open")
-  businessHoursThursdayClose String? @map("business_hours_thursday_close")
+  businessHoursThursdayOpen String? @map("business_hours_thursday_open") @db.VarChar(10)
+  businessHoursThursdayClose String? @map("business_hours_thursday_close") @db.VarChar(10)
   businessHoursThursdayIsOpen Boolean? @map("business_hours_thursday_is_open")
-  businessHoursFridayOpen   String?  @map("business_hours_friday_open")
-  businessHoursFridayClose  String?  @map("business_hours_friday_close")
+  businessHoursFridayOpen   String?  @map("business_hours_friday_open") @db.VarChar(10)
+  businessHoursFridayClose  String?  @map("business_hours_friday_close") @db.VarChar(10)
   businessHoursFridayIsOpen Boolean? @map("business_hours_friday_is_open")
-  businessHoursSaturdayOpen String?  @map("business_hours_saturday_open")
-  businessHoursSaturdayClose String? @map("business_hours_saturday_close")
+  businessHoursSaturdayOpen String?  @map("business_hours_saturday_open") @db.VarChar(10)
+  businessHoursSaturdayClose String? @map("business_hours_saturday_close") @db.VarChar(10)
   businessHoursSaturdayIsOpen Boolean? @map("business_hours_saturday_is_open")
-  businessHoursSundayOpen   String?  @map("business_hours_sunday_open")
-  businessHoursSundayClose  String?  @map("business_hours_sunday_close")
+  businessHoursSundayOpen   String?  @map("business_hours_sunday_open") @db.VarChar(10)
+  businessHoursSundayClose  String?  @map("business_hours_sunday_close") @db.VarChar(10)
   businessHoursSundayIsOpen Boolean? @map("business_hours_sunday_is_open")
-  returnPolicy              String?  @map("return_policy")
-  shippingPolicy            String?  @map("shipping_policy")
+  returnPolicy              String?  @map("return_policy") @db.Text
+  shippingPolicy            String?  @map("shipping_policy") @db.Text
   rating                    Decimal  @default(0) @db.Decimal
   reviewCount               Int      @default(0) @map("review_count")
   productCount              Int      @default(0) @map("product_count")
@@ -333,10 +333,10 @@ model Store {
 // Category Management
 model Category {
   id           String     @id @default(uuid())
-  name         String
-  slug         String     @unique
-  description  String?
-  image        String?
+  name         String     @db.VarChar(255)
+  slug         String     @unique @db.VarChar(255)
+  description  String?    @db.Text
+  image        String?    @db.VarChar(500)
   parentId     String?    @map("parent_id")
   productCount Int        @default(0) @map("product_count")
   isActive     Boolean    @default(true) @map("is_active")
@@ -354,8 +354,8 @@ model Category {
 // Product Management
 model Product {
   id             String          @id @default(uuid())
-  title          String
-  description    String?
+  title          String          @db.VarChar(255)
+  description    String?         @db.Text
   price          Decimal         @db.Decimal
   originalPrice  Decimal?        @map("original_price") @db.Decimal
   categoryId     String          @map("category_id")
@@ -363,7 +363,7 @@ model Product {
   storeId        String?         @map("store_id")
   condition      ProductCondition
   tags           String[]
-  location       String?
+  location       String?         @db.VarChar(255)
   stock          Int             @default(0)
   minStock       Int             @default(0) @map("min_stock")
   maxStock       Int?            @map("max_stock")
@@ -373,11 +373,11 @@ model Product {
   sellingPrice   Decimal?        @map("selling_price") @db.Decimal
   profit         Decimal?        @db.Decimal
   profitMargin   Decimal?        @map("profit_margin") @db.Decimal
-  sku            String?          @unique
-  barcode        String?
+  sku            String?          @unique @db.VarChar(100)
+  barcode        String?         @db.VarChar(100)
   weight         Decimal?        @db.Decimal
-  dimensions     String?
-  supplier       String?
+  dimensions     String?         @db.VarChar(100)
+  supplier       String?         @db.VarChar(255)
   status         ProductStatus   @default(draft)
   badges         ProductBadge[]
   rating         Decimal         @default(0) @db.Decimal
@@ -411,7 +411,7 @@ model Product {
 model ProductImage {
   id           Int      @id @default(autoincrement())
   productId    String   @map("product_id")
-  imageUrl     String   @map("image_url")
+  imageUrl     String   @map("image_url") @db.VarChar(500)
   displayOrder Int      @default(0) @map("display_order")
   createdAt    BigInt   @map("created_at")
 
@@ -427,8 +427,8 @@ model StockInRecord {
   productId String   @map("product_id")
   quantity  Int
   costPrice Decimal? @map("cost_price") @db.Decimal
-  supplier  String?
-  notes     String?
+  supplier  String?  @db.VarChar(255)
+  notes     String?  @db.Text
   createdBy String?  @map("created_by")
   createdAt BigInt   @map("created_at")
 
@@ -442,8 +442,8 @@ model StockInRecord {
 model StockAlert {
   id        Int      @id @default(autoincrement())
   productId String   @map("product_id")
-  alertType String   @map("alert_type")
-  message   String?
+  alertType String   @map("alert_type") @db.VarChar(50)
+  message   String?  @db.VarChar(500)
   isRead    Boolean  @default(false) @map("is_read")
   createdAt BigInt   @map("created_at")
 
@@ -488,15 +488,15 @@ model CartItem {
 model Address {
   id            String   @id @default(uuid())
   userId        String   @map("user_id")
-  recipientName String   @map("recipient_name")
-  recipientPhone String  @map("recipient_phone")
-  street        String
-  city          String
-  state         String
-  district      String?
-  ward          String?
-  zipCode       String?  @map("zip_code")
-  country       String
+  recipientName String   @map("recipient_name") @db.VarChar(255)
+  recipientPhone String  @map("recipient_phone") @db.VarChar(20)
+  street        String   @db.VarChar(255)
+  city          String   @db.VarChar(100)
+  state         String   @db.VarChar(100)
+  district      String?  @db.VarChar(100)
+  ward          String?  @db.VarChar(100)
+  zipCode       String?  @map("zip_code") @db.VarChar(20)
+  country       String   @db.VarChar(100)
   isDefault     Boolean  @default(false) @map("is_default")
   createdAt     BigInt   @map("created_at")
   updatedAt     BigInt   @map("updated_at")
@@ -521,11 +521,11 @@ model Order {
   shipping        Decimal        @default(0) @db.Decimal
   discount        Decimal        @default(0) @db.Decimal
   total           Decimal        @db.Decimal
-  currency        String         @default("VND")
+  currency        String         @default("VND") @db.VarChar(10)
   shippingAddressId String?      @map("shipping_address_id")
   billingAddressId  String?      @map("billing_address_id")
-  notes           String?
-  sellerNotes     String?        @map("seller_notes")
+  notes           String?        @db.Text
+  sellerNotes     String?        @map("seller_notes") @db.Text
   createdAt       BigInt         @map("created_at")
   updatedAt       BigInt         @map("updated_at")
 
@@ -548,8 +548,8 @@ model OrderItem {
   id          String   @id @default(uuid())
   orderId     String   @map("order_id")
   productId   String   @map("product_id")
-  productName String   @map("product_name")
-  productImage String? @map("product_image")
+  productName String   @map("product_name") @db.VarChar(255)
+  productImage String? @map("product_image") @db.VarChar(500)
   price       Decimal  @db.Decimal
   quantity    Int
   subtotal    Decimal  @db.Decimal
@@ -567,10 +567,10 @@ model OrderItem {
 model Shipping {
   id                String   @id @default(uuid())
   orderId           String   @unique @map("order_id")
-  trackingNumber    String?  @unique @map("tracking_number")
-  carrier           String?
-  status            String?
-  currentLocation   String?  @map("current_location")
+  trackingNumber    String?  @unique @map("tracking_number") @db.VarChar(100)
+  carrier           String?  @db.VarChar(100)
+  status            String?  @db.VarChar(50)
+  currentLocation   String?  @map("current_location") @db.VarChar(255)
   estimatedDelivery BigInt?  @map("estimated_delivery")
   createdAt         BigInt   @map("created_at")
   updatedAt         BigInt   @map("updated_at")
@@ -586,9 +586,9 @@ model Shipping {
 model ShippingHistory {
   id          Int      @id @default(autoincrement())
   shippingId  String   @map("shipping_id")
-  status      String
-  location    String?
-  description String?
+  status      String   @db.VarChar(50)
+  location    String?  @db.VarChar(255)
+  description String?  @db.VarChar(500)
   timestamp   BigInt
 
   shipping Shipping @relation(fields: [shippingId], references: [id], onDelete: Cascade)
@@ -604,8 +604,8 @@ model Review {
   userId       String   @map("user_id")
   orderId      String?  @map("order_id")
   rating       Int
-  title        String?
-  comment      String?
+  title        String?  @db.VarChar(255)
+  comment      String?  @db.Text
   images       String[]
   isVerified   Boolean  @default(false) @map("is_verified")
   helpfulCount Int      @default(0) @map("helpful_count")
@@ -638,11 +638,11 @@ model ReviewHelpful {
 
 // Boost/Promotion Management
 model BoostPackage {
-  id                    String    @id
-  name                  String
+  id                    String    @id @db.VarChar(50)
+  name                  String    @db.VarChar(255)
   type                  BoostType
   price                 Decimal   @db.Decimal
-  description           String?
+  description           String?   @db.Text
   configViews           Int?      @map("config_views")
   configDays             Int?      @map("config_days")
   configShowInBanner    Boolean?  @map("config_show_in_banner")
@@ -687,11 +687,11 @@ model Transaction {
   userId        String          @map("user_id")
   type          TransactionType
   amount        Decimal         @db.Decimal
-  currency      String          @default("VND")
-  status        String
+  currency      String          @default("VND") @db.VarChar(10)
+  status        String          @db.VarChar(50)
   paymentMethod PaymentMethod?  @map("payment_method")
-  reference     String?
-  description   String?
+  reference     String?         @db.VarChar(255)
+  description   String?         @db.VarChar(500)
   orderId       String?         @map("order_id")
   boostId       String?         @map("boost_id")
   createdAt     BigInt          @map("created_at")
@@ -722,7 +722,7 @@ model UserBalance {
 model Conversation {
   id        String   @id @default(uuid())
   type      ConversationType @default(direct)
-  title     String?
+  title     String?  @db.VarChar(255)
   createdAt BigInt   @map("created_at")
   updatedAt BigInt   @map("updated_at")
 
@@ -736,7 +736,7 @@ model ConversationParticipant {
   id             Int      @id @default(autoincrement())
   conversationId String   @map("conversation_id")
   userId         String   @map("user_id")
-  role           String?
+  role           String?  @db.VarChar(50)
   joinedAt       BigInt   @map("joined_at")
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
@@ -752,7 +752,7 @@ model ChatMessage {
   conversationId String      @map("conversation_id")
   senderId       String      @map("sender_id")
   messageType    MessageType @default(text) @map("message_type")
-  content        String
+  content        String      @db.Text
   attachments    String[]
   isRead         Boolean     @default(false) @map("is_read")
   createdAt      BigInt      @map("created_at")
@@ -771,9 +771,9 @@ model Notification {
   id        String          @id @default(uuid())
   userId    String          @map("user_id")
   type      NotificationType
-  title     String
-  message   String
-  actionUrl String?         @map("action_url")
+  title     String          @db.VarChar(255)
+  message   String          @db.VarChar(1000)
+  actionUrl String?         @map("action_url") @db.VarChar(500)
   isRead    Boolean         @default(false) @map("is_read")
   createdAt BigInt          @map("created_at")
 
