@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { ConfigModule } from '@common/config/config.module';
 import { DatabaseModule } from '@common/database/database.module';
-import { SupabaseModule } from '@common/database/supabase.module';
 import { LoggerModule } from '@common/logger/logger.module';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { HeaderValidationGuard } from '@common/guards/header-validation.guard';
@@ -21,7 +20,6 @@ import { OrderModule } from '@modules/order/order.module';
   imports: [
     ConfigModule,
     DatabaseModule,
-    SupabaseModule,
     LoggerModule,
     AuthModule,
     CategoryModule,

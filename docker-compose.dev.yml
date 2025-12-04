@@ -15,7 +15,7 @@ services:
       - "9229:9229" # Debug port
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/chogiare}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/chogiare?schema=public}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
       - JWT_SECRET=${JWT_SECRET:-dev-secret-key-change-in-production}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-1h}

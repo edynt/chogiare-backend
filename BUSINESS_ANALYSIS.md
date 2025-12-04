@@ -230,8 +230,8 @@ if (quantity >= MOQ) {
 - GHTK (Giao Hàng Tiết Kiệm) API
 
 ### 7.3. Storage
-- Supabase Storage (images, files)
-- CDN cho delivery
+- Local file storage (images, files)
+- CDN cho delivery (can be extended with Cloud Storage)
 
 ### 7.4. Email/SMS
 - SendGrid / AWS SES (email)

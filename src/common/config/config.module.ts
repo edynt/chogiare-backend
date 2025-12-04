@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
-import supabaseConfig from './supabase.config';
 import jwtConfig from './jwt.config';
 import appConfig from './app.config';
 
@@ -9,7 +8,7 @@ import appConfig from './app.config';
     NestConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
-      load: [supabaseConfig, jwtConfig, appConfig],
+      load: [jwtConfig, appConfig],
     }),
   ],
   exports: [NestConfigModule],

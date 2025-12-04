@@ -29,7 +29,7 @@ Hệ thống được thiết kế theo **Clean Architecture** kết hợp với
                     ↓
 ┌─────────────────────────────────────────┐
 │      Infrastructure Layer               │
-│  (Prisma, Redis, Supabase, External)    │
+│  (Prisma, Redis, PostgreSQL, External)  │
 └─────────────────────────────────────────┘
 ```
 
@@ -55,9 +55,9 @@ Hệ thống được thiết kế theo **Clean Architecture** kết hợp với
 ### 2.4. Infrastructure Layer
 - **Repositories**: Prisma implementations
 - **Cache**: Redis implementations
-- **Storage**: Supabase Storage
+- **Storage**: Local file storage (can be extended to S3/Cloud Storage)
 - **External Services**: Payment, Shipping APIs
-- **Database**: Prisma Client
+- **Database**: Prisma Client with PostgreSQL
 
 ## 3. Module Structure
 
@@ -89,18 +89,17 @@ modules/
 - **Framework**: NestJS (Node.js)
 - **Language**: TypeScript
 - **ORM**: Prisma (latest)
-- **Database**: Supabase PostgreSQL
+- **Database**: PostgreSQL (local or remote)
 - **Cache**: Redis
 - **Queue**: Redis (BullMQ)
 
 ### 4.2. Authentication
 - **JWT**: Access tokens
-- **Supabase Auth**: Optional (có thể dùng thay JWT)
 - **Refresh Tokens**: Database storage
 
 ### 4.3. Storage
-- **Supabase Storage**: Images, files
-- **CDN**: Supabase CDN
+- **Local Storage**: Images, files stored locally
+- **CDN**: Can be extended with Cloud Storage (S3, Cloudinary, etc.)
 
 ### 4.4. External Services
 - **Payment**: MoMo, ZaloPay, Stripe, PayPal
@@ -116,7 +115,7 @@ modules/
 ## 5. Database Design
 
 ### 5.1. Database Choice
-- **Primary**: Supabase PostgreSQL
+- **Primary**: PostgreSQL (local or remote)
 - **Cache**: Redis
 - **Queue**: Redis (BullMQ)
 
