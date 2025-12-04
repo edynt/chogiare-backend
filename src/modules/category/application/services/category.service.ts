@@ -39,7 +39,7 @@ export class CategoryService {
     }
 
     // Check parent category if provided
-    if (createCategoryDto.parentId) {
+    if (createCategoryDto.parentId !== undefined && createCategoryDto.parentId !== null) {
       const parent = await this.categoryRepository.findById(
         createCategoryDto.parentId,
       );
@@ -48,11 +48,9 @@ export class CategoryService {
       }
     }
 
-    const now = BigInt(Date.now());
     const category = await this.categoryRepository.create({
       ...createCategoryDto,
-      productCount: 0,
-      createdAt: now,
+      isActive: createCategoryDto.isActive ?? true,
     });
 
     this.logger.log(`Category created: ${category.id}`, 'CategoryService', {
@@ -130,7 +128,7 @@ export class CategoryService {
     }
 
     // Check parent category if provided
-    if (updateCategoryDto.parentId) {
+    if (updateCategoryDto.parentId !== undefined && updateCategoryDto.parentId !== null) {
       if (updateCategoryDto.parentId === id) {
         throw new ConflictException(MESSAGES.CATEGORY.CANNOT_BE_OWN_PARENT);
       }

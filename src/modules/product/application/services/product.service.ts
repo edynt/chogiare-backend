@@ -94,21 +94,14 @@ export class ProductService {
       sellerId,
       stock,
       minStock,
-      reservedStock: 0,
-      availableStock: stock,
+      tags: createProductDto.tags || [],
       status: createProductDto.status || ProductStatus.DRAFT,
       badges: createProductDto.badges || [],
-      rating: 0,
-      reviewCount: 0,
-      viewCount: 0,
-      salesCount: 0,
       isFeatured: false,
       isPromoted: false,
       isActive: createProductDto.isActive ?? true,
       profit,
       profitMargin,
-      createdAt: now,
-      updatedAt: now,
     });
 
     // Add images
@@ -245,6 +238,7 @@ export class ProductService {
     // Calculate profit if costPrice or price is updated
     let profit: number | undefined;
     let profitMargin: number | undefined;
+    const updateData: Partial<Product> = { ...updateProductDto };
     if (updateProductDto.costPrice !== undefined || updateProductDto.price !== undefined) {
       const costPrice = updateProductDto.costPrice ?? product.costPrice;
       const price = updateProductDto.price ?? product.price;
@@ -252,8 +246,8 @@ export class ProductService {
         profit = price - costPrice;
         profitMargin = (profit / costPrice) * 100;
       }
-      updateProductDto.profit = profit;
-      updateProductDto.profitMargin = profitMargin;
+      updateData.profit = profit;
+      updateData.profitMargin = profitMargin;
     }
 
     // Update images if provided
@@ -269,7 +263,7 @@ export class ProductService {
       }
     }
 
-    const updated = await this.productRepository.update(id, updateProductDto);
+    const updated = await this.productRepository.update(id, updateData);
 
     this.logger.log(`Product updated: ${id}`, 'ProductService', {
       productId: id,

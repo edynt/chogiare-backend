@@ -146,8 +146,6 @@ export class OrderService {
       shippingAddressId: createOrderDto.shippingAddressId,
       billingAddressId: createOrderDto.billingAddressId,
       notes: createOrderDto.notes,
-      createdAt: now,
-      updatedAt: now,
     });
 
     // Create order items
@@ -167,7 +165,7 @@ export class OrderService {
       });
     }
 
-    return this.findOne(order.id);
+    return this.findOne(order.id, userId);
   }
 
   async findAll(

@@ -4,7 +4,9 @@ import {
   MaxLength,
   Matches,
   IsBoolean,
+  IsInt,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { VALIDATION_MESSAGES } from '@common/constants/messages.constants';
 
 export class UpdateCategoryDto {
@@ -32,9 +34,10 @@ export class UpdateCategoryDto {
   @Matches(/^https?:\/\/.+/, { message: VALIDATION_MESSAGES.IS_URL })
   image?: string;
 
-  @IsString({ message: VALIDATION_MESSAGES.IS_STRING })
+  @IsInt({ message: VALIDATION_MESSAGES.IS_STRING })
   @IsOptional()
-  parentId?: string;
+  @Type(() => Number)
+  parentId?: number;
 
   @IsBoolean({ message: VALIDATION_MESSAGES.IS_BOOLEAN })
   @IsOptional()

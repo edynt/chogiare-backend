@@ -1,4 +1,4 @@
-import { IsOptional, IsEnum, IsInt, Min, Max, IsString } from 'class-validator';
+import { IsOptional, IsEnum, IsInt, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { OrderStatus, PaymentStatus } from '../../domain/entities/order.entity';
 import { VALIDATION_MESSAGES } from '@common/constants/messages.constants';
@@ -12,9 +12,10 @@ export class QueryOrderDto {
   @IsOptional()
   paymentStatus?: PaymentStatus;
 
-  @IsString({ message: VALIDATION_MESSAGES.STORE_ID.IS_STRING })
+  @IsInt({ message: VALIDATION_MESSAGES.STORE_ID.IS_STRING })
   @IsOptional()
-  storeId?: string;
+  @Type(() => Number)
+  storeId?: number;
 
   @IsInt({ message: VALIDATION_MESSAGES.PAGE.IS_INT })
   @IsOptional()

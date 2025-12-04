@@ -26,9 +26,13 @@ export class AddressService {
     userId: number,
     createAddressDto: CreateAddressDto,
   ): Promise<Address> {
-    // If setting as default, unset other default addresses
+    // If setting as default, unset other default addresses first
     if (createAddressDto.isDefault) {
-      await this.addressRepository.setAsDefault('', userId);
+      // Unset all default addresses for this user
+      const defaultAddresses = await this.addressRepository.findByUserId(userId);
+      for (const addr of defaultAddresses.filter(a => a.isDefault)) {
+        await this.addressRepository.update(addr.id, { isDefault: false });
+      }
     }
 
     const now = BigInt(Date.now());
@@ -85,9 +89,13 @@ export class AddressService {
       throw new ForbiddenException(MESSAGES.ADDRESS.CANNOT_UPDATE);
     }
 
-    // If setting as default, unset other default addresses
+    // If setting as default, unset other default addresses first
     if (updateAddressDto.isDefault) {
-      await this.addressRepository.setAsDefault('', userId);
+      // Unset all default addresses for this user
+      const defaultAddresses = await this.addressRepository.findByUserId(userId);
+      for (const addr of defaultAddresses.filter(a => a.isDefault && a.id !== id)) {
+        await this.addressRepository.update(addr.id, { isDefault: false });
+      }
     }
 
     return this.addressRepository.update(id, updateAddressDto);

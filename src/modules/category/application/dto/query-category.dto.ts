@@ -1,11 +1,12 @@
-import { IsOptional, IsString, IsBoolean, IsInt, Min, Max } from 'class-validator';
+import { IsOptional, IsBoolean, IsInt, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { VALIDATION_MESSAGES } from '@common/constants/messages.constants';
 
 export class QueryCategoryDto {
-  @IsString({ message: VALIDATION_MESSAGES.PARENT_ID.IS_STRING })
+  @IsInt({ message: VALIDATION_MESSAGES.PARENT_ID.IS_STRING })
   @IsOptional()
-  parentId?: string;
+  @Type(() => Number)
+  parentId?: number;
 
   @IsBoolean({ message: VALIDATION_MESSAGES.IS_ACTIVE.IS_BOOLEAN })
   @IsOptional()
