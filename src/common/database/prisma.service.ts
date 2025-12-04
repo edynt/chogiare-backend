@@ -1,40 +1,43 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
+
+function createPrismaClientConfig(databaseUrl: string) {
+  const logConfig = [
+    { emit: 'event' as const, level: 'query' as const },
+    { emit: 'stdout' as const, level: 'error' as const },
+    { emit: 'stdout' as const, level: 'info' as const },
+    { emit: 'stdout' as const, level: 'warn' as const },
+  ];
+
+  // Check if using Prisma Accelerate
+  if (databaseUrl.startsWith('prisma+')) {
+    return {
+      log: logConfig,
+      errorFormat: 'pretty' as const,
+      accelerateUrl: databaseUrl,
+    };
+  }
+
+  // Direct connection - use adapter for Prisma 7
+  const pool = new Pool({ connectionString: databaseUrl });
+  const adapter = new PrismaPg(pool);
+  return {
+    adapter,
+    log: logConfig,
+    errorFormat: 'pretty' as const,
+  };
+}
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
 
-  constructor(private configService: ConfigService) {
-    // Prisma Client will automatically use DATABASE_URL from environment
-    // No need to pass config unless using Accelerate
+  constructor(configService: ConfigService) {
     const databaseUrl = configService.get<string>('DATABASE_URL') || '';
-    
-    // Check if using Prisma Accelerate
-    if (databaseUrl.startsWith('prisma+')) {
-      super({
-        log: [
-          { emit: 'event', level: 'query' },
-          { emit: 'stdout', level: 'error' },
-          { emit: 'stdout', level: 'info' },
-          { emit: 'stdout', level: 'warn' },
-        ],
-        errorFormat: 'pretty',
-        accelerateUrl: databaseUrl,
-      });
-    } else {
-      // Direct connection - use default config
-      super({
-        log: [
-          { emit: 'event', level: 'query' },
-          { emit: 'stdout', level: 'error' },
-          { emit: 'stdout', level: 'info' },
-          { emit: 'stdout', level: 'warn' },
-        ],
-        errorFormat: 'pretty',
-      });
-    }
+    super(createPrismaClientConfig(databaseUrl));
   }
 
   async onModuleInit() {

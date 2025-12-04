@@ -1,17 +1,21 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
 
-const prisma = new PrismaClient();
+// Setup Prisma 7 + Postgres adapter
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+const adapter = new PrismaPg(pool);
 
-/**
- * Seeder để tạo tài khoản admin
- * Chạy: npm run seed:admin hoặc ts-node prisma/seed-admin.ts
- */
+const prisma = new PrismaClient({ adapter });
+
 async function seedAdmin() {
   console.log('🌱 Starting admin seeder...');
 
   try {
-    // Tạo role admin nếu chưa có
     console.log('Creating admin role...');
     const adminRole = await prisma.role.upsert({
       where: { name: 'admin' },
@@ -23,7 +27,6 @@ async function seedAdmin() {
       },
     });
 
-    // Tạo admin user
     console.log('Creating admin user...');
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@chogiare.com';
     const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
@@ -53,7 +56,6 @@ async function seedAdmin() {
       },
     });
 
-    // Gán role admin cho user
     console.log('Assigning admin role...');
     await prisma.userRole.upsert({
       where: {
@@ -69,7 +71,6 @@ async function seedAdmin() {
       },
     });
 
-    // Tạo UserInfo cho admin
     console.log('Creating admin user info...');
     await prisma.userInfo.upsert({
       where: { userId: adminUser.id },
@@ -90,14 +91,6 @@ async function seedAdmin() {
     });
 
     console.log('✅ Admin seeder completed successfully!');
-    console.log('\n📝 Admin Account:');
-    console.log(`Email: ${adminEmail}`);
-    console.log(`Username: ${adminUsername}`);
-    console.log(`Password: ${adminPassword}`);
-    console.log(`\n💡 Tip: Bạn có thể thay đổi thông tin đăng nhập bằng cách set các biến môi trường:`);
-    console.log(`   ADMIN_EMAIL=your-email@example.com`);
-    console.log(`   ADMIN_PASSWORD=your-password`);
-    console.log(`   ADMIN_USERNAME=your-username`);
   } catch (error) {
     console.error('❌ Admin seeder failed:', error);
     throw error;
@@ -111,5 +104,5 @@ seedAdmin()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await pool.end();
   });
-
