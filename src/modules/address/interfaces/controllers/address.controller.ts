@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { AddressService } from '../../application/services/address.service';
 import { CreateAddressDto } from '../../application/dto/create-address.dto';
@@ -24,34 +25,34 @@ export class AddressController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(
-    @CurrentUser('id') userId: string,
+    @CurrentUser('id') userId: number,
     @Body() createAddressDto: CreateAddressDto,
   ) {
     return this.addressService.create(userId, createAddressDto);
   }
 
   @Get()
-  findAll(@CurrentUser('id') userId: string) {
+  findAll(@CurrentUser('id') userId: number) {
     return this.addressService.findAll(userId);
   }
 
   @Get('default')
-  findDefault(@CurrentUser('id') userId: string) {
+  findDefault(@CurrentUser('id') userId: number) {
     return this.addressService.findDefault(userId);
   }
 
   @Get(':id')
   findOne(
-    @Param('id') id: string,
-    @CurrentUser('id') userId: string,
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
   ) {
     return this.addressService.findOne(id, userId);
   }
 
   @Patch(':id')
   update(
-    @Param('id') id: string,
-    @CurrentUser('id') userId: string,
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
     @Body() updateAddressDto: UpdateAddressDto,
   ) {
     return this.addressService.update(id, userId, updateAddressDto);
@@ -59,8 +60,8 @@ export class AddressController {
 
   @Patch(':id/set-default')
   setAsDefault(
-    @Param('id') id: string,
-    @CurrentUser('id') userId: string,
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
   ) {
     return this.addressService.setAsDefault(id, userId);
   }
@@ -68,8 +69,8 @@ export class AddressController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
-    @Param('id') id: string,
-    @CurrentUser('id') userId: string,
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
   ) {
     return this.addressService.remove(id, userId);
   }

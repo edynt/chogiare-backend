@@ -24,7 +24,7 @@ export class CartService {
     private readonly logger: LoggerService,
   ) {}
 
-  async getCart(userId: string): Promise<Cart> {
+  async getCart(userId: number): Promise<Cart> {
     let cart = await this.cartRepository.findByUserId(userId);
     if (!cart) {
       cart = await this.cartRepository.create(userId);
@@ -59,7 +59,7 @@ export class CartService {
     return this.toDomain(cartWithItems);
   }
 
-  async addItem(userId: string, addCartItemDto: AddCartItemDto): Promise<CartItem> {
+  async addItem(userId: number, addCartItemDto: AddCartItemDto): Promise<CartItem> {
     // Get or create cart
     let cart = await this.cartRepository.findByUserId(userId);
     if (!cart) {
@@ -108,8 +108,8 @@ export class CartService {
   }
 
   async updateItem(
-    userId: string,
-    itemId: string,
+    userId: number,
+    itemId: number,
     updateCartItemDto: UpdateCartItemDto,
   ): Promise<CartItem> {
     // Verify item belongs to user's cart
@@ -139,7 +139,7 @@ export class CartService {
     return this.cartRepository.updateItemQuantity(itemId, updateCartItemDto.quantity);
   }
 
-  async removeItem(userId: string, itemId: string): Promise<void> {
+  async removeItem(userId: number, itemId: number): Promise<void> {
     // Verify item belongs to user's cart
     const item = await this.cartRepository.findItemById(itemId);
     if (!item) {
@@ -159,7 +159,7 @@ export class CartService {
     });
   }
 
-  async clearCart(userId: string): Promise<void> {
+  async clearCart(userId: number): Promise<void> {
     const cart = await this.cartRepository.findByUserId(userId);
     if (!cart) {
       return;
@@ -168,7 +168,7 @@ export class CartService {
     await this.cartRepository.clearCart(cart.id);
   }
 
-  async getCartStats(userId: string): Promise<{
+  async getCartStats(userId: number): Promise<{
     totalItems: number;
     totalValue: number;
     uniqueProducts: number;

@@ -30,7 +30,7 @@ export class ProductService {
   ) {}
 
   async create(
-    sellerId: string,
+    sellerId: number,
     createProductDto: CreateProductDto,
   ): Promise<Product> {
     // Validate category exists
@@ -190,7 +190,7 @@ export class ProductService {
     };
   }
 
-  async findOne(id: string): Promise<Product> {
+  async findOne(id: number): Promise<Product> {
     const product = await this.productRepository.findById(id);
     if (!product) {
       throw new NotFoundException(MESSAGES.PRODUCT.NOT_FOUND);
@@ -198,13 +198,13 @@ export class ProductService {
     return product;
   }
 
-  async incrementView(id: string): Promise<void> {
+  async incrementView(id: number): Promise<void> {
     await this.productRepository.incrementViewCount(id);
   }
 
   async update(
-    id: string,
-    sellerId: string,
+    id: number,
+    sellerId: number,
     updateProductDto: UpdateProductDto,
     isAdmin: boolean = false,
   ): Promise<Product> {
@@ -280,8 +280,8 @@ export class ProductService {
   }
 
   async updateStock(
-    id: string,
-    sellerId: string,
+    id: number,
+    sellerId: number,
     updateStockDto: UpdateStockDto,
   ): Promise<Product> {
     const product = await this.productRepository.findById(id);
@@ -327,8 +327,8 @@ export class ProductService {
   }
 
   async updateStatus(
-    id: string,
-    sellerId: string,
+    id: number,
+    sellerId: number,
     updateStatusDto: UpdateStatusDto,
     isAdmin: boolean = false,
   ): Promise<Product> {
@@ -360,7 +360,7 @@ export class ProductService {
     return updated;
   }
 
-  async remove(id: string, sellerId: string, isAdmin: boolean = false): Promise<void> {
+  async remove(id: number, sellerId: number, isAdmin: boolean = false): Promise<void> {
     const product = await this.productRepository.findById(id);
     if (!product) {
       throw new NotFoundException(MESSAGES.PRODUCT.NOT_FOUND);
@@ -404,7 +404,7 @@ export class ProductService {
   }
 
   async getMyProducts(
-    sellerId: string,
+    sellerId: number,
     queryDto: QueryProductDto,
   ): Promise<{
     data: Product[];
@@ -442,7 +442,7 @@ export class ProductService {
   }
 
   private async createStockAlert(
-    productId: string,
+    productId: number,
     alertType: string,
     message: string,
   ): Promise<void> {

@@ -5,41 +5,37 @@ import {
   IsEnum,
   IsArray,
   ValidateNested,
-  IsUUID,
+  IsInt,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PaymentMethod } from '../../domain/entities/order.entity';
 import { VALIDATION_MESSAGES } from '@common/constants/messages.constants';
 
 class OrderItemDto {
-  @IsString({ message: VALIDATION_MESSAGES.PRODUCT_ID.IS_STRING })
+  @IsInt({ message: VALIDATION_MESSAGES.PRODUCT_ID.IS_STRING })
   @IsNotEmpty({ message: VALIDATION_MESSAGES.PRODUCT_ID.IS_REQUIRED })
-  @IsUUID('4', { message: VALIDATION_MESSAGES.PRODUCT_ID.IS_UUID })
-  productId: string;
+  productId: number;
 
   @IsNotEmpty({ message: VALIDATION_MESSAGES.QUANTITY.IS_REQUIRED })
   quantity: number;
 }
 
 export class CreateOrderDto {
-  @IsString({ message: VALIDATION_MESSAGES.STORE_ID.IS_STRING })
+  @IsInt({ message: VALIDATION_MESSAGES.STORE_ID.IS_STRING })
   @IsNotEmpty({ message: VALIDATION_MESSAGES.STORE_ID.IS_REQUIRED })
-  @IsUUID('4', { message: VALIDATION_MESSAGES.IS_UUID })
-  storeId: string;
+  storeId: number;
 
   @IsEnum(PaymentMethod, { message: VALIDATION_MESSAGES.PAYMENT_METHOD.IS_INVALID })
   @IsOptional()
   paymentMethod?: PaymentMethod;
 
-  @IsString({ message: VALIDATION_MESSAGES.SHIPPING_ADDRESS_ID.IS_STRING })
+  @IsInt({ message: VALIDATION_MESSAGES.SHIPPING_ADDRESS_ID.IS_STRING })
   @IsNotEmpty({ message: VALIDATION_MESSAGES.SHIPPING_ADDRESS_ID.IS_REQUIRED })
-  @IsUUID('4', { message: VALIDATION_MESSAGES.SHIPPING_ADDRESS_ID.IS_UUID })
-  shippingAddressId: string;
+  shippingAddressId: number;
 
-  @IsString({ message: VALIDATION_MESSAGES.BILLING_ADDRESS_ID.IS_STRING })
+  @IsInt({ message: VALIDATION_MESSAGES.BILLING_ADDRESS_ID.IS_STRING })
   @IsOptional()
-  @IsUUID('4', { message: VALIDATION_MESSAGES.BILLING_ADDRESS_ID.IS_UUID })
-  billingAddressId?: string;
+  billingAddressId?: number;
 
   @IsString({ message: VALIDATION_MESSAGES.NOTES.IS_STRING })
   @IsOptional()

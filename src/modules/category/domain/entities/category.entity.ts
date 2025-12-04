@@ -1,10 +1,10 @@
 export class Category {
-  id: string;
+  id: number;
   name: string;
   slug: string;
   description?: string;
   image?: string;
-  parentId?: string;
+  parentId?: number;
   productCount: number;
   isActive: boolean;
   createdAt: bigint;

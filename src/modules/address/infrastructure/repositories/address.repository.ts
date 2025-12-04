@@ -10,7 +10,7 @@ import { Address } from '../../domain/entities/address.entity';
 export class AddressRepository implements IAddressRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findById(id: string): Promise<Address | null> {
+  async findById(id: number): Promise<Address | null> {
     const address = await this.prisma.address.findUnique({
       where: { id },
     });
@@ -18,7 +18,7 @@ export class AddressRepository implements IAddressRepository {
     return address ? this.toDomain(address) : null;
   }
 
-  async findByUserId(userId: string): Promise<Address[]> {
+  async findByUserId(userId: number): Promise<Address[]> {
     const addresses = await this.prisma.address.findMany({
       where: { userId },
       orderBy: [
@@ -30,7 +30,7 @@ export class AddressRepository implements IAddressRepository {
     return addresses.map((a) => this.toDomain(a));
   }
 
-  async findDefaultByUserId(userId: string): Promise<Address | null> {
+  async findDefaultByUserId(userId: number): Promise<Address | null> {
     const address = await this.prisma.address.findFirst({
       where: {
         userId,
@@ -66,7 +66,7 @@ export class AddressRepository implements IAddressRepository {
     return this.toDomain(address);
   }
 
-  async update(id: string, data: Partial<Address>): Promise<Address> {
+  async update(id: number, data: Partial<Address>): Promise<Address> {
     const now = BigInt(Date.now());
     const address = await this.prisma.address.update({
       where: { id },
@@ -88,13 +88,13 @@ export class AddressRepository implements IAddressRepository {
     return this.toDomain(address);
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: number): Promise<void> {
     await this.prisma.address.delete({
       where: { id },
     });
   }
 
-  async setAsDefault(id: string, userId: string): Promise<void> {
+  async setAsDefault(id: number, userId: number): Promise<void> {
     // First, unset all default addresses for this user
     await this.prisma.address.updateMany({
       where: {

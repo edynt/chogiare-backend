@@ -35,7 +35,7 @@ export class StoreService {
       .replace(/(^-|-$)/g, '');
   }
 
-  async create(userId: string, createStoreDto: CreateStoreDto): Promise<Store> {
+  async create(userId: number, createStoreDto: CreateStoreDto): Promise<Store> {
     // Check if user already has a store
     const existingStore = await this.storeRepository.findByUserId(userId);
     if (existingStore) {
@@ -111,7 +111,7 @@ export class StoreService {
     };
   }
 
-  async findOne(id: string): Promise<Store> {
+  async findOne(id: number): Promise<Store> {
     const store = await this.storeRepository.findById(id);
     if (!store) {
       throw new NotFoundException(MESSAGES.STORE.NOT_FOUND);
@@ -127,7 +127,7 @@ export class StoreService {
     return store;
   }
 
-  async findMyStore(userId: string): Promise<Store> {
+  async findMyStore(userId: number): Promise<Store> {
     const store = await this.storeRepository.findByUserId(userId);
     if (!store) {
       throw new NotFoundException(MESSAGES.STORE.NOT_FOUND);
@@ -136,8 +136,8 @@ export class StoreService {
   }
 
   async update(
-    id: string,
-    userId: string,
+    id: number,
+    userId: number,
     updateStoreDto: UpdateStoreDto,
     isAdmin: boolean = false,
   ): Promise<Store> {
@@ -180,7 +180,7 @@ export class StoreService {
     return this.storeRepository.update(id, updateStoreDto);
   }
 
-  async remove(id: string, userId: string, isAdmin: boolean = false): Promise<void> {
+  async remove(id: number, userId: number, isAdmin: boolean = false): Promise<void> {
     const store = await this.storeRepository.findById(id);
     if (!store) {
       throw new NotFoundException(MESSAGES.STORE.NOT_FOUND);

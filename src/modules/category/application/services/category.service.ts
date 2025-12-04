@@ -94,7 +94,7 @@ export class CategoryService {
     };
   }
 
-  async findOne(id: string): Promise<Category> {
+  async findOne(id: number): Promise<Category> {
     const category = await this.categoryRepository.findById(id);
     if (!category) {
       throw new NotFoundException(MESSAGES.CATEGORY.NOT_FOUND);
@@ -111,7 +111,7 @@ export class CategoryService {
   }
 
   async update(
-    id: string,
+    id: number,
     updateCategoryDto: UpdateCategoryDto,
   ): Promise<Category> {
     const category = await this.categoryRepository.findById(id);
@@ -149,7 +149,7 @@ export class CategoryService {
     return updated;
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: number): Promise<void> {
     const category = await this.categoryRepository.findById(id);
     if (!category) {
       throw new NotFoundException(MESSAGES.CATEGORY.NOT_FOUND);

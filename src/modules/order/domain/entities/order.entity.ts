@@ -23,9 +23,9 @@ export enum PaymentMethod {
 }
 
 export class Order {
-  id: string;
-  userId: string;
-  storeId: string;
+  id: number;
+  userId: number;
+  storeId: number;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
   paymentMethod?: PaymentMethod;
@@ -35,8 +35,8 @@ export class Order {
   discount: number;
   total: number;
   currency: string;
-  shippingAddressId?: string;
-  billingAddressId?: string;
+  shippingAddressId?: number;
+  billingAddressId?: number;
   notes?: string;
   sellerNotes?: string;
   createdAt: bigint;
@@ -45,9 +45,9 @@ export class Order {
 }
 
 export class OrderItem {
-  id: string;
-  orderId: string;
-  productId: string;
+  id: number;
+  orderId: number;
+  productId: number;
   productName: string;
   productImage?: string;
   price: number;

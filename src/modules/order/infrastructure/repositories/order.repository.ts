@@ -10,7 +10,7 @@ import { Order, OrderStatus, PaymentStatus } from '../../domain/entities/order.e
 export class OrderRepository implements IOrderRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findById(id: string): Promise<Order | null> {
+  async findById(id: number): Promise<Order | null> {
     const order = await this.prisma.order.findUnique({
       where: { id },
       include: {
@@ -24,7 +24,7 @@ export class OrderRepository implements IOrderRepository {
   }
 
   async findByUserId(
-    userId: string,
+    userId: number,
     options?: {
       status?: OrderStatus;
       paymentStatus?: PaymentStatus;
@@ -59,7 +59,7 @@ export class OrderRepository implements IOrderRepository {
   }
 
   async findByStoreId(
-    storeId: string,
+    storeId: number,
     options?: {
       status?: OrderStatus;
       paymentStatus?: PaymentStatus;
@@ -122,7 +122,7 @@ export class OrderRepository implements IOrderRepository {
     return this.toDomain(order);
   }
 
-  async update(id: string, data: Partial<Order>): Promise<Order> {
+  async update(id: number, data: Partial<Order>): Promise<Order> {
     const now = BigInt(Date.now());
     const order = await this.prisma.order.update({
       where: { id },
@@ -144,7 +144,7 @@ export class OrderRepository implements IOrderRepository {
     return this.toDomain(order);
   }
 
-  async updateStatus(id: string, status: OrderStatus): Promise<Order> {
+  async updateStatus(id: number, status: OrderStatus): Promise<Order> {
     const now = BigInt(Date.now());
     const order = await this.prisma.order.update({
       where: { id },
@@ -163,7 +163,7 @@ export class OrderRepository implements IOrderRepository {
   }
 
   async updatePaymentStatus(
-    id: string,
+    id: number,
     paymentStatus: PaymentStatus,
   ): Promise<Order> {
     const now = BigInt(Date.now());
@@ -184,8 +184,8 @@ export class OrderRepository implements IOrderRepository {
   }
 
   async count(options?: {
-    userId?: string;
-    storeId?: string;
+    userId?: number;
+    storeId?: number;
     status?: OrderStatus;
     paymentStatus?: PaymentStatus;
   }): Promise<number> {

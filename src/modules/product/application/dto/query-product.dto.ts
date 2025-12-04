@@ -18,17 +18,20 @@ export class QueryProductDto {
   @IsOptional()
   query?: string;
 
-  @IsString({ message: VALIDATION_MESSAGES.CATEGORY_ID.IS_STRING })
+  @IsInt({ message: VALIDATION_MESSAGES.CATEGORY_ID.IS_STRING })
   @IsOptional()
-  categoryId?: string;
+  @Type(() => Number)
+  categoryId?: number;
 
-  @IsString({ message: VALIDATION_MESSAGES.SELLER_ID.IS_STRING })
+  @IsInt({ message: VALIDATION_MESSAGES.SELLER_ID.IS_STRING })
   @IsOptional()
-  sellerId?: string;
+  @Type(() => Number)
+  sellerId?: number;
 
-  @IsString({ message: VALIDATION_MESSAGES.STORE_ID.IS_STRING })
+  @IsInt({ message: VALIDATION_MESSAGES.STORE_ID.IS_STRING })
   @IsOptional()
-  storeId?: string;
+  @Type(() => Number)
+  storeId?: number;
 
   @IsNumber({}, { message: VALIDATION_MESSAGES.MIN_PRICE.IS_NUMBER })
   @IsOptional()

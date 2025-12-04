@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ProductService } from '../../application/services/product.service';
 import { CreateProductDto } from '../../application/dto/create-product.dto';
@@ -29,7 +30,7 @@ export class ProductController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   create(
-    @CurrentUser('id') sellerId: string,
+    @CurrentUser('id') sellerId: number,
     @Body() createProductDto: CreateProductDto,
   ) {
     return this.productService.create(sellerId, createProductDto);
@@ -50,7 +51,7 @@ export class ProductController {
   @Get('my')
   @UseGuards(JwtAuthGuard)
   getMyProducts(
-    @CurrentUser('id') sellerId: string,
+    @CurrentUser('id') sellerId: number,
     @Query() queryDto: QueryProductDto,
   ) {
     return this.productService.getMyProducts(sellerId, queryDto);
@@ -58,7 +59,7 @@ export class ProductController {
 
   @Get(':id')
   @Public()
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id', ParseIntPipe) id: number) {
     const product = await this.productService.findOne(id);
     // Increment view count asynchronously
     this.productService.incrementView(id).catch(() => {
@@ -70,15 +71,15 @@ export class ProductController {
   @Post(':id/views')
   @Public()
   @HttpCode(HttpStatus.OK)
-  incrementView(@Param('id') id: string) {
+  incrementView(@Param('id', ParseIntPipe) id: number) {
     return this.productService.incrementView(id);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   update(
-    @Param('id') id: string,
-    @CurrentUser('id') sellerId: string,
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') sellerId: number,
     @Body() updateProductDto: UpdateProductDto,
   ) {
     return this.productService.update(id, sellerId, updateProductDto, false);
@@ -87,8 +88,8 @@ export class ProductController {
   @Patch(':id/stock')
   @UseGuards(JwtAuthGuard)
   updateStock(
-    @Param('id') id: string,
-    @CurrentUser('id') sellerId: string,
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') sellerId: number,
     @Body() updateStockDto: UpdateStockDto,
   ) {
     return this.productService.updateStock(id, sellerId, updateStockDto);
@@ -97,8 +98,8 @@ export class ProductController {
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard)
   updateStatus(
-    @Param('id') id: string,
-    @CurrentUser('id') sellerId: string,
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') sellerId: number,
     @Body() updateStatusDto: UpdateStatusDto,
   ) {
     return this.productService.updateStatus(id, sellerId, updateStatusDto, false);
@@ -108,8 +109,8 @@ export class ProductController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
-    @Param('id') id: string,
-    @CurrentUser('id') sellerId: string,
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') sellerId: number,
   ) {
     return this.productService.remove(id, sellerId, false);
   }

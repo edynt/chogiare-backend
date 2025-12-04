@@ -10,7 +10,7 @@ import { Product, ProductImage } from '../../domain/entities/product.entity';
 export class ProductRepository implements IProductRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findById(id: string): Promise<Product | null> {
+  async findById(id: number): Promise<Product | null> {
     const product = await this.prisma.product.findUnique({
       where: { id },
       include: {
@@ -25,9 +25,9 @@ export class ProductRepository implements IProductRepository {
 
   async findAll(options?: {
     query?: string;
-    categoryId?: string;
-    sellerId?: string;
-    storeId?: string;
+    categoryId?: number;
+    sellerId?: number;
+    storeId?: number;
     minPrice?: number;
     maxPrice?: number;
     condition?: string;
@@ -146,7 +146,7 @@ export class ProductRepository implements IProductRepository {
         originalPrice: data.originalPrice,
         categoryId: data.categoryId,
         sellerId: data.sellerId,
-        storeId: data.storeId,
+        storeId: data.storeId ?? null,
         condition: data.condition,
         tags: data.tags || [],
         location: data.location,
@@ -184,7 +184,7 @@ export class ProductRepository implements IProductRepository {
     return this.toDomain(product);
   }
 
-  async update(id: string, data: Partial<Product>): Promise<Product> {
+  async update(id: number, data: Partial<Product>): Promise<Product> {
     const now = BigInt(Date.now());
     const product = await this.prisma.product.update({
       where: { id },
@@ -226,7 +226,7 @@ export class ProductRepository implements IProductRepository {
     return this.toDomain(product);
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: number): Promise<void> {
     await this.prisma.product.delete({
       where: { id },
     });
@@ -234,9 +234,9 @@ export class ProductRepository implements IProductRepository {
 
   async count(options?: {
     query?: string;
-    categoryId?: string;
-    sellerId?: string;
-    storeId?: string;
+    categoryId?: number;
+    sellerId?: number;
+    storeId?: number;
     status?: string;
     isActive?: boolean;
   }): Promise<number> {
@@ -273,7 +273,7 @@ export class ProductRepository implements IProductRepository {
     return this.prisma.product.count({ where });
   }
 
-  async incrementViewCount(id: string): Promise<void> {
+  async incrementViewCount(id: number): Promise<void> {
     await this.prisma.product.update({
       where: { id },
       data: {
@@ -283,7 +283,7 @@ export class ProductRepository implements IProductRepository {
   }
 
   async updateStock(
-    id: string,
+    id: number,
     stock: number,
     reservedStock?: number,
   ): Promise<void> {
@@ -298,7 +298,7 @@ export class ProductRepository implements IProductRepository {
     });
   }
 
-  async findImages(productId: string): Promise<ProductImage[]> {
+  async findImages(productId: number): Promise<ProductImage[]> {
     const images = await this.prisma.productImage.findMany({
       where: { productId },
       orderBy: { displayOrder: 'asc' },
@@ -314,7 +314,7 @@ export class ProductRepository implements IProductRepository {
   }
 
   async addImage(
-    productId: string,
+    productId: number,
     imageUrl: string,
     displayOrder: number = 0,
   ): Promise<ProductImage> {

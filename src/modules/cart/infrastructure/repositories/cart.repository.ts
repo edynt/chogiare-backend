@@ -10,7 +10,7 @@ import { Cart, CartItem } from '../../domain/entities/cart.entity';
 export class CartRepository implements ICartRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findByUserId(userId: string): Promise<Cart | null> {
+  async findByUserId(userId: number): Promise<Cart | null> {
     const cart = await this.prisma.cart.findUnique({
       where: { userId },
     });
@@ -18,7 +18,7 @@ export class CartRepository implements ICartRepository {
     return cart ? this.toDomain(cart) : null;
   }
 
-  async create(userId: string): Promise<Cart> {
+  async create(userId: number): Promise<Cart> {
     const now = BigInt(Date.now());
     const cart = await this.prisma.cart.create({
       data: {
@@ -32,8 +32,8 @@ export class CartRepository implements ICartRepository {
   }
 
   async addItem(
-    cartId: string,
-    productId: string,
+    cartId: number,
+    productId: number,
     quantity: number,
     price: number,
   ): Promise<CartItem> {
@@ -58,7 +58,7 @@ export class CartRepository implements ICartRepository {
     return this.toDomainItem(item);
   }
 
-  async updateItemQuantity(itemId: string, quantity: number): Promise<CartItem> {
+  async updateItemQuantity(itemId: number, quantity: number): Promise<CartItem> {
     const now = BigInt(Date.now());
     const item = await this.prisma.cartItem.update({
       where: { id: itemId },
@@ -77,7 +77,7 @@ export class CartRepository implements ICartRepository {
     return this.toDomainItem(item);
   }
 
-  async removeItem(itemId: string): Promise<void> {
+  async removeItem(itemId: number): Promise<void> {
     const item = await this.prisma.cartItem.findUnique({
       where: { id: itemId },
     });
@@ -95,7 +95,7 @@ export class CartRepository implements ICartRepository {
     }
   }
 
-  async clearCart(cartId: string): Promise<void> {
+  async clearCart(cartId: number): Promise<void> {
     await this.prisma.cartItem.deleteMany({
       where: { cartId },
     });
@@ -106,7 +106,7 @@ export class CartRepository implements ICartRepository {
     });
   }
 
-  async findItemById(itemId: string): Promise<CartItem | null> {
+  async findItemById(itemId: number): Promise<CartItem | null> {
     const item = await this.prisma.cartItem.findUnique({
       where: { id: itemId },
     });
@@ -115,8 +115,8 @@ export class CartRepository implements ICartRepository {
   }
 
   async findItemByCartAndProduct(
-    cartId: string,
-    productId: string,
+    cartId: number,
+    productId: number,
   ): Promise<CartItem | null> {
     const item = await this.prisma.cartItem.findFirst({
       where: {

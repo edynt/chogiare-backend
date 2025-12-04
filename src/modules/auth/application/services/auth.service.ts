@@ -26,7 +26,7 @@ export interface AuthTokens {
 
 export interface AuthResponse {
   user: {
-    id: string;
+    id: number;
     email: string;
     username?: string;
     isVerified: boolean;
@@ -174,7 +174,7 @@ export class AuthService {
       const session = await this.prisma.session.findFirst({
         where: {
           refreshToken: refreshTokenDto.refreshToken,
-          userId: payload.sub,
+          userId: typeof payload.sub === 'string' ? parseInt(payload.sub, 10) : payload.sub,
           expiresAt: {
             gt: BigInt(Date.now()),
           },
@@ -190,7 +190,8 @@ export class AuthService {
       }
 
       // Get user
-      const user = await this.userRepository.findById(payload.sub);
+      const userId = typeof payload.sub === 'string' ? parseInt(payload.sub, 10) : payload.sub;
+      const user = await this.userRepository.findById(userId);
       if (!user || !user.status) {
         throw new UnauthorizedException(MESSAGES.AUTH.USER_NOT_FOUND);
       }
@@ -223,7 +224,7 @@ export class AuthService {
     }
   }
 
-  async logout(userId: string, refreshToken?: string): Promise<void> {
+  async logout(userId: number, refreshToken?: string): Promise<void> {
     if (refreshToken) {
       // Delete specific session
       await this.prisma.session.deleteMany({
@@ -242,7 +243,7 @@ export class AuthService {
     this.logger.log(`User logged out: ${userId}`, 'AuthService');
   }
 
-  private async generateTokens(userId: string, email: string): Promise<AuthTokens> {
+  private async generateTokens(userId: number, email: string): Promise<AuthTokens> {
     const payload = { sub: userId, email };
     const expiresIn = this.configService.get<string>('jwt.expiresIn') || '1h';
 
@@ -267,7 +268,7 @@ export class AuthService {
     };
   }
 
-  private async saveRefreshToken(userId: string, refreshToken: string): Promise<void> {
+  private async saveRefreshToken(userId: number, refreshToken: string): Promise<void> {
     const expiresAt = BigInt(this.getRefreshTokenExpiration());
 
     await this.prisma.session.create({

@@ -26,7 +26,7 @@ export class OrderService {
     private readonly logger: LoggerService,
   ) {}
 
-  async create(userId: string, createOrderDto: CreateOrderDto): Promise<Order> {
+  async create(userId: number, createOrderDto: CreateOrderDto): Promise<Order> {
     // Validate store
     const store = await this.prisma.store.findUnique({
       where: { id: createOrderDto.storeId },
@@ -55,7 +55,7 @@ export class OrderService {
     // Validate products and calculate totals
     let subtotal = 0;
     const orderItems: Array<{
-      productId: string;
+      productId: number;
       productName: string;
       productImage?: string;
       price: number;
@@ -171,7 +171,7 @@ export class OrderService {
   }
 
   async findAll(
-    userId: string,
+    userId: number,
     queryDto: QueryOrderDto,
     isAdmin: boolean = false,
   ): Promise<{
@@ -283,7 +283,7 @@ export class OrderService {
     };
   }
 
-  async findOne(id: string, userId: string, isAdmin: boolean = false): Promise<Order> {
+  async findOne(id: number, userId: number, isAdmin: boolean = false): Promise<Order> {
     const order = await this.orderRepository.findById(id);
     if (!order) {
       throw new NotFoundException(MESSAGES.ORDER.NOT_FOUND);
@@ -306,8 +306,8 @@ export class OrderService {
   }
 
   async update(
-    id: string,
-    userId: string,
+    id: number,
+    userId: number,
     updateOrderDto: UpdateOrderDto,
     isAdmin: boolean = false,
   ): Promise<Order> {
@@ -353,7 +353,7 @@ export class OrderService {
     return this.orderRepository.update(id, updateOrderDto);
   }
 
-  async cancel(id: string, userId: string): Promise<Order> {
+  async cancel(id: number, userId: number): Promise<Order> {
     const order = await this.orderRepository.findById(id);
     if (!order) {
       throw new NotFoundException(MESSAGES.ORDER.NOT_FOUND);
@@ -419,7 +419,7 @@ export class OrderService {
     }
   }
 
-  private async completeOrder(orderId: string): Promise<void> {
+  private async completeOrder(orderId: number): Promise<void> {
     const order = await this.orderRepository.findById(orderId);
     if (!order) return;
 
@@ -453,7 +453,7 @@ export class OrderService {
     }
   }
 
-  private async releaseStock(orderId: string): Promise<void> {
+  private async releaseStock(orderId: number): Promise<void> {
     const order = await this.orderRepository.findById(orderId);
     if (!order) return;
 

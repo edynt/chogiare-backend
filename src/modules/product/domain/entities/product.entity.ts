@@ -23,14 +23,14 @@ export enum ProductBadge {
 }
 
 export class Product {
-  id: string;
+  id: number;
   title: string;
   description?: string;
   price: number;
   originalPrice?: number;
-  categoryId: string;
-  sellerId: string;
-  storeId?: string;
+  categoryId: number;
+  sellerId: number;
+  storeId?: number;
   condition: ProductCondition;
   tags: string[];
   location?: string;
@@ -63,7 +63,7 @@ export class Product {
 
 export class ProductImage {
   id: number;
-  productId: string;
+  productId: number;
   imageUrl: string;
   displayOrder: number;
   createdAt: bigint;

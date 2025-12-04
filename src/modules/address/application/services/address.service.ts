@@ -23,7 +23,7 @@ export class AddressService {
   ) {}
 
   async create(
-    userId: string,
+    userId: number,
     createAddressDto: CreateAddressDto,
   ): Promise<Address> {
     // If setting as default, unset other default addresses
@@ -46,11 +46,11 @@ export class AddressService {
     return address;
   }
 
-  async findAll(userId: string): Promise<Address[]> {
+  async findAll(userId: number): Promise<Address[]> {
     return this.addressRepository.findByUserId(userId);
   }
 
-  async findOne(id: string, userId: string): Promise<Address> {
+  async findOne(id: number, userId: number): Promise<Address> {
     const address = await this.addressRepository.findById(id);
     if (!address) {
       throw new NotFoundException(MESSAGES.ADDRESS.NOT_FOUND);
@@ -67,13 +67,13 @@ export class AddressService {
     return address;
   }
 
-  async findDefault(userId: string): Promise<Address | null> {
+  async findDefault(userId: number): Promise<Address | null> {
     return this.addressRepository.findDefaultByUserId(userId);
   }
 
   async update(
-    id: string,
-    userId: string,
+    id: number,
+    userId: number,
     updateAddressDto: UpdateAddressDto,
   ): Promise<Address> {
     const address = await this.addressRepository.findById(id);
@@ -93,7 +93,7 @@ export class AddressService {
     return this.addressRepository.update(id, updateAddressDto);
   }
 
-  async setAsDefault(id: string, userId: string): Promise<Address> {
+  async setAsDefault(id: number, userId: number): Promise<Address> {
     const address = await this.addressRepository.findById(id);
     if (!address) {
       throw new NotFoundException(MESSAGES.ADDRESS.NOT_FOUND);
@@ -113,7 +113,7 @@ export class AddressService {
     return this.addressRepository.findById(id) as Promise<Address>;
   }
 
-  async remove(id: string, userId: string): Promise<void> {
+  async remove(id: number, userId: number): Promise<void> {
     const address = await this.addressRepository.findById(id);
     if (!address) {
       throw new NotFoundException(MESSAGES.ADDRESS.NOT_FOUND);

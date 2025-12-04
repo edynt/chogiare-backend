@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { StoreService } from '../../application/services/store.service';
 import { CreateStoreDto } from '../../application/dto/create-store.dto';
@@ -27,7 +28,7 @@ export class StoreController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   create(
-    @CurrentUser('id') userId: string,
+    @CurrentUser('id') userId: number,
     @Body() createStoreDto: CreateStoreDto,
   ) {
     return this.storeService.create(userId, createStoreDto);
@@ -41,13 +42,13 @@ export class StoreController {
 
   @Get('my')
   @UseGuards(JwtAuthGuard)
-  findMyStore(@CurrentUser('id') userId: string) {
+  findMyStore(@CurrentUser('id') userId: number) {
     return this.storeService.findMyStore(userId);
   }
 
   @Get(':id')
   @Public()
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseIntPipe) id: number) {
     return this.storeService.findOne(id);
   }
 
@@ -60,8 +61,8 @@ export class StoreController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   update(
-    @Param('id') id: string,
-    @CurrentUser('id') userId: string,
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
     @Body() updateStoreDto: UpdateStoreDto,
   ) {
     // TODO: Check if user is admin
@@ -72,8 +73,8 @@ export class StoreController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
-    @Param('id') id: string,
-    @CurrentUser('id') userId: string,
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
   ) {
     // TODO: Check if user is admin
     return this.storeService.remove(id, userId, false);

@@ -4,6 +4,7 @@ import {
   IsOptional,
   MaxLength,
   IsNumber,
+  IsInt,
   Min,
   IsArray,
   IsEnum,
@@ -38,13 +39,13 @@ export class CreateProductDto {
   @Min(0, { message: VALIDATION_MESSAGES.ORIGINAL_PRICE.MIN })
   originalPrice?: number;
 
-  @IsString({ message: VALIDATION_MESSAGES.CATEGORY_ID.IS_STRING })
+  @IsInt({ message: VALIDATION_MESSAGES.CATEGORY_ID.IS_STRING })
   @IsNotEmpty({ message: VALIDATION_MESSAGES.CATEGORY_ID.IS_REQUIRED })
-  categoryId: string;
+  categoryId: number;
 
-  @IsString({ message: VALIDATION_MESSAGES.STORE_ID.IS_STRING })
+  @IsInt({ message: VALIDATION_MESSAGES.STORE_ID.IS_STRING })
   @IsOptional()
-  storeId?: string;
+  storeId?: number;
 
   @IsEnum(ProductCondition, { message: VALIDATION_MESSAGES.PRODUCT_CONDITION.IS_INVALID })
   @IsNotEmpty({ message: VALIDATION_MESSAGES.PRODUCT_CONDITION.IS_REQUIRED })

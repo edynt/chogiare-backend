@@ -3,6 +3,7 @@ import {
   IsOptional,
   MaxLength,
   IsNumber,
+  IsInt,
   Min,
   IsArray,
   IsEnum,
@@ -33,9 +34,9 @@ export class UpdateProductDto {
   @Min(0, { message: VALIDATION_MESSAGES.ORIGINAL_PRICE.MIN })
   originalPrice?: number;
 
-  @IsString({ message: VALIDATION_MESSAGES.CATEGORY_ID.IS_STRING })
+  @IsInt({ message: VALIDATION_MESSAGES.CATEGORY_ID.IS_STRING })
   @IsOptional()
-  categoryId?: string;
+  categoryId?: number;
 
   @IsEnum(ProductCondition, { message: VALIDATION_MESSAGES.PRODUCT_CONDITION.IS_INVALID })
   @IsOptional()

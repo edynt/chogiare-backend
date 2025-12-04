@@ -1,6 +1,6 @@
 export class Store {
-  id: string;
-  userId: string;
+  id: number;
+  userId: number;
   name: string;
   slug: string;
   description?: string;

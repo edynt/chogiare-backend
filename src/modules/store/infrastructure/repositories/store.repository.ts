@@ -10,7 +10,7 @@ import { Store } from '../../domain/entities/store.entity';
 export class StoreRepository implements IStoreRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findById(id: string): Promise<Store | null> {
+  async findById(id: number): Promise<Store | null> {
     const store = await this.prisma.store.findUnique({
       where: { id },
     });
@@ -26,7 +26,7 @@ export class StoreRepository implements IStoreRepository {
     return store ? this.toDomain(store) : null;
   }
 
-  async findByUserId(userId: string): Promise<Store | null> {
+  async findByUserId(userId: number): Promise<Store | null> {
     const store = await this.prisma.store.findFirst({
       where: { userId },
     });
@@ -156,7 +156,7 @@ export class StoreRepository implements IStoreRepository {
     return this.toDomain(store);
   }
 
-  async update(id: string, data: Partial<Store>): Promise<Store> {
+  async update(id: number, data: Partial<Store>): Promise<Store> {
     const now = BigInt(Date.now());
     const store = await this.prisma.store.update({
       where: { id },
@@ -219,7 +219,7 @@ export class StoreRepository implements IStoreRepository {
     return this.toDomain(store);
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: number): Promise<void> {
     await this.prisma.store.delete({
       where: { id },
     });

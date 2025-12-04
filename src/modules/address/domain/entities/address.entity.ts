@@ -1,6 +1,6 @@
 export class Address {
-  id: string;
-  userId: string;
+  id: number;
+  userId: number;
   recipientName: string;
   recipientPhone: string;
   street: string;

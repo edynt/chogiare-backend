@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { OrderService } from '../../application/services/order.service';
 import { CreateOrderDto } from '../../application/dto/create-order.dto';
@@ -25,7 +26,7 @@ export class OrderController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(
-    @CurrentUser('id') userId: string,
+    @CurrentUser('id') userId: number,
     @Body() createOrderDto: CreateOrderDto,
   ) {
     return this.orderService.create(userId, createOrderDto);
@@ -33,7 +34,7 @@ export class OrderController {
 
   @Get()
   findAll(
-    @CurrentUser('id') userId: string,
+    @CurrentUser('id') userId: number,
     @Query() queryDto: QueryOrderDto,
   ) {
     return this.orderService.findAll(userId, queryDto, false);
@@ -41,7 +42,7 @@ export class OrderController {
 
   @Get('my')
   getMyOrders(
-    @CurrentUser('id') userId: string,
+    @CurrentUser('id') userId: number,
     @Query() queryDto: QueryOrderDto,
   ) {
     return this.orderService.findAll(userId, queryDto, false);
@@ -49,16 +50,16 @@ export class OrderController {
 
   @Get(':id')
   findOne(
-    @Param('id') id: string,
-    @CurrentUser('id') userId: string,
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
   ) {
     return this.orderService.findOne(id, userId, false);
   }
 
   @Patch(':id')
   update(
-    @Param('id') id: string,
-    @CurrentUser('id') userId: string,
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
     @Body() updateOrderDto: UpdateOrderDto,
   ) {
     return this.orderService.update(id, userId, updateOrderDto, false);
@@ -67,8 +68,8 @@ export class OrderController {
   @Post(':id/cancel')
   @HttpCode(HttpStatus.OK)
   cancel(
-    @Param('id') id: string,
-    @CurrentUser('id') userId: string,
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
   ) {
     return this.orderService.cancel(id, userId);
   }

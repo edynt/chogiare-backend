@@ -1,21 +1,21 @@
 export class Cart {
-  id: string;
-  userId: string;
+  id: number;
+  userId: number;
   createdAt: bigint;
   updatedAt: bigint;
   items?: CartItem[];
 }
 
 export class CartItem {
-  id: string;
-  cartId: string;
-  productId: string;
+  id: number;
+  cartId: number;
+  productId: number;
   quantity: number;
   price: number;
   createdAt: bigint;
   updatedAt: bigint;
   product?: {
-    id: string;
+    id: number;
     title: string;
     imageUrl?: string;
     stock: number;

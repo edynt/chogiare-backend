@@ -10,7 +10,7 @@ import { Category } from '../../domain/entities/category.entity';
 export class CategoryRepository implements ICategoryRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findById(id: string): Promise<Category | null> {
+  async findById(id: number): Promise<Category | null> {
     const category = await this.prisma.category.findUnique({
       where: { id },
       include: {
@@ -35,7 +35,7 @@ export class CategoryRepository implements ICategoryRepository {
   }
 
   async findAll(options?: {
-    parentId?: string | null;
+    parentId?: number | null;
     isActive?: boolean;
     skip?: number;
     take?: number;
@@ -91,7 +91,7 @@ export class CategoryRepository implements ICategoryRepository {
   }
 
   async update(
-    id: string,
+    id: number,
     data: Partial<Category>,
   ): Promise<Category> {
     const category = await this.prisma.category.update({
@@ -113,14 +113,14 @@ export class CategoryRepository implements ICategoryRepository {
     return this.toDomain(category);
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: number): Promise<void> {
     await this.prisma.category.delete({
       where: { id },
     });
   }
 
   async count(options?: {
-    parentId?: string | null;
+    parentId?: number | null;
     isActive?: boolean;
   }): Promise<number> {
     const where: any = {};

@@ -9,7 +9,7 @@ import {
 import { MESSAGES } from '@common/constants/messages.constants';
 
 export interface JwtPayload {
-  sub: string;
+  sub: number | string;
   email: string;
   iat?: number;
   exp?: number;
@@ -30,7 +30,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
-    const user = await this.userRepository.findById(payload.sub);
+    const userId = typeof payload.sub === 'string' ? parseInt(payload.sub, 10) : payload.sub;
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new UnauthorizedException(MESSAGES.AUTH.USER_DOES_NOT_EXIST);
     }
