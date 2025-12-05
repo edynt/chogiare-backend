@@ -24,7 +24,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
     let errorCode = ERROR_CODES.INTERNAL_ERROR;
-    let details: any = null;
+    let details: Record<string, unknown> | null = null;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -32,11 +32,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
-      } else if (typeof exceptionResponse === 'object') {
-        const responseObj = exceptionResponse as any;
-        message = responseObj.message || exception.message;
-        errorCode = responseObj.errorCode || this.getErrorCode(status);
-        details = responseObj.details || null;
+      } else if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+        const responseObj = exceptionResponse as Record<string, unknown>;
+        message = (responseObj.message as string) || exception.message;
+        errorCode = (responseObj.errorCode as string) || this.getErrorCode(status);
+        details = (responseObj.details as Record<string, unknown>) || null;
       }
     } else if (exception instanceof Error) {
       message = exception.message;
@@ -51,7 +51,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
       );
     }
 
-    // Log error
     this.loggerService.error(
       `HTTP ${status} Error: ${message}`,
       exception instanceof Error ? exception.stack : undefined,
@@ -62,7 +61,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         statusCode: status,
         errorCode,
         details,
-        userId: (request as any).user?.id,
+        userId: (request as Request & { user?: { id: number } }).user?.id,
       },
     );
 
@@ -95,4 +94,3 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
   }
 }
-

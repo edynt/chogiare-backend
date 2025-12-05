@@ -35,7 +35,6 @@ export class LoggerService implements NestLoggerService {
       ],
     });
 
-    // Add console transport in development
     if (isDevelopment) {
       this.logger.add(
         new winston.transports.Console({
@@ -54,11 +53,11 @@ export class LoggerService implements NestLoggerService {
     }
   }
 
-  log(message: string, context?: string, meta?: any) {
+  log(message: string, context?: string, meta?: Record<string, unknown>) {
     this.logger.info(message, { context, ...meta });
   }
 
-  error(message: string, trace?: string, context?: string, meta?: any) {
+  error(message: string, trace?: string, context?: string, meta?: Record<string, unknown>) {
     this.logger.error(message, {
       trace,
       context,
@@ -66,15 +65,15 @@ export class LoggerService implements NestLoggerService {
     });
   }
 
-  warn(message: string, context?: string, meta?: any) {
+  warn(message: string, context?: string, meta?: Record<string, unknown>) {
     this.logger.warn(message, { context, ...meta });
   }
 
-  debug(message: string, context?: string, meta?: any) {
+  debug(message: string, context?: string, meta?: Record<string, unknown>) {
     this.logger.debug(message, { context, ...meta });
   }
 
-  verbose(message: string, context?: string, meta?: any) {
+  verbose(message: string, context?: string, meta?: Record<string, unknown>) {
     this.logger.verbose(message, { context, ...meta });
   }
 }

@@ -13,7 +13,7 @@ import { Request, Response } from 'express';
 export class LoggingInterceptor implements NestInterceptor {
   constructor(private readonly logger: LoggerService) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest<Request>();
     const response = context.switchToHttp().getResponse<Response>();
     const { method, url, body, query, params, headers } = request;
@@ -23,7 +23,6 @@ export class LoggingInterceptor implements NestInterceptor {
 
     const contextName = `${context.getClass().name}.${context.getHandler().name}`;
 
-    // Log request
     this.logger.log(
       `Incoming Request: ${method} ${url}`,
       contextName,
@@ -43,7 +42,6 @@ export class LoggingInterceptor implements NestInterceptor {
         const duration = Date.now() - startTime;
         const statusCode = response.statusCode;
 
-        // Log response
         this.logger.log(
           `Outgoing Response: ${method} ${url} ${statusCode}`,
           contextName,
@@ -60,7 +58,6 @@ export class LoggingInterceptor implements NestInterceptor {
         const duration = Date.now() - startTime;
         const statusCode = error.status || 500;
 
-        // Log error
         this.logger.error(
           `Request Failed: ${method} ${url} ${statusCode}`,
           error.stack,
@@ -82,10 +79,10 @@ export class LoggingInterceptor implements NestInterceptor {
     );
   }
 
-  private sanitizeBody(body: any): any {
-    if (!body) return body;
+  private sanitizeBody(body: unknown): Record<string, unknown> | unknown {
+    if (!body || typeof body !== 'object') return body;
 
-    const sanitized = { ...body };
+    const sanitized = { ...(body as Record<string, unknown>) };
     const sensitiveFields = ['password', 'hashedPassword', 'token', 'refreshToken'];
 
     sensitiveFields.forEach((field) => {

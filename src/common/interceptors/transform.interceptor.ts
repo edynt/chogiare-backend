@@ -9,10 +9,9 @@ export interface Response<T> {
   timestamp: string;
 }
 
-/**
- * Recursively convert BigInt values to strings for JSON serialization
- */
-function serializeBigInt(obj: any): any {
+type SerializableValue = string | number | boolean | null | undefined | bigint | SerializableValue[] | { [key: string]: SerializableValue };
+
+function serializeBigInt(obj: SerializableValue): SerializableValue {
   if (obj === null || obj === undefined) {
     return obj;
   }
@@ -26,9 +25,9 @@ function serializeBigInt(obj: any): any {
   }
 
   if (typeof obj === 'object') {
-    const serialized: any = {};
+    const serialized: Record<string, SerializableValue> = {};
     for (const [key, value] of Object.entries(obj)) {
-      serialized[key] = serializeBigInt(value);
+      serialized[key] = serializeBigInt(value as SerializableValue);
     }
     return serialized;
   }
@@ -41,8 +40,7 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> 
   intercept(context: ExecutionContext, next: CallHandler): Observable<Response<T>> {
     return next.handle().pipe(
       map((data) => {
-        // Serialize BigInt values to strings
-        const serializedData = serializeBigInt(data);
+        const serializedData = serializeBigInt(data as SerializableValue);
         return {
           success: true,
           data: serializedData,

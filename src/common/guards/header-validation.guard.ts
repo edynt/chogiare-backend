@@ -29,10 +29,8 @@ export class HeaderValidationGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     const headers = request.headers;
 
-    // Required headers
     const requiredHeaders = ['user-agent', 'accept'];
 
-    // Check required headers
     for (const header of requiredHeaders) {
       if (!headers[header]) {
         this.logger.warn(
@@ -48,7 +46,6 @@ export class HeaderValidationGuard implements CanActivate {
       }
     }
 
-    // Validate Content-Type for POST/PUT/PATCH requests
     if (['POST', 'PUT', 'PATCH'].includes(request.method)) {
       const contentType = headers['content-type'];
       if (!contentType || !contentType.includes('application/json')) {
@@ -67,7 +64,6 @@ export class HeaderValidationGuard implements CanActivate {
       }
     }
 
-    // Block suspicious headers
     const suspiciousHeaders = [
       'x-forwarded-for',
       'x-real-ip',
@@ -86,7 +82,6 @@ export class HeaderValidationGuard implements CanActivate {
             value: headers[header],
           },
         );
-        // Log but don't block - might be legitimate in some setups
       }
     }
 

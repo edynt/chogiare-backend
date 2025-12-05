@@ -5,6 +5,7 @@ import {
   USER_REPOSITORY,
 } from '@modules/auth/domain/repositories/user.repository.interface';
 import { User } from '@modules/auth/domain/entities/user.entity';
+import { User as PrismaUser } from '@prisma/client';
 
 @Injectable()
 export class UserRepository implements IUserRepository {
@@ -64,7 +65,7 @@ export class UserRepository implements IUserRepository {
     return this.toDomain(user);
   }
 
-  private toDomain(prismaUser: any): User {
+  private toDomain(prismaUser: PrismaUser): User {
     return {
       id: prismaUser.id,
       email: prismaUser.email,

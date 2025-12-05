@@ -1,5 +1,4 @@
-// Database Schema for ChogiaRe Admin Seller System
-// Based on the implemented features in the codebase
+// Database Schema for ChogiaRe Backend - Authentication & Authorization Only
 
 Enum user_role {
   "buyer"
@@ -7,110 +6,14 @@ Enum user_role {
   "admin"
 }
 
-Enum product_condition {
-  "new"
-  "like_new"
-  "good"
-  "fair"
-  "poor"
-}
-
-Enum product_status {
-  "draft"
-  "active"
-  "sold"
-  "archived"
-  "suspended"
-}
-
-Enum product_badge {
-  "NEW"
-  "FEATURED"
-  "PROMO"
-  "HOT"
-  "SALE"
-}
-
-Enum order_status {
-  "pending"
-  "confirmed"
-  "ready_for_pickup"
-  "completed"
-  "cancelled"
-  "refunded"
-}
-
-Enum payment_method {
-  "momo"
-  "zalopay"
-  "stripe"
-  "paypal"
-  "bank_transfer"
-}
-
-Enum payment_status {
-  "pending"
-  "completed"
-  "failed"
-  "refunded"
-}
-
-Enum boost_type {
-  "payPerView"
-  "payPerDay"
-  "featuredSlot"
-  "boostToCategory"
-}
-
-Enum boost_status {
-  "active"
-  "expired"
-  "cancelled"
-}
-
-Enum notification_type {
-  "order"
-  "product"
-  "payment"
-  "system"
-  "promotion"
-}
-
-Enum transaction_type {
-  "deposit"
-  "sale"
-  "refund"
-  "commission"
-  "bonus"
-  "boost"
-}
-
-Enum inventory_status {
-  "in_stock"
-  "low_stock"
-  "out_of_stock"
-  "discontinued"
-}
-
-Enum conversation_type {
-  "direct"
-  "group"
-}
-
-Enum message_type {
-  "text"
-  "image"
-  "file"
-}
-
 Enum language {
   "vi"
   "en"
 }
 
-// Core User Management
+// Core User Management - Authentication Tables
 Table Users {
-  id uuid [pk]
+  id int [pk]
   email text [unique, not null]
   username text [unique]
   hashed_password text [not null]
@@ -123,7 +26,7 @@ Table Users {
 
 Table Sessions {
   id autoincrement [pk]
-  user_id uuid [not null, ref: > Users.id]
+  user_id int [not null, ref: > Users.id]
   refresh_token text [not null]
   expires_at int64 [not null]
   created_at int64 [not null]
@@ -131,7 +34,7 @@ Table Sessions {
 
 Table EmailVerifications {
   id autoincrement [pk]
-  user_id uuid [not null, ref: > Users.id]
+  user_id int [not null, ref: > Users.id]
   code text [not null]
   expires_at int64 [not null]
   created_at int64 [not null]
@@ -139,12 +42,13 @@ Table EmailVerifications {
 
 Table PasswordResets {
   id autoincrement [pk]
-  user_id uuid [not null, ref: > Users.id]
+  user_id int [not null, ref: > Users.id]
   reset_token text [not null]
   expires_at int64 [not null]
   created_at int64 [not null]
 }
 
+// Authorization Tables
 Table Roles {
   id autoincrement [pk]
   name text [unique, not null]
@@ -165,13 +69,13 @@ Table RolePermissions {
 }
 
 Table UserRoles {
-  user_id uuid [pk, ref: > Users.id]
+  user_id int [pk, ref: > Users.id]
   role_id int [pk, ref: > Roles.id]
 }
 
 Table UserInfo {
   id autoincrement [pk]
-  user_id uuid [unique, not null, ref: > Users.id]
+  user_id int [unique, not null, ref: > Users.id]
   full_name text
   avatar_url text
   gender text
@@ -183,385 +87,14 @@ Table UserInfo {
   updated_at int64 [not null]
 }
 
-// Store Management
-Table Stores {
-  id uuid [pk]
-  user_id uuid [not null, ref: > Users.id]
-  name text [not null]
-  slug text [unique, not null]
-  description text
-  short_description text
-  logo text
-  banner text
-  category text
-  subcategory text
-  established_year int
-  business_type text // 'individual' | 'company'
-  tax_code text
-  business_license text
-  address_street text
-  address_ward text
-  address_district text
-  address_city text
-  address_postal_code text
-  address_lat decimal
-  address_lng decimal
-  contact_phone text
-  contact_email text
-  contact_website text
-  contact_facebook text
-  contact_instagram text
-  contact_tiktok text
-  contact_youtube text
-  business_hours_monday_open text
-  business_hours_monday_close text
-  business_hours_monday_is_open boolean
-  business_hours_tuesday_open text
-  business_hours_tuesday_close text
-  business_hours_tuesday_is_open boolean
-  business_hours_wednesday_open text
-  business_hours_wednesday_close text
-  business_hours_wednesday_is_open boolean
-  business_hours_thursday_open text
-  business_hours_thursday_close text
-  business_hours_thursday_is_open boolean
-  business_hours_friday_open text
-  business_hours_friday_close text
-  business_hours_friday_is_open boolean
-  business_hours_saturday_open text
-  business_hours_saturday_close text
-  business_hours_saturday_is_open boolean
-  business_hours_sunday_open text
-  business_hours_sunday_close text
-  business_hours_sunday_is_open boolean
-  return_policy text
-  shipping_policy text
-  rating decimal [default: 0]
-  review_count int [default: 0]
-  product_count int [default: 0]
-  follower_count int [default: 0]
-  is_verified boolean [default: false]
-  is_active boolean [default: true]
-  created_at int64 [not null]
-  updated_at int64 [not null]
-}
-
-// Category Management
-Table Categories {
-  id uuid [pk]
-  name text [not null]
-  slug text [unique, not null]
-  description text
-  image text
-  parent_id uuid [ref: > Categories.id]
-  product_count int [default: 0]
-  is_active boolean [default: true]
-  created_at int64 [not null]
-}
-
-// Product Management
-Table Products {
-  id uuid [pk]
-  title text [not null]
-  description text
-  price decimal [not null]
-  original_price decimal
-  category_id uuid [not null, ref: > Categories.id]
-  seller_id uuid [not null, ref: > Users.id]
-  store_id uuid [ref: > Stores.id]
-  condition product_condition [not null]
-  tags text[] // Array of tags
-  location text
-  stock int [default: 0]
-  min_stock int [default: 0]
-  max_stock int
-  reserved_stock int [default: 0]
-  available_stock int [default: 0]
-  cost_price decimal
-  selling_price decimal
-  profit decimal
-  profit_margin decimal
-  sku text [unique]
-  barcode text
-  weight decimal
-  dimensions text
-  supplier text
-  status product_status [default: 'draft']
-  badges product_badge[] // Array of badges
-  rating decimal [default: 0]
-  review_count int [default: 0]
-  view_count int [default: 0]
-  sales_count int [default: 0]
-  is_featured boolean [default: false]
-  is_promoted boolean [default: false]
-  is_active boolean [default: true]
-  created_at int64 [not null]
-  updated_at int64 [not null]
-}
-
-Table ProductImages {
-  id autoincrement [pk]
-  product_id uuid [not null, ref: > Products.id]
-  image_url text [not null]
-  display_order int [default: 0]
-  created_at int64 [not null]
-}
-
-// Inventory & Stock Management
-Table StockInRecords {
-  id autoincrement [pk]
-  product_id uuid [not null, ref: > Products.id]
-  quantity int [not null]
-  cost_price decimal
-  supplier text
-  notes text
-  created_by uuid [ref: > Users.id]
-  created_at int64 [not null]
-}
-
-Table StockAlerts {
-  id autoincrement [pk]
-  product_id uuid [not null, ref: > Products.id]
-  alert_type text // 'low_stock' | 'out_of_stock'
-  message text
-  is_read boolean [default: false]
-  created_at int64 [not null]
-}
-
-// Cart Management
-Table Carts {
-  id uuid [pk]
-  user_id uuid [unique, not null, ref: > Users.id]
-  created_at int64 [not null]
-  updated_at int64 [not null]
-}
-
-Table CartItems {
-  id uuid [pk]
-  cart_id uuid [not null, ref: > Carts.id]
-  product_id uuid [not null, ref: > Products.id]
-  quantity int [not null]
-  price decimal [not null]
-  created_at int64 [not null]
-  updated_at int64 [not null]
-}
-
-// Address Management
-Table Addresses {
-  id uuid [pk]
-  user_id uuid [not null, ref: > Users.id]
-  recipient_name text [not null]
-  recipient_phone text [not null]
-  street text [not null]
-  city text [not null]
-  state text [not null]
-  district text
-  ward text
-  zip_code text
-  country text [not null]
-  is_default boolean [default: false]
-  created_at int64 [not null]
-  updated_at int64 [not null]
-}
-
-// Order Management
-Table Orders {
-  id uuid [pk]
-  user_id uuid [not null, ref: > Users.id]
-  store_id uuid [not null, ref: > Stores.id]
-  status order_status [default: 'pending']
-  payment_status payment_status [default: 'pending']
-  payment_method payment_method
-  subtotal decimal [not null]
-  tax decimal [default: 0]
-  shipping decimal [default: 0]
-  discount decimal [default: 0]
-  total decimal [not null]
-  currency text [default: 'VND']
-  shipping_address_id uuid [ref: > Addresses.id]
-  billing_address_id uuid [ref: > Addresses.id]
-  notes text
-  seller_notes text
-  created_at int64 [not null]
-  updated_at int64 [not null]
-}
-
-Table OrderItems {
-  id uuid [pk]
-  order_id uuid [not null, ref: > Orders.id]
-  product_id uuid [not null, ref: > Products.id]
-  product_name text [not null]
-  product_image text
-  price decimal [not null]
-  quantity int [not null]
-  subtotal decimal [not null]
-  created_at int64 [not null]
-  updated_at int64 [not null]
-}
-
-// Shipping Management
-Table Shipping {
-  id uuid [pk]
-  order_id uuid [unique, not null, ref: > Orders.id]
-  tracking_number text [unique]
-  carrier text
-  status text
-  current_location text
-  estimated_delivery int64
-  created_at int64 [not null]
-  updated_at int64 [not null]
-}
-
-Table ShippingHistory {
-  id autoincrement [pk]
-  shipping_id uuid [not null, ref: > Shipping.id]
-  status text [not null]
-  location text
-  description text
-  timestamp int64 [not null]
-}
-
-// Review Management
-Table Reviews {
-  id uuid [pk]
-  product_id uuid [not null, ref: > Products.id]
-  user_id uuid [not null, ref: > Users.id]
-  order_id uuid [ref: > Orders.id]
-  rating int [not null] // 1-5
-  title text
-  comment text
-  images text[] // Array of image URLs
-  is_verified boolean [default: false]
-  helpful_count int [default: 0]
-  created_at int64 [not null]
-  updated_at int64 [not null]
-}
-
-Table ReviewHelpful {
-  id autoincrement [pk]
-  review_id uuid [not null, ref: > Reviews.id]
-  user_id uuid [not null, ref: > Users.id]
-  created_at int64 [not null]
-}
-
-// Boost/Promotion Management
-Table BoostPackages {
-  id text [pk]
-  name text [not null]
-  type boost_type [not null]
-  price decimal [not null]
-  description text
-  config_views int
-  config_days int
-  config_show_in_banner boolean
-  config_show_in_top_list boolean
-  config_price_per_1000_views decimal
-  is_active boolean [default: true]
-  created_at int64 [not null]
-}
-
-Table ProductBoosts {
-  id uuid [pk]
-  product_id uuid [not null, ref: > Products.id]
-  boost_package_id text [not null, ref: > BoostPackages.id]
-  user_id uuid [not null, ref: > Users.id]
-  status boost_status [default: 'active']
-  views_target int
-  views_actual int [default: 0]
-  days int
-  start_date int64 [not null]
-  end_date int64
-  total_cost decimal [not null]
-  created_at int64 [not null]
-  updated_at int64 [not null]
-}
-
-// Payment & Transaction Management
-Table Transactions {
-  id uuid [pk]
-  user_id uuid [not null, ref: > Users.id]
-  type transaction_type [not null]
-  amount decimal [not null]
-  currency text [default: 'VND']
-  status text // 'pending' | 'completed' | 'failed'
-  payment_method payment_method
-  reference text
-  description text
-  order_id uuid [ref: > Orders.id]
-  boost_id uuid [ref: > ProductBoosts.id]
-  created_at int64 [not null]
-  updated_at int64 [not null]
-}
-
-Table UserBalance {
-  id autoincrement [pk]
-  user_id uuid [unique, not null, ref: > Users.id]
-  balance decimal [default: 0]
-  updated_at int64 [not null]
-}
-
-// Chat/Conversation Management
-Table Conversations {
-  id uuid [pk]
-  type conversation_type [default: 'direct']
-  title text
-  created_at int64 [not null]
-  updated_at int64 [not null]
-}
-
-Table ConversationParticipants {
-  id autoincrement [pk]
-  conversation_id uuid [not null, ref: > Conversations.id]
-  user_id uuid [not null, ref: > Users.id]
-  role text
-  joined_at int64 [not null]
-}
-
-Table ChatMessages {
-  id uuid [pk]
-  conversation_id uuid [not null, ref: > Conversations.id]
-  sender_id uuid [not null, ref: > Users.id]
-  message_type message_type [default: 'text']
-  content text [not null]
-  attachments text[] // Array of attachment URLs
-  is_read boolean [default: false]
-  created_at int64 [not null]
-  updated_at int64 [not null]
-}
-
-// Notification Management
-Table Notifications {
-  id uuid [pk]
-  user_id uuid [not null, ref: > Users.id]
-  type notification_type [not null]
-  title text [not null]
-  message text [not null]
-  action_url text
-  is_read boolean [default: false]
-  created_at int64 [not null]
-}
-
 // Indexes for better performance
 TableIndexes {
   (Users.email) [name: 'idx_users_email']
   (Users.username) [name: 'idx_users_username']
-  (Products.category_id) [name: 'idx_products_category']
-  (Products.seller_id) [name: 'idx_products_seller']
-  (Products.status) [name: 'idx_products_status']
-  (Orders.user_id) [name: 'idx_orders_user']
-  (Orders.store_id) [name: 'idx_orders_store']
-  (Orders.status) [name: 'idx_orders_status']
-  (Reviews.product_id) [name: 'idx_reviews_product']
-  (Reviews.user_id) [name: 'idx_reviews_user']
-  (CartItems.cart_id) [name: 'idx_cart_items_cart']
-  (CartItems.product_id) [name: 'idx_cart_items_product']
-  (ProductBoosts.product_id) [name: 'idx_product_boosts_product']
-  (ProductBoosts.status) [name: 'idx_product_boosts_status']
-  (ChatMessages.conversation_id) [name: 'idx_chat_messages_conversation']
-  (ChatMessages.sender_id) [name: 'idx_chat_messages_sender']
-  (Notifications.user_id) [name: 'idx_notifications_user']
-  (Notifications.is_read) [name: 'idx_notifications_read']
+  (Sessions.user_id) [name: 'idx_sessions_user_id']
+  (Sessions.refresh_token) [name: 'idx_sessions_refresh_token']
+  (EmailVerifications.user_id) [name: 'idx_email_verifications_user_id']
+  (EmailVerifications.code) [name: 'idx_email_verifications_code']
+  (PasswordResets.user_id) [name: 'idx_password_resets_user_id']
+  (PasswordResets.reset_token) [name: 'idx_password_resets_reset_token']
 }
-
-
-

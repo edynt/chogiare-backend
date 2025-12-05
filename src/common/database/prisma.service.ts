@@ -12,7 +12,6 @@ function createPrismaClientConfig(databaseUrl: string) {
     { emit: 'stdout' as const, level: 'warn' as const },
   ];
 
-  // Check if using Prisma Accelerate
   if (databaseUrl.startsWith('prisma+')) {
     return {
       log: logConfig,
@@ -21,7 +20,6 @@ function createPrismaClientConfig(databaseUrl: string) {
     };
   }
 
-  // Direct connection - use adapter for Prisma 7
   const pool = new Pool({ connectionString: databaseUrl });
   const adapter = new PrismaPg(pool);
   return {

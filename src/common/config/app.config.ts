@@ -5,4 +5,3 @@ export default registerAs('app', () => ({
   apiPrefix: process.env.API_PREFIX || 'api',
   nodeEnv: process.env.NODE_ENV || 'development',
 }));
-

@@ -48,7 +48,6 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto): Promise<AuthResponse> {
-    // Check if user already exists
     const existingUser = await this.userRepository.findByEmail(registerDto.email);
     if (existingUser) {
       this.logger.warn(
@@ -58,7 +57,6 @@ export class AuthService {
       throw new ConflictException(MESSAGES.AUTH.EMAIL_ALREADY_EXISTS);
     }
 
-    // Check username if provided
     if (registerDto.username) {
       const existingUsername = await this.userRepository.findByUsername(
         registerDto.username,
@@ -72,10 +70,8 @@ export class AuthService {
       }
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
-    // Create user
     const user = await this.userRepository.create({
       email: registerDto.email,
       username: registerDto.username,
@@ -90,10 +86,8 @@ export class AuthService {
       email: user.email,
     });
 
-    // Generate tokens
     const tokens = await this.generateTokens(user.id, user.email);
 
-    // Save refresh token
     await this.saveRefreshToken(user.id, tokens.refreshToken);
 
     return {
@@ -110,7 +104,6 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto): Promise<AuthResponse> {
-    // Find user by email
     const user = await this.userRepository.findByEmail(loginDto.email);
     if (!user) {
       this.logger.warn(
@@ -120,13 +113,11 @@ export class AuthService {
       throw new UnauthorizedException(MESSAGES.AUTH.INVALID_CREDENTIALS);
     }
 
-    // Check if user is active
     if (!user.status) {
       this.logger.warn(`Login attempt with locked account: ${user.id}`, 'AuthService');
       throw new UnauthorizedException(MESSAGES.AUTH.ACCOUNT_LOCKED);
     }
 
-    // Verify password
     const isPasswordValid = await bcrypt.compare(
       loginDto.password,
       user.hashedPassword,
@@ -141,10 +132,8 @@ export class AuthService {
       email: user.email,
     });
 
-    // Generate tokens
     const tokens = await this.generateTokens(user.id, user.email);
 
-    // Save refresh token
     await this.saveRefreshToken(user.id, tokens.refreshToken);
 
     return {
@@ -162,7 +151,6 @@ export class AuthService {
 
   async refreshToken(refreshTokenDto: RefreshTokenDto): Promise<AuthTokens> {
     try {
-      // Verify refresh token
       const payload = await this.jwtService.verifyAsync(
         refreshTokenDto.refreshToken,
         {
@@ -170,7 +158,6 @@ export class AuthService {
         },
       );
 
-      // Check if refresh token exists in database
       const session = await this.prisma.session.findFirst({
         where: {
           refreshToken: refreshTokenDto.refreshToken,
@@ -189,17 +176,14 @@ export class AuthService {
         throw new UnauthorizedException(MESSAGES.AUTH.INVALID_REFRESH_TOKEN);
       }
 
-      // Get user
       const userId = typeof payload.sub === 'string' ? parseInt(payload.sub, 10) : payload.sub;
       const user = await this.userRepository.findById(userId);
       if (!user || !user.status) {
         throw new UnauthorizedException(MESSAGES.AUTH.USER_NOT_FOUND);
       }
 
-      // Generate new tokens
       const tokens = await this.generateTokens(user.id, user.email);
 
-      // Update refresh token in database
       await this.prisma.session.update({
         where: { id: session.id },
         data: {
@@ -226,7 +210,6 @@ export class AuthService {
 
   async logout(userId: number, refreshToken?: string): Promise<void> {
     if (refreshToken) {
-      // Delete specific session
       await this.prisma.session.deleteMany({
         where: {
           userId,
@@ -234,7 +217,6 @@ export class AuthService {
         },
       });
     } else {
-      // Delete all sessions for user
       await this.prisma.session.deleteMany({
         where: { userId },
       });
@@ -258,7 +240,6 @@ export class AuthService {
       }),
     ]);
 
-    // Calculate expires in seconds
     const expiresInSeconds = this.parseExpiresIn(expiresIn);
 
     return {
@@ -300,7 +281,7 @@ export class AuthService {
       case 'd':
         return value * 24 * 60 * 60;
       default:
-        return 3600; // Default 1 hour
+        return 3600;
     }
   }
 }
