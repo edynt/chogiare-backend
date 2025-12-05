@@ -27,6 +27,7 @@ alwaysApply: true
 22. All system messages must be stored in centralized message constants
 23. All input fields must enforce maximum length validation
 24. All fields must be validated using correct format (email, phone, uuid, numeric, date, etc.)
+25. Please remove code declared but its value is never read
 
 # BACKEND RULES
 1. Response format must follow a unified structure across all modules

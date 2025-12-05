@@ -43,7 +43,7 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> 
         const serializedData = serializeBigInt(data as SerializableValue);
         return {
           success: true,
-          data: serializedData,
+          data: serializedData as T,
           timestamp: new Date().toISOString(),
         };
       }),

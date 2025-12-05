@@ -1,9 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
-import {
-  IUserRepository,
-  USER_REPOSITORY,
-} from '@modules/auth/domain/repositories/user.repository.interface';
+import { IUserRepository } from '@modules/auth/domain/repositories/user.repository.interface';
 import { User } from '@modules/auth/domain/entities/user.entity';
 import { User as PrismaUser } from '@prisma/client';
 
@@ -69,7 +66,7 @@ export class UserRepository implements IUserRepository {
     return {
       id: prismaUser.id,
       email: prismaUser.email,
-      username: prismaUser.username,
+      username: prismaUser.username ?? undefined,
       hashedPassword: prismaUser.hashedPassword,
       isVerified: prismaUser.isVerified,
       status: prismaUser.status,
