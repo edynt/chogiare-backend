@@ -9,12 +9,6 @@ import { LoggingInterceptor } from '@common/interceptors/logging.interceptor';
 import { TransformInterceptor } from '@common/interceptors/transform.interceptor';
 import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
 import { AuthModule } from '@modules/auth/auth.module';
-import { CategoryModule } from '@modules/category/category.module';
-import { AddressModule } from '@modules/address/address.module';
-import { StoreModule } from '@modules/store/store.module';
-import { ProductModule } from '@modules/product/product.module';
-import { CartModule } from '@modules/cart/cart.module';
-import { OrderModule } from '@modules/order/order.module';
 
 @Module({
   imports: [
@@ -22,12 +16,6 @@ import { OrderModule } from '@modules/order/order.module';
     DatabaseModule,
     LoggerModule,
     AuthModule,
-    CategoryModule,
-    AddressModule,
-    StoreModule,
-    ProductModule,
-    CartModule,
-    OrderModule,
   ],
   providers: [
     {
