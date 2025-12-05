@@ -9,6 +9,7 @@ import {
 import { Request, Response } from 'express';
 import { LoggerService } from '../logger/logger.service';
 import { ERROR_CODES } from '../constants/error-codes.constants';
+import { MESSAGES } from '../constants/messages.constants';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -22,8 +23,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = 'Internal server error';
-    let errorCode = ERROR_CODES.INTERNAL_ERROR;
+    let message: string = MESSAGES.INTERNAL_SERVER_ERROR;
+    let errorCode: string = ERROR_CODES.INTERNAL_ERROR;
     let details: Record<string, unknown> | null = null;
 
     if (exception instanceof HttpException) {
@@ -40,15 +41,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
     } else if (exception instanceof Error) {
       message = exception.message;
-      this.loggerService.error(
-        exception.message,
-        exception.stack,
-        'HttpExceptionFilter',
-        {
-          url: request.url,
-          method: request.method,
-        },
-      );
+      this.loggerService.error(exception.message, exception.stack, 'HttpExceptionFilter', {
+        url: request.url,
+        method: request.method,
+      });
     }
 
     this.loggerService.error(

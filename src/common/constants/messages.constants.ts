@@ -1,9 +1,4 @@
-/**
- * Application Messages Constants
- * All user-facing messages should be in English
- */
 export const MESSAGES = {
-  // General
   SUCCESS: 'Success',
   CREATED: 'Created successfully',
   UPDATED: 'Updated successfully',
@@ -14,8 +9,6 @@ export const MESSAGES = {
   BAD_REQUEST: 'Bad request',
   VALIDATION_ERROR: 'Validation error',
   INTERNAL_SERVER_ERROR: 'Internal server error',
-
-  // Auth
   AUTH: {
     INVALID_CREDENTIALS: 'Invalid email or password',
     ACCOUNT_LOCKED: 'Account is locked',
@@ -27,20 +20,21 @@ export const MESSAGES = {
     USER_DOES_NOT_EXIST: 'User does not exist',
     ACCOUNT_IS_LOCKED: 'Account is locked',
   },
-
-  // User
   USER: {
     NOT_FOUND: 'User not found',
     ALREADY_EXISTS: 'User already exists',
     INSUFFICIENT_PERMISSIONS: 'Insufficient permissions',
   },
+  HEADER: {
+    MISSING_REQUIRED: 'Missing required header',
+    INVALID_CONTENT_TYPE: 'Content-Type must be application/json',
+  },
+  TOKEN: {
+    INVALID_OR_EXPIRED: 'Invalid or expired token',
+  },
 } as const;
 
-/**
- * Validation Messages
- */
 export const VALIDATION_MESSAGES = {
-  // General
   IS_STRING: 'Must be a string',
   IS_NUMBER: 'Must be a number',
   IS_BOOLEAN: 'Must be a boolean',
@@ -51,28 +45,17 @@ export const VALIDATION_MESSAGES = {
   IS_ENUM: 'Invalid enum value',
   IS_NOT_EMPTY: 'Is required',
   IS_OPTIONAL: 'Is optional',
-
-  // String validations
   MAX_LENGTH: (max: number) => `Must not exceed ${max} characters`,
   MIN_LENGTH: (min: number) => `Must be at least ${min} characters`,
-  LENGTH: (min: number, max: number) =>
-    `Must be between ${min} and ${max} characters`,
-
-  // Number validations
+  LENGTH: (min: number, max: number) => `Must be between ${min} and ${max} characters`,
   MIN: (min: number) => `Must be greater than or equal to ${min}`,
   MAX: (max: number) => `Must be less than or equal to ${max}`,
   POSITIVE: 'Must be a positive number',
   NEGATIVE: 'Must be a negative number',
-
-  // Array validations
   ARRAY_MIN_SIZE: (min: number) => `Must contain at least ${min} items`,
   ARRAY_MAX_SIZE: (max: number) => `Must not contain more than ${max} items`,
-
-  // Pattern validations
   SLUG_PATTERN: 'Must contain only lowercase letters, numbers, and hyphens',
   PHONE_PATTERN: 'Invalid phone number format',
-
-  // Field-specific validation messages for auth/user
   EMAIL: {
     IS_STRING: 'Email must be a string',
     IS_REQUIRED: 'Email is required',
@@ -89,4 +72,3 @@ export const VALIDATION_MESSAGES = {
     MIN_LENGTH: 'Password must be at least 8 characters',
   },
 } as const;
-

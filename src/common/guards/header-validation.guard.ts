@@ -8,6 +8,7 @@ import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { LoggerService } from '../logger/logger.service';
 import { SKIP_HEADER_VALIDATION_KEY } from '../decorators/skip-header-validation.decorator';
+import { MESSAGES } from '../constants/messages.constants';
 
 @Injectable()
 export class HeaderValidationGuard implements CanActivate {
@@ -42,7 +43,7 @@ export class HeaderValidationGuard implements CanActivate {
             ip: request.ip,
           },
         );
-        throw new BadRequestException(`Missing required header: ${header}`);
+        throw new BadRequestException(`${MESSAGES.HEADER.MISSING_REQUIRED}: ${header}`);
       }
     }
 
@@ -58,9 +59,7 @@ export class HeaderValidationGuard implements CanActivate {
             contentType,
           },
         );
-        throw new BadRequestException(
-          'Content-Type must be application/json',
-        );
+        throw new BadRequestException(MESSAGES.HEADER.INVALID_CONTENT_TYPE);
       }
     }
 

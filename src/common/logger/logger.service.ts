@@ -2,6 +2,9 @@ import { Injectable, LoggerService as NestLoggerService } from '@nestjs/common';
 import * as winston from 'winston';
 import { ConfigService } from '@nestjs/config';
 
+const LOG_FILE_MAX_SIZE = 5242880;
+const LOG_FILE_MAX_FILES = 5;
+
 @Injectable()
 export class LoggerService implements NestLoggerService {
   private logger: winston.Logger;
@@ -24,13 +27,13 @@ export class LoggerService implements NestLoggerService {
         new winston.transports.File({
           filename: 'logs/error.log',
           level: 'error',
-          maxsize: 5242880, // 5MB
-          maxFiles: 5,
+          maxsize: LOG_FILE_MAX_SIZE,
+          maxFiles: LOG_FILE_MAX_FILES,
         }),
         new winston.transports.File({
           filename: 'logs/combined.log',
-          maxsize: 5242880, // 5MB
-          maxFiles: 5,
+          maxsize: LOG_FILE_MAX_SIZE,
+          maxFiles: LOG_FILE_MAX_FILES,
         }),
       ],
     });

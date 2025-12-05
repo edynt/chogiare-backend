@@ -1,0 +1,69 @@
+---
+alwaysApply: true
+---
+
+# GLOBAL RULES
+1. No use of type `any`
+2. No Vietnamese messages inside code
+3. All texts must be defined in shared constants files
+4. No comments in code
+5. No random or unnecessary line breaks
+6. Full strict typing across all layers
+7. Each feature must be fully completed before starting another
+8. All API contracts must be consistent and strongly typed
+9. Use camelCase for all variables, functions, and file naming (except database columns)
+10. Enforce complete Global Rules across the project
+11. ESLint must always be enabled and enforced
+12. All unused code must be removed immediately (variables, imports, functions, components)
+13. Always follow clean code principles; code must be clear, readable, and maintainable
+14. Always optimize imports; avoid deep or redundant import paths
+15. Enforce clear separation of concerns: UI, business logic, data access, validations, and utilities must not mix
+16. Avoid duplication of logic across modules; extract reusable utilities when needed
+17. Use pure functions whenever possible to ensure predictable behavior
+18. Centralize all configuration; no inline configuration or magic values allowed
+19. Validate environment variables before application startup
+20. Enforce consistent naming conventions across all modules
+21. Prevent deep nesting; use early returns and refactoring
+22. All system messages must be stored in centralized message constants
+23. All input fields must enforce maximum length validation
+24. All fields must be validated using correct format (email, phone, uuid, numeric, date, etc.)
+
+# BACKEND RULES
+1. Response format must follow a unified structure across all modules
+2. Logging must always be enabled and follow structured logging (JSON preferred)
+3. All APIs must enforce strict validation on every input using DTO/schema validation
+4. Avoid heavy computation in API handlers; use background jobs or queues
+5. Enable API versioning (v1, v2…) for long-term maintainability
+6. All multi-step operations must use database transactions
+7. Database:
+   - Must be fast, scalable, and easy to maintain
+   - Must use proper indexing strategies
+   - Must avoid table bloating and redundant data
+   - All migrations must be incremental and reversible
+   - All fields must define max length
+   - Must enforce strict constraints (unique, foreign keys, not null)
+   - Must validate schema consistency across environments
+8. Avoid N+1 queries; use optimized relational loading strategies
+9. Use connection pooling for optimal performance
+10. Ensure idempotent operations for update/delete logic
+11. All endpoints must use correct and consistent HTTP status codes
+12. Sensitive data must never be returned in API responses
+
+# FRONTEND RULES
+1. Use TypeScript for all components and application modules
+2. Use React functional components only
+3. Use camelCase for variables, props, state, and hooks
+4. All input values must be validated for maximum length and correct format
+5. Use schema validation for all API responses (Zod preferred)
+6. Separate business logic into hooks or services; do not place logic inside UI components
+7. Use React Query (or similar) for data caching and state synchronization
+8. Memoize expensive operations using useMemo, useCallback, or memo
+9. Avoid inline functions and inline logic inside JSX
+10. Lazy-load heavy components to improve performance
+11. Prevent unnecessary re-renders by splitting component boundaries
+12. Avoid unnecessary global state; store only what is needed
+13. Enforce accessibility standards (a11y)
+14. Normalize API response data before rendering
+15. Optimize network usage through caching, deduplication, and background refresh
+16. Prevent layout shift; ensure consistent layout structure
+17. Use controlled components for all forms

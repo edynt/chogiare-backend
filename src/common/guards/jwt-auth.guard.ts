@@ -1,12 +1,9 @@
-import {
-  Injectable,
-  ExecutionContext,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
+import { MESSAGES } from '../constants/messages.constants';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -27,11 +24,10 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return super.canActivate(context);
   }
 
-  handleRequest(err: Error | null, user: CurrentUserPayload | false, info: Error | undefined): CurrentUserPayload {
+  handleRequest<TUser = CurrentUserPayload>(err: Error | null, user: TUser | false): TUser {
     if (err || !user) {
-      throw err || new UnauthorizedException('Invalid or expired token');
+      throw err || new UnauthorizedException(MESSAGES.TOKEN.INVALID_OR_EXPIRED);
     }
-    return user;
+    return user as TUser;
   }
 }
-
