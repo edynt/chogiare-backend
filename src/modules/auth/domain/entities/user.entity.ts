@@ -8,4 +8,3 @@ export class User {
   createdAt: bigint;
   updatedAt: bigint;
 }
-

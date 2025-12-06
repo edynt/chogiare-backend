@@ -41,7 +41,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         throw new UnauthorizedException(MESSAGES.TOKEN.INVALID_OR_EXPIRED);
       }
 
-      const userId = typeof payload.sub === 'string' ? parseInt(payload.sub, 10) : payload.sub; 
+      const userId = typeof payload.sub === 'string' ? parseInt(payload.sub, 10) : payload.sub;
       if (isNaN(userId)) {
         throw new UnauthorizedException(MESSAGES.TOKEN.INVALID_OR_EXPIRED);
       }

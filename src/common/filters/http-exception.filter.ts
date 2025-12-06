@@ -47,20 +47,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
       });
     }
 
-    this.loggerService.error(
-      `HTTP ${status} Error: ${message}`,
-      exception instanceof Error ? exception.stack : undefined,
-      'HttpExceptionFilter',
-      {
-        url: request.url,
-        method: request.method,
-        statusCode: status,
-        errorCode,
-        details,
-        userId: (request as Request & { user?: { id: number } }).user?.id,
-      },
-    );
-
     response.status(status).json({
       success: false,
       error: {

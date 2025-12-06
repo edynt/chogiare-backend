@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, BadRequestException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { LoggerService } from '../logger/logger.service';
@@ -18,10 +13,10 @@ export class HeaderValidationGuard implements CanActivate {
   ) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const skipValidation = this.reflector.getAllAndOverride<boolean>(
-      SKIP_HEADER_VALIDATION_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const skipValidation = this.reflector.getAllAndOverride<boolean>(SKIP_HEADER_VALIDATION_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     if (skipValidation) {
       return true;
@@ -48,4 +43,3 @@ export class HeaderValidationGuard implements CanActivate {
     return true;
   }
 }
-

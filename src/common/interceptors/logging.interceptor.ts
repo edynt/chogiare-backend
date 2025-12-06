@@ -3,8 +3,8 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
+  HttpException,
 } from '@nestjs/common';
-import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { LoggerService } from '../logger/logger.service';
 import { Request, Response } from 'express';
@@ -13,66 +13,48 @@ import { Request, Response } from 'express';
 export class LoggingInterceptor implements NestInterceptor {
   constructor(private readonly logger: LoggerService) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+  intercept(context: ExecutionContext, next: CallHandler) {
     const request = context.switchToHttp().getRequest<Request>();
     const response = context.switchToHttp().getResponse<Response>();
-    const { method, url, body, query, params, headers } = request;
-    const userAgent = headers['user-agent'] || '';
-    const ip = request.ip || request.connection.remoteAddress;
+    const { method, url } = request;
     const startTime = Date.now();
 
     const contextName = `${context.getClass().name}.${context.getHandler().name}`;
-
-    this.logger.log(
-      `Incoming Request: ${method} ${url}`,
-      contextName,
-      {
-        method,
-        url,
-        query,
-        params,
-        body: this.sanitizeBody(body),
-        userAgent,
-        ip,
-      },
-    );
 
     return next.handle().pipe(
       tap((data) => {
         const duration = Date.now() - startTime;
         const statusCode = response.statusCode;
 
-        this.logger.log(
-          `Outgoing Response: ${method} ${url} ${statusCode}`,
-          contextName,
-          {
-            method,
-            url,
-            statusCode,
-            duration: `${duration}ms`,
-            responseSize: JSON.stringify(data).length,
-          },
-        );
+        this.logger.log(`Outgoing Response: ${method} ${url} ${statusCode}`, contextName, {
+          method,
+          url,
+          statusCode,
+          duration: `${duration}ms`,
+          responseSize: JSON.stringify(data).length,
+        });
       }),
       catchError((error) => {
-        const duration = Date.now() - startTime;
-        const statusCode = error.status || 500;
+        if (!(error instanceof HttpException)) {
+          const duration = Date.now() - startTime;
+          const statusCode = (error as { status?: number }).status || 500;
 
-        this.logger.error(
-          `Request Failed: ${method} ${url} ${statusCode}`,
-          error.stack,
-          contextName,
-          {
-            method,
-            url,
-            statusCode,
-            duration: `${duration}ms`,
-            error: {
-              message: error.message,
-              name: error.name,
+          this.logger.error(
+            `Request Failed: ${method} ${url} ${statusCode}`,
+            (error as Error).stack,
+            contextName,
+            {
+              method,
+              url,
+              statusCode,
+              duration: `${duration}ms`,
+              error: {
+                message: (error as Error).message,
+                name: (error as Error).name,
+              },
             },
-          },
-        );
+          );
+        }
 
         throw error;
       }),
@@ -94,4 +76,3 @@ export class LoggingInterceptor implements NestInterceptor {
     return sanitized;
   }
 }
-

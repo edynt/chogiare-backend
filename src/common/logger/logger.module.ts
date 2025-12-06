@@ -9,4 +9,3 @@ import { ConfigModule } from '@nestjs/config';
   exports: [LoggerService],
 })
 export class LoggerModule {}
-

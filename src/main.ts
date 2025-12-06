@@ -62,7 +62,10 @@ async function bootstrap() {
       },
     });
 
-    logger.log(`Swagger documentation available at: http://localhost:${port}/${apiPrefix}/docs`, 'Bootstrap');
+    logger.log(
+      `Swagger documentation available at: http://localhost:${port}/${apiPrefix}/docs`,
+      'Bootstrap',
+    );
   }
 
   await app.listen(port);
@@ -70,4 +73,3 @@ async function bootstrap() {
 }
 
 bootstrap();
-

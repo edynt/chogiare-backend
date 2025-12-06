@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  ConflictException,
-  Inject,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -89,12 +84,6 @@ export class AuthService {
       },
     });
 
-    this.logger.log(`New user registered: ${user.id}`, 'AuthService', {
-      userId: user.id,
-      email: user.email,
-      fullName: registerDto.fullName,
-    });
-
     return {
       message: MESSAGES.AUTH.EMAIL_VERIFICATION_SENT,
       email: user.email,
@@ -115,18 +104,10 @@ export class AuthService {
       throw new UnauthorizedException(MESSAGES.AUTH.EMAIL_NOT_VERIFIED);
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      loginDto.password,
-      user.hashedPassword,
-    );
+    const isPasswordValid = await bcrypt.compare(loginDto.password, user.hashedPassword);
     if (!isPasswordValid) {
       throw new UnauthorizedException(MESSAGES.AUTH.INVALID_CREDENTIALS);
     }
-
-    this.logger.log(`User logged in: ${user.id}`, 'AuthService', {
-      userId: user.id,
-      email: user.email,
-    });
 
     const tokens = await this.generateTokens(user.id, user.email);
 
@@ -146,12 +127,9 @@ export class AuthService {
 
   async refreshToken(refreshTokenDto: RefreshTokenDto): Promise<AuthTokens> {
     try {
-      const payload = await this.jwtService.verifyAsync(
-        refreshTokenDto.refreshToken,
-        {
-          secret: this.configService.get<string>('jwt.refreshSecret'),
-        },
-      );
+      const payload = await this.jwtService.verifyAsync(refreshTokenDto.refreshToken, {
+        secret: this.configService.get<string>('jwt.refreshSecret'),
+      });
 
       const session = await this.prisma.session.findFirst({
         where: {
@@ -183,8 +161,6 @@ export class AuthService {
         },
       });
 
-      this.logger.log(`Token refreshed for user: ${user.id}`, 'AuthService');
-
       return tokens;
     } catch (error) {
       if (error instanceof UnauthorizedException) {
@@ -212,8 +188,6 @@ export class AuthService {
         where: { userId },
       });
     }
-
-    this.logger.log(`User logged out: ${userId}`, 'AuthService');
   }
 
   private async generateTokens(userId: number, email: string): Promise<AuthTokens> {
@@ -310,7 +284,5 @@ export class AuthService {
         where: { userId: verification.userId },
       }),
     ]);
-
-    this.logger.log(`Email verified for user: ${verification.userId}`, 'AuthService');
   }
 }

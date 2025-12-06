@@ -43,13 +43,11 @@ export class LoggerService implements NestLoggerService {
         new winston.transports.Console({
           format: winston.format.combine(
             winston.format.colorize(),
-            winston.format.printf(
-              ({ timestamp, level, message, context, ...meta }) => {
-                return `${timestamp} [${context}] ${level}: ${message} ${
-                  Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ''
-                }`;
-              },
-            ),
+            winston.format.printf(({ timestamp, level, message, context, ...meta }) => {
+              return `${timestamp} [${context}] ${level}: ${message} ${
+                Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ''
+              }`;
+            }),
           ),
         }),
       );
@@ -80,4 +78,3 @@ export class LoggerService implements NestLoggerService {
     this.logger.verbose(message, { context, ...meta });
   }
 }
-

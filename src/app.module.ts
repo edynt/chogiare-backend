@@ -11,12 +11,7 @@ import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
 import { AuthModule } from '@modules/auth/auth.module';
 
 @Module({
-  imports: [
-    ConfigModule,
-    DatabaseModule,
-    LoggerModule,
-    AuthModule,
-  ],
+  imports: [ConfigModule, DatabaseModule, LoggerModule, AuthModule],
   providers: [
     {
       provide: APP_GUARD,
@@ -41,4 +36,3 @@ import { AuthModule } from '@modules/auth/auth.module';
   ],
 })
 export class AppModule {}
-

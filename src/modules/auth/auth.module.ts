@@ -5,10 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './interfaces/controllers/auth.controller';
 import { AuthService } from './application/services/auth.service';
 import { UserRepository } from './infrastructure/repositories/user.repository';
-import {
-  IUserRepository,
-  USER_REPOSITORY,
-} from './domain/repositories/user.repository.interface';
+import { USER_REPOSITORY } from './domain/repositories/user.repository.interface';
 import { JwtStrategy } from './infrastructure/strategies/jwt.strategy';
 import { DatabaseModule } from '@common/database/database.module';
 import { LoggerModule } from '@common/logger/logger.module';
