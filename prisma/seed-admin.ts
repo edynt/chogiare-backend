@@ -29,7 +29,7 @@ async function seedAdmin() {
 
     console.log('Creating admin user...');
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@chogiare.com';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'password123';
     const adminUsername = process.env.ADMIN_USERNAME || 'admin';
 
     const hashedPassword = await bcrypt.hash(adminPassword, 10);

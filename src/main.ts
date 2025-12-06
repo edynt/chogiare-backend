@@ -48,13 +48,17 @@ async function bootstrap() {
         },
         'JWT-auth',
       )
-      .addServer(`http://localhost:${port}/${apiPrefix}`, 'Local Development')
+      .addServer(`http://localhost:${port}`, 'Local Development')
       .build();
 
-    const document = SwaggerModule.createDocument(app, config);
+    const document = SwaggerModule.createDocument(app, config, {
+      operationIdFactory: (controllerKey: string, methodKey: string) => methodKey,
+    });
     SwaggerModule.setup(`${apiPrefix}/docs`, app, document, {
       swaggerOptions: {
         persistAuthorization: true,
+        defaultModelsExpandDepth: 2,
+        defaultModelExpandDepth: 2,
       },
     });
 
