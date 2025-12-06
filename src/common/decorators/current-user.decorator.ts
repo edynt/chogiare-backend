@@ -3,7 +3,6 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 export interface CurrentUserPayload {
   id: number;
   email: string;
-  username?: string;
   isVerified: boolean;
   status: boolean;
   language: string;

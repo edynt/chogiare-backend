@@ -22,12 +22,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "ts-node prisma/seed.ts",
-    "seed": "prisma db seed",
-    "seed:admin": "ts-node prisma/seed-admin.ts",
-    "merge:schema": "node scripts/merge-schema.js",
-    "test:db": "node scripts/test-db-connection.js",
-    "generate:env": "node scripts/generate-env.js"
+    "prisma:seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

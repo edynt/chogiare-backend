@@ -34,19 +34,23 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     info: unknown,
   ): TUser {
     if (err) {
-      this.logger.warn('JWT authentication error', 'JwtAuthGuard', {
-        error: err.message,
-        info: info instanceof Error ? info.message : String(info),
-      });
+      if (!(err instanceof UnauthorizedException)) {
+        this.logger.error(
+          'JWT authentication error',
+          err instanceof Error ? err.stack : undefined,
+          'JwtAuthGuard',
+          {
+            error: err.message,
+            info: info instanceof Error ? info.message : String(info),
+          },
+        );
+      }
       throw err instanceof UnauthorizedException
         ? err
         : new UnauthorizedException(MESSAGES.TOKEN.INVALID_OR_EXPIRED);
     }
 
     if (!user) {
-      this.logger.warn('JWT authentication failed: no user', 'JwtAuthGuard', {
-        info: info instanceof Error ? info.message : String(info),
-      });
       throw new UnauthorizedException(MESSAGES.TOKEN.INVALID_OR_EXPIRED);
     }
 

@@ -4,6 +4,7 @@ import { AuthService } from '@modules/auth/application/services/auth.service';
 import { LoginDto } from '@modules/auth/application/dto/login.dto';
 import { RegisterDto } from '@modules/auth/application/dto/register.dto';
 import { RefreshTokenDto } from '@modules/auth/application/dto/refresh-token.dto';
+import { VerifyEmailDto } from '@modules/auth/application/dto/verify-email.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '@common/decorators/current-user.decorator';
 import { Public } from '@common/decorators/public.decorator';
@@ -24,27 +25,17 @@ export class AuthController {
     type: RegisterDto,
     examples: {
       example1: {
-        summary: 'Register with email and password',
+        summary: 'Register with full name, email and password',
         value: {
+          fullName: 'Nguyen Van A',
           email: 'user@example.com',
           password: 'password123',
-        },
-      },
-      example2: {
-        summary: 'Register with email, password and username',
-        value: {
-          email: 'john@example.com',
-          password: 'password123',
-          username: 'john_doe',
         },
       },
     },
   })
   async register(@Body() registerDto: RegisterDto) {
-    return {
-      success: true,
-      data: await this.authService.register(registerDto),
-    };
+    return await this.authService.register(registerDto);
   }
 
   @Public()
@@ -65,9 +56,29 @@ export class AuthController {
     },
   })
   async login(@Body() loginDto: LoginDto) {
+    return await this.authService.login(loginDto);
+  }
+
+  @Public()
+  @SkipHeaderValidation()
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify email with verification code' })
+  @ApiBody({
+    type: VerifyEmailDto,
+    examples: {
+      example1: {
+        summary: 'Verify email example',
+        value: {
+          code: '123456',
+        },
+      },
+    },
+  })
+  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
+    await this.authService.verifyEmail(verifyEmailDto.code);
     return {
-      success: true,
-      data: await this.authService.login(loginDto),
+      message: 'Email verified successfully',
     };
   }
 
@@ -89,10 +100,7 @@ export class AuthController {
     },
   })
   async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
-    return {
-      success: true,
-      data: await this.authService.refreshToken(refreshTokenDto),
-    };
+    return await this.authService.refreshToken(refreshTokenDto);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -133,7 +141,6 @@ export class AuthController {
   ) {
     await this.authService.logout(user.id, refreshToken);
     return {
-      success: true,
       message: MESSAGES.AUTH.LOGOUT_SUCCESS,
     };
   }
@@ -143,9 +150,6 @@ export class AuthController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get current user profile' })
   async getProfile(@CurrentUser() user: CurrentUserPayload) {
-    return {
-      success: true,
-      data: user,
-    };
+    return user;
   }
 }

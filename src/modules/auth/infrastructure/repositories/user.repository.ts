@@ -22,19 +22,11 @@ export class UserRepository implements IUserRepository {
     return user ? this.toDomain(user) : null;
   }
 
-  async findByUsername(username: string): Promise<User | null> {
-    const user = await this.prisma.user.findUnique({
-      where: { username },
-    });
-    return user ? this.toDomain(user) : null;
-  }
-
   async create(userData: Partial<User>): Promise<User> {
     const now = BigInt(Date.now());
     const user = await this.prisma.user.create({
       data: {
         email: userData.email!,
-        username: userData.username,
         hashedPassword: userData.hashedPassword!,
         isVerified: userData.isVerified ?? false,
         status: userData.status ?? true,
@@ -51,7 +43,6 @@ export class UserRepository implements IUserRepository {
       where: { id },
       data: {
         ...(userData.email && { email: userData.email }),
-        ...(userData.username !== undefined && { username: userData.username }),
         ...(userData.hashedPassword && { hashedPassword: userData.hashedPassword }),
         ...(userData.isVerified !== undefined && { isVerified: userData.isVerified }),
         ...(userData.status !== undefined && { status: userData.status }),
@@ -66,7 +57,6 @@ export class UserRepository implements IUserRepository {
     return {
       id: prismaUser.id,
       email: prismaUser.email,
-      username: prismaUser.username ?? undefined,
       hashedPassword: prismaUser.hashedPassword,
       isVerified: prismaUser.isVerified,
       status: prismaUser.status,

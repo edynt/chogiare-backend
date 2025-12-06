@@ -28,12 +28,16 @@ export interface AuthResponse {
   user: {
     id: number;
     email: string;
-    username?: string;
     isVerified: boolean;
     status: boolean;
     language: string;
   };
   tokens: AuthTokens;
+}
+
+export interface RegisterResponse {
+  message: string;
+  email: string;
 }
 
 @Injectable()
@@ -47,75 +51,68 @@ export class AuthService {
     private readonly logger: LoggerService,
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<AuthResponse> {
+  async register(registerDto: RegisterDto): Promise<RegisterResponse> {
     const existingUser = await this.userRepository.findByEmail(registerDto.email);
     if (existingUser) {
-      this.logger.warn(
-        `Registration attempt with existing email: ${registerDto.email}`,
-        'AuthService',
-      );
       throw new ConflictException(MESSAGES.AUTH.EMAIL_ALREADY_EXISTS);
-    }
-
-    if (registerDto.username) {
-      const existingUsername = await this.userRepository.findByUsername(
-        registerDto.username,
-      );
-      if (existingUsername) {
-        this.logger.warn(
-          `Registration attempt with existing username: ${registerDto.username}`,
-          'AuthService',
-        );
-        throw new ConflictException(MESSAGES.AUTH.USERNAME_ALREADY_EXISTS);
-      }
     }
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
     const user = await this.userRepository.create({
       email: registerDto.email,
-      username: registerDto.username,
       hashedPassword,
       isVerified: false,
       status: true,
       language: 'vi',
     });
 
+    const now = BigInt(Date.now());
+    await this.prisma.userInfo.create({
+      data: {
+        userId: user.id,
+        fullName: registerDto.fullName,
+        createdAt: now,
+        updatedAt: now,
+      },
+    });
+
+    const verificationCode = this.generateVerificationCode();
+    const expiresAt = BigInt(Date.now() + 24 * 60 * 60 * 1000);
+
+    await this.prisma.emailVerification.create({
+      data: {
+        userId: user.id,
+        code: verificationCode,
+        expiresAt,
+        createdAt: now,
+      },
+    });
+
     this.logger.log(`New user registered: ${user.id}`, 'AuthService', {
       userId: user.id,
       email: user.email,
+      fullName: registerDto.fullName,
     });
 
-    const tokens = await this.generateTokens(user.id, user.email);
-
-    await this.saveRefreshToken(user.id, tokens.refreshToken);
-
     return {
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        isVerified: user.isVerified,
-        status: user.status,
-        language: user.language,
-      },
-      tokens,
+      message: MESSAGES.AUTH.EMAIL_VERIFICATION_SENT,
+      email: user.email,
     };
   }
 
   async login(loginDto: LoginDto): Promise<AuthResponse> {
     const user = await this.userRepository.findByEmail(loginDto.email);
     if (!user) {
-      this.logger.warn(
-        `Login attempt with non-existent email: ${loginDto.email}`,
-        'AuthService',
-      );
       throw new UnauthorizedException(MESSAGES.AUTH.INVALID_CREDENTIALS);
     }
 
     if (!user.status) {
-      this.logger.warn(`Login attempt with locked account: ${user.id}`, 'AuthService');
       throw new UnauthorizedException(MESSAGES.AUTH.ACCOUNT_LOCKED);
+    }
+
+    if (!user.isVerified) {
+      throw new UnauthorizedException(MESSAGES.AUTH.EMAIL_NOT_VERIFIED);
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -123,7 +120,6 @@ export class AuthService {
       user.hashedPassword,
     );
     if (!isPasswordValid) {
-      this.logger.warn(`Invalid password attempt for user: ${user.id}`, 'AuthService');
       throw new UnauthorizedException(MESSAGES.AUTH.INVALID_CREDENTIALS);
     }
 
@@ -140,7 +136,6 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        username: user.username,
         isVerified: user.isVerified,
         status: user.status,
         language: user.language,
@@ -169,10 +164,6 @@ export class AuthService {
       });
 
       if (!session) {
-        this.logger.warn(
-          `Invalid refresh token attempt for user: ${payload.sub}`,
-          'AuthService',
-        );
         throw new UnauthorizedException(MESSAGES.AUTH.INVALID_REFRESH_TOKEN);
       }
 
@@ -283,5 +274,43 @@ export class AuthService {
       default:
         return 3600;
     }
+  }
+
+  private generateVerificationCode(): string {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  async verifyEmail(code: string): Promise<void> {
+    const verification = await this.prisma.emailVerification.findFirst({
+      where: {
+        code,
+        expiresAt: {
+          gt: BigInt(Date.now()),
+        },
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!verification) {
+      throw new UnauthorizedException(MESSAGES.AUTH.INVALID_VERIFICATION_CODE);
+    }
+
+    if (verification.user.isVerified) {
+      throw new ConflictException(MESSAGES.AUTH.EMAIL_ALREADY_VERIFIED);
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: verification.userId },
+        data: { isVerified: true },
+      }),
+      this.prisma.emailVerification.deleteMany({
+        where: { userId: verification.userId },
+      }),
+    ]);
+
+    this.logger.log(`Email verified for user: ${verification.userId}`, 'AuthService');
   }
 }

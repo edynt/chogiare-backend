@@ -28,6 +28,7 @@ alwaysApply: true
 23. All input fields must enforce maximum length validation
 24. All fields must be validated using correct format (email, phone, uuid, numeric, date, etc.)
 25. Please remove code declared but its value is never read
+26. Always fix format problems by Prettier
 
 # BACKEND RULES
 1. Response format must follow a unified structure across all modules
@@ -49,3 +50,4 @@ alwaysApply: true
 10. Ensure idempotent operations for update/delete logic
 11. All endpoints must use correct and consistent HTTP status codes
 12. Sensitive data must never be returned in API responses
+13. When writing a new api always add swagger

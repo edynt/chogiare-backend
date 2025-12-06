@@ -117,7 +117,6 @@ enum NotificationType {
 model User {
   id             Int     @id @default(autoincrement())
   email          String  @unique @db.VarChar(255)
-  username       String? @unique @db.VarChar(50)
   hashedPassword String  @map("hashed_password") @db.VarChar(255)
   isVerified     Boolean @default(false) @map("is_verified")
   status         Boolean @default(true)
@@ -147,7 +146,6 @@ model User {
   stockAlerts        StockAlert[]
 
   @@index([email])
-  @@index([username])
   @@index([status])
   @@map("users")
 }

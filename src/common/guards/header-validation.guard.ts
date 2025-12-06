@@ -34,15 +34,6 @@ export class HeaderValidationGuard implements CanActivate {
 
     for (const header of requiredHeaders) {
       if (!headers[header]) {
-        this.logger.warn(
-          `Missing required header: ${header}`,
-          'HeaderValidationGuard',
-          {
-            url: request.url,
-            method: request.method,
-            ip: request.ip,
-          },
-        );
         throw new BadRequestException(`${MESSAGES.HEADER.MISSING_REQUIRED}: ${header}`);
       }
     }
@@ -50,37 +41,7 @@ export class HeaderValidationGuard implements CanActivate {
     if (['POST', 'PUT', 'PATCH'].includes(request.method)) {
       const contentType = headers['content-type'];
       if (!contentType || !contentType.includes('application/json')) {
-        this.logger.warn(
-          'Invalid Content-Type header',
-          'HeaderValidationGuard',
-          {
-            url: request.url,
-            method: request.method,
-            contentType,
-          },
-        );
         throw new BadRequestException(MESSAGES.HEADER.INVALID_CONTENT_TYPE);
-      }
-    }
-
-    const suspiciousHeaders = [
-      'x-forwarded-for',
-      'x-real-ip',
-      'x-originating-ip',
-    ];
-
-    for (const header of suspiciousHeaders) {
-      if (headers[header]) {
-        this.logger.warn(
-          `Suspicious header detected: ${header}`,
-          'HeaderValidationGuard',
-          {
-            url: request.url,
-            method: request.method,
-            header,
-            value: headers[header],
-          },
-        );
       }
     }
 

@@ -38,33 +38,25 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload) {
     try {
       if (!payload || !payload.sub) {
-        this.logger.warn('Invalid JWT payload: missing sub', 'JwtStrategy');
         throw new UnauthorizedException(MESSAGES.TOKEN.INVALID_OR_EXPIRED);
       }
 
-      const userId = typeof payload.sub === 'string' ? parseInt(payload.sub, 10) : payload.sub;
-      
+      const userId = typeof payload.sub === 'string' ? parseInt(payload.sub, 10) : payload.sub; 
       if (isNaN(userId)) {
-        this.logger.warn(`Invalid user ID in token: ${payload.sub}`, 'JwtStrategy');
         throw new UnauthorizedException(MESSAGES.TOKEN.INVALID_OR_EXPIRED);
       }
 
       const user = await this.userRepository.findById(userId);
-      
       if (!user) {
-        this.logger.warn(`User not found for ID: ${userId}`, 'JwtStrategy');
         throw new UnauthorizedException(MESSAGES.AUTH.USER_DOES_NOT_EXIST);
       }
-      
       if (!user.status) {
-        this.logger.warn(`Account locked for user ID: ${userId}`, 'JwtStrategy');
         throw new UnauthorizedException(MESSAGES.AUTH.ACCOUNT_IS_LOCKED);
       }
 
       return {
         id: user.id,
         email: user.email,
-        username: user.username,
         isVerified: user.isVerified,
         status: user.status,
         language: user.language,

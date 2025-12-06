@@ -1,8 +1,18 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength, MaxLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { VALIDATION_MESSAGES } from '@common/constants/messages.constants';
 
 export class RegisterDto {
+  @ApiProperty({
+    description: 'Full name',
+    example: 'Nguyen Van A',
+    maxLength: 255,
+  })
+  @IsString({ message: VALIDATION_MESSAGES.IS_STRING })
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.IS_NOT_EMPTY })
+  @MaxLength(255, { message: VALIDATION_MESSAGES.MAX_LENGTH(255) })
+  fullName: string;
+
   @ApiProperty({
     description: 'User email address',
     example: 'user@example.com',
@@ -24,15 +34,4 @@ export class RegisterDto {
   @MinLength(6, { message: VALIDATION_MESSAGES.MIN_LENGTH(6) })
   @MaxLength(100, { message: VALIDATION_MESSAGES.MAX_LENGTH(100) })
   password: string;
-
-  @ApiProperty({
-    description: 'Username (optional)',
-    example: 'john_doe',
-    required: false,
-    maxLength: 50,
-  })
-  @IsString({ message: VALIDATION_MESSAGES.IS_STRING })
-  @IsOptional()
-  @MaxLength(50, { message: VALIDATION_MESSAGES.MAX_LENGTH(50) })
-  username?: string;
 }

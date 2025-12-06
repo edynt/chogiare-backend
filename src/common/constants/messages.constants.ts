@@ -13,12 +13,17 @@ export const MESSAGES = {
     INVALID_CREDENTIALS: 'Invalid email or password',
     ACCOUNT_LOCKED: 'Account is locked',
     EMAIL_ALREADY_EXISTS: 'Email already exists',
-    USERNAME_ALREADY_EXISTS: 'Username already exists',
     INVALID_REFRESH_TOKEN: 'Invalid or expired refresh token',
     USER_NOT_FOUND: 'User not found or account is locked',
     LOGOUT_SUCCESS: 'Logged out successfully',
     USER_DOES_NOT_EXIST: 'User does not exist',
     ACCOUNT_IS_LOCKED: 'Account is locked',
+    EMAIL_VERIFICATION_SENT:
+      'Verification email has been sent. Please check your email to verify your account.',
+    EMAIL_NOT_VERIFIED: 'Please verify your email before logging in.',
+    INVALID_VERIFICATION_CODE: 'Invalid or expired verification code',
+    EMAIL_ALREADY_VERIFIED: 'Email has already been verified',
+    EMAIL_VERIFIED: 'Email verified successfully',
   },
   USER: {
     NOT_FOUND: 'User not found',
@@ -61,10 +66,6 @@ export const VALIDATION_MESSAGES = {
     IS_REQUIRED: 'Email is required',
     IS_EMAIL: 'Email must be a valid email',
     MAX_LENGTH_255: 'Email must not exceed 255 characters',
-  },
-  USERNAME: {
-    IS_STRING: 'Username must be a string',
-    MAX_LENGTH_50: 'Username must not exceed 50 characters',
   },
   PASSWORD: {
     IS_STRING: 'Password must be a string',

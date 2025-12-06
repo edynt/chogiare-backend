@@ -5,8 +5,7 @@ import { map } from 'rxjs/operators';
 export interface Response<T> {
   success: boolean;
   data: T;
-  message?: string;
-  timestamp: string;
+  code: number;
 }
 
 type SerializableValue = string | number | boolean | null | undefined | bigint | SerializableValue[] | { [key: string]: SerializableValue };
@@ -38,13 +37,21 @@ function serializeBigInt(obj: SerializableValue): SerializableValue {
 @Injectable()
 export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> {
   intercept(context: ExecutionContext, next: CallHandler): Observable<Response<T>> {
+    const response = context.switchToHttp().getResponse();
     return next.handle().pipe(
       map((data) => {
+        if (data && typeof data === 'object' && 'success' in data && 'data' in data) {
+          return {
+            success: (data as { success: boolean }).success,
+            data: serializeBigInt((data as { data: unknown }).data as SerializableValue) as T,
+            code: response.statusCode,
+          };
+        }
         const serializedData = serializeBigInt(data as SerializableValue);
         return {
           success: true,
           data: serializedData as T,
-          timestamp: new Date().toISOString(),
+          code: response.statusCode,
         };
       }),
     );
