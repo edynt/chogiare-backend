@@ -1,4 +1,5 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from '@modules/auth/application/services/auth.service';
 import { LoginDto } from '@modules/auth/application/dto/login.dto';
 import { RegisterDto } from '@modules/auth/application/dto/register.dto';
@@ -8,6 +9,7 @@ import { CurrentUser, CurrentUserPayload } from '@common/decorators/current-user
 import { Public } from '@common/decorators/public.decorator';
 import { MESSAGES } from '@common/constants/messages.constants';
 
+@ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -15,6 +17,7 @@ export class AuthController {
   @Public()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Register a new user' })
   async register(@Body() registerDto: RegisterDto) {
     return {
       success: true,
@@ -25,6 +28,7 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login with email and password' })
   async login(@Body() loginDto: LoginDto) {
     return {
       success: true,
@@ -35,6 +39,7 @@ export class AuthController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Refresh access token using refresh token' })
   async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
     return {
       success: true,
@@ -45,6 +50,8 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Logout user and invalidate tokens' })
   async logout(
     @CurrentUser() user: CurrentUserPayload,
     @Body('refreshToken') refreshToken?: string,
@@ -58,6 +65,8 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('profile')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get current user profile' })
   async getProfile(@CurrentUser() user: CurrentUserPayload) {
     return {
       success: true,
@@ -65,4 +74,3 @@ export class AuthController {
     };
   }
 }
-

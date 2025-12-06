@@ -1,11 +1,4 @@
-import {
-  IsEmail,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  MinLength,
-  MaxLength,
-} from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength, MaxLength } from 'class-validator';
 import { VALIDATION_MESSAGES } from '@common/constants/messages.constants';
 
 export class RegisterDto {

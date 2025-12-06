@@ -49,22 +49,3 @@ alwaysApply: true
 10. Ensure idempotent operations for update/delete logic
 11. All endpoints must use correct and consistent HTTP status codes
 12. Sensitive data must never be returned in API responses
-
-# FRONTEND RULES
-1. Use TypeScript for all components and application modules
-2. Use React functional components only
-3. Use camelCase for variables, props, state, and hooks
-4. All input values must be validated for maximum length and correct format
-5. Use schema validation for all API responses (Zod preferred)
-6. Separate business logic into hooks or services; do not place logic inside UI components
-7. Use React Query (or similar) for data caching and state synchronization
-8. Memoize expensive operations using useMemo, useCallback, or memo
-9. Avoid inline functions and inline logic inside JSX
-10. Lazy-load heavy components to improve performance
-11. Prevent unnecessary re-renders by splitting component boundaries
-12. Avoid unnecessary global state; store only what is needed
-13. Enforce accessibility standards (a11y)
-14. Normalize API response data before rendering
-15. Optimize network usage through caching, deduplication, and background refresh
-16. Prevent layout shift; ensure consistent layout structure
-17. Use controlled components for all forms

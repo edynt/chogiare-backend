@@ -7,6 +7,7 @@ import {
   USER_REPOSITORY,
 } from '@modules/auth/domain/repositories/user.repository.interface';
 import { MESSAGES } from '@common/constants/messages.constants';
+import { LoggerService } from '@common/logger/logger.service';
 
 export interface JwtPayload {
   sub: number | string;
@@ -21,30 +22,64 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly configService: ConfigService,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
+    private readonly logger: LoggerService,
   ) {
+    const secret = configService.get<string>('jwt.secret');
+    if (!secret) {
+      throw new Error('JWT_SECRET is not configured');
+    }
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('jwt.secret'),
+      secretOrKey: secret,
     });
   }
 
   async validate(payload: JwtPayload) {
-    const userId = typeof payload.sub === 'string' ? parseInt(payload.sub, 10) : payload.sub;
-    const user = await this.userRepository.findById(userId);
-    if (!user) {
-      throw new UnauthorizedException(MESSAGES.AUTH.USER_DOES_NOT_EXIST);
+    try {
+      if (!payload || !payload.sub) {
+        this.logger.warn('Invalid JWT payload: missing sub', 'JwtStrategy');
+        throw new UnauthorizedException(MESSAGES.TOKEN.INVALID_OR_EXPIRED);
+      }
+
+      const userId = typeof payload.sub === 'string' ? parseInt(payload.sub, 10) : payload.sub;
+      
+      if (isNaN(userId)) {
+        this.logger.warn(`Invalid user ID in token: ${payload.sub}`, 'JwtStrategy');
+        throw new UnauthorizedException(MESSAGES.TOKEN.INVALID_OR_EXPIRED);
+      }
+
+      const user = await this.userRepository.findById(userId);
+      
+      if (!user) {
+        this.logger.warn(`User not found for ID: ${userId}`, 'JwtStrategy');
+        throw new UnauthorizedException(MESSAGES.AUTH.USER_DOES_NOT_EXIST);
+      }
+      
+      if (!user.status) {
+        this.logger.warn(`Account locked for user ID: ${userId}`, 'JwtStrategy');
+        throw new UnauthorizedException(MESSAGES.AUTH.ACCOUNT_IS_LOCKED);
+      }
+
+      return {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        isVerified: user.isVerified,
+        status: user.status,
+        language: user.language,
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      this.logger.error(
+        'Error validating JWT token',
+        error instanceof Error ? error.stack : undefined,
+        'JwtStrategy',
+        { payload },
+      );
+      throw new UnauthorizedException(MESSAGES.TOKEN.INVALID_OR_EXPIRED);
     }
-    if (!user.status) {
-      throw new UnauthorizedException(MESSAGES.AUTH.ACCOUNT_IS_LOCKED);
-    }
-    return {
-      id: user.id,
-      email: user.email,
-      username: user.username,
-      isVerified: user.isVerified,
-      status: user.status,
-      language: user.language,
-    };
   }
 }
