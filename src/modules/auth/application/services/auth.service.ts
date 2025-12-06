@@ -1,4 +1,10 @@
-import { Injectable, UnauthorizedException, ConflictException, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  Inject,
+  Logger,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -7,7 +13,6 @@ import {
   USER_REPOSITORY,
 } from '@modules/auth/domain/repositories/user.repository.interface';
 import { PrismaService } from '@common/database/prisma.service';
-import { LoggerService } from '@common/logger/logger.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
@@ -37,13 +42,14 @@ export interface RegisterResponse {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-    private readonly logger: LoggerService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<RegisterResponse> {
@@ -166,11 +172,7 @@ export class AuthService {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      this.logger.error(
-        'Refresh token error',
-        error instanceof Error ? error.stack : undefined,
-        'AuthService',
-      );
+      this.logger.error('Refresh token error', error instanceof Error ? error.stack : undefined);
       throw new UnauthorizedException(MESSAGES.AUTH.INVALID_REFRESH_TOKEN);
     }
   }

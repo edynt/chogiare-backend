@@ -8,7 +8,6 @@ import { UserRepository } from './infrastructure/repositories/user.repository';
 import { USER_REPOSITORY } from './domain/repositories/user.repository.interface';
 import { JwtStrategy } from './infrastructure/strategies/jwt.strategy';
 import { DatabaseModule } from '@common/database/database.module';
-import { LoggerModule } from '@common/logger/logger.module';
 
 @Module({
   imports: [
@@ -24,7 +23,6 @@ import { LoggerModule } from '@common/logger/logger.module';
       inject: [ConfigService],
     }),
     DatabaseModule,
-    LoggerModule,
   ],
   controllers: [AuthController],
   providers: [

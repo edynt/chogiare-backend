@@ -1,17 +1,15 @@
-import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { Injectable, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
 import { MESSAGES } from '../constants/messages.constants';
-import { LoggerService } from '../logger/logger.service';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
-  constructor(
-    private reflector: Reflector,
-    private readonly logger: LoggerService,
-  ) {
+  private readonly logger = new Logger(JwtAuthGuard.name);
+
+  constructor(private reflector: Reflector) {
     super();
   }
 
@@ -38,11 +36,10 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
         this.logger.error(
           'JWT authentication error',
           err instanceof Error ? err.stack : undefined,
-          'JwtAuthGuard',
-          {
+          JSON.stringify({
             error: err.message,
             info: info instanceof Error ? info.message : String(info),
-          },
+          }),
         );
       }
       throw err instanceof UnauthorizedException

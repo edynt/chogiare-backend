@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, Inject } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Inject, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
@@ -7,7 +7,6 @@ import {
   USER_REPOSITORY,
 } from '@modules/auth/domain/repositories/user.repository.interface';
 import { MESSAGES } from '@common/constants/messages.constants';
-import { LoggerService } from '@common/logger/logger.service';
 
 export interface JwtPayload {
   sub: number | string;
@@ -18,11 +17,12 @@ export interface JwtPayload {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
+  private readonly logger = new Logger(JwtStrategy.name);
+
   constructor(
     private readonly configService: ConfigService,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
-    private readonly logger: LoggerService,
   ) {
     const secret = configService.get<string>('jwt.secret');
     if (!secret) {
@@ -68,8 +68,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       this.logger.error(
         'Error validating JWT token',
         error instanceof Error ? error.stack : undefined,
-        'JwtStrategy',
-        { payload },
+        JSON.stringify({ payload }),
       );
       throw new UnauthorizedException(MESSAGES.TOKEN.INVALID_OR_EXPIRED);
     }

@@ -4,14 +4,14 @@ import {
   ExecutionContext,
   CallHandler,
   HttpException,
+  Logger,
 } from '@nestjs/common';
 import { tap, catchError } from 'rxjs/operators';
-import { LoggerService } from '../logger/logger.service';
 import { Request, Response } from 'express';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
-  constructor(private readonly logger: LoggerService) {}
+  private readonly logger = new Logger(LoggingInterceptor.name);
 
   intercept(context: ExecutionContext, next: CallHandler) {
     const request = context.switchToHttp().getRequest<Request>();
@@ -19,20 +19,21 @@ export class LoggingInterceptor implements NestInterceptor {
     const { method, url } = request;
     const startTime = Date.now();
 
-    const contextName = `${context.getClass().name}.${context.getHandler().name}`;
-
     return next.handle().pipe(
       tap((data) => {
         const duration = Date.now() - startTime;
         const statusCode = response.statusCode;
 
-        this.logger.log(`Outgoing Response: ${method} ${url} ${statusCode}`, contextName, {
-          method,
-          url,
-          statusCode,
-          duration: `${duration}ms`,
-          responseSize: JSON.stringify(data).length,
-        });
+        this.logger.log(
+          `Outgoing Response: ${method} ${url} ${statusCode} - ${duration}ms`,
+          JSON.stringify({
+            method,
+            url,
+            statusCode,
+            duration: `${duration}ms`,
+            responseSize: JSON.stringify(data).length,
+          }),
+        );
       }),
       catchError((error) => {
         if (!(error instanceof HttpException)) {
@@ -40,10 +41,9 @@ export class LoggingInterceptor implements NestInterceptor {
           const statusCode = (error as { status?: number }).status || 500;
 
           this.logger.error(
-            `Request Failed: ${method} ${url} ${statusCode}`,
+            `Request Failed: ${method} ${url} ${statusCode} - ${duration}ms`,
             (error as Error).stack,
-            contextName,
-            {
+            JSON.stringify({
               method,
               url,
               statusCode,
@@ -52,7 +52,7 @@ export class LoggingInterceptor implements NestInterceptor {
                 message: (error as Error).message,
                 name: (error as Error).name,
               },
-            },
+            }),
           );
         }
 

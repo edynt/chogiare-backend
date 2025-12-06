@@ -7,15 +7,12 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { LoggerService } from '../logger/logger.service';
 import { ERROR_CODES } from '../constants/error-codes.constants';
 import { MESSAGES } from '../constants/messages.constants';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
-
-  constructor(private readonly loggerService: LoggerService) {}
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -41,10 +38,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
     } else if (exception instanceof Error) {
       message = exception.message;
-      this.loggerService.error(exception.message, exception.stack, 'HttpExceptionFilter', {
-        url: request.url,
-        method: request.method,
-      });
+      this.logger.error(
+        exception.message,
+        exception.stack,
+        JSON.stringify({
+          url: request.url,
+          method: request.method,
+        }),
+      );
     }
 
     response.status(status).json({
