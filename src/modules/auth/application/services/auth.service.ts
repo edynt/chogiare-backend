@@ -14,6 +14,7 @@ import {
 } from '@modules/auth/domain/repositories/user.repository.interface';
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
+import { ERROR_CODES } from '@common/constants/error-codes.constants';
 import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
@@ -55,7 +56,10 @@ export class AuthService {
   async register(registerDto: RegisterDto): Promise<RegisterResponse> {
     const existingUser = await this.userRepository.findByEmail(registerDto.email);
     if (existingUser) {
-      throw new ConflictException(MESSAGES.AUTH.EMAIL_ALREADY_EXISTS);
+      throw new ConflictException({
+        message: MESSAGES.AUTH.EMAIL_ALREADY_EXISTS,
+        errorCode: ERROR_CODES.AUTH_EMAIL_ALREADY_EXISTS,
+      });
     }
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
@@ -99,20 +103,32 @@ export class AuthService {
   async login(loginDto: LoginDto): Promise<AuthResponse> {
     const user = await this.userRepository.findByEmail(loginDto.email);
     if (!user) {
-      throw new UnauthorizedException(MESSAGES.AUTH.INVALID_CREDENTIALS);
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.INVALID_CREDENTIALS,
+        errorCode: ERROR_CODES.AUTH_INVALID_CREDENTIALS,
+      });
     }
 
     if (!user.status) {
-      throw new UnauthorizedException(MESSAGES.AUTH.ACCOUNT_LOCKED);
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.ACCOUNT_LOCKED,
+        errorCode: 'AUTH_ACCOUNT_LOCKED',
+      });
     }
 
     if (!user.isVerified) {
-      throw new UnauthorizedException(MESSAGES.AUTH.EMAIL_NOT_VERIFIED);
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.EMAIL_NOT_VERIFIED,
+        errorCode: 'AUTH_EMAIL_NOT_VERIFIED',
+      });
     }
 
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.hashedPassword);
     if (!isPasswordValid) {
-      throw new UnauthorizedException(MESSAGES.AUTH.INVALID_CREDENTIALS);
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.INVALID_CREDENTIALS,
+        errorCode: ERROR_CODES.AUTH_INVALID_CREDENTIALS,
+      });
     }
 
     const tokens = await this.generateTokens(user.id, user.email);
@@ -148,13 +164,19 @@ export class AuthService {
       });
 
       if (!session) {
-        throw new UnauthorizedException(MESSAGES.AUTH.INVALID_REFRESH_TOKEN);
+        throw new UnauthorizedException({
+          message: MESSAGES.AUTH.INVALID_REFRESH_TOKEN,
+          errorCode: ERROR_CODES.AUTH_INVALID_REFRESH_TOKEN,
+        });
       }
 
       const userId = typeof payload.sub === 'string' ? parseInt(payload.sub, 10) : payload.sub;
       const user = await this.userRepository.findById(userId);
       if (!user || !user.status) {
-        throw new UnauthorizedException(MESSAGES.AUTH.USER_NOT_FOUND);
+        throw new UnauthorizedException({
+          message: MESSAGES.AUTH.USER_NOT_FOUND,
+          errorCode: ERROR_CODES.AUTH_USER_NOT_FOUND,
+        });
       }
 
       const tokens = await this.generateTokens(user.id, user.email);
@@ -173,7 +195,10 @@ export class AuthService {
         throw error;
       }
       this.logger.error('Refresh token error', error instanceof Error ? error.stack : undefined);
-      throw new UnauthorizedException(MESSAGES.AUTH.INVALID_REFRESH_TOKEN);
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.INVALID_REFRESH_TOKEN,
+        errorCode: ERROR_CODES.AUTH_INVALID_REFRESH_TOKEN,
+      });
     }
   }
 
@@ -270,11 +295,17 @@ export class AuthService {
     });
 
     if (!verification) {
-      throw new UnauthorizedException(MESSAGES.AUTH.INVALID_VERIFICATION_CODE);
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.INVALID_VERIFICATION_CODE,
+        errorCode: ERROR_CODES.AUTH_INVALID_VERIFICATION_CODE,
+      });
     }
 
     if (verification.user.isVerified) {
-      throw new ConflictException(MESSAGES.AUTH.EMAIL_ALREADY_VERIFIED);
+      throw new ConflictException({
+        message: MESSAGES.AUTH.EMAIL_ALREADY_VERIFIED,
+        errorCode: ERROR_CODES.AUTH_EMAIL_ALREADY_VERIFIED,
+      });
     }
 
     await this.prisma.$transaction([

@@ -26,9 +26,42 @@ async function bootstrap() {
     }),
   );
 
+  const corsOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map((origin) => origin.trim())
+    : nodeEnv === 'production'
+      ? []
+      : [
+          'http://localhost:5173',
+          'http://localhost:3000',
+          'http://127.0.0.1:5173',
+          'http://127.0.0.1:3000',
+        ];
+
   app.enableCors({
-    origin: process.env.CORS_ORIGIN?.split(',') || '*',
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (nodeEnv === 'development') {
+        const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1');
+        if (isLocalhost || corsOrigins.length === 0 || corsOrigins.includes(origin)) {
+          callback(null, true);
+          return;
+        }
+      }
+
+      if (corsOrigins.length === 0 || corsOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    exposedHeaders: ['Content-Type', 'Authorization'],
   });
 
   if (nodeEnv !== 'production') {
