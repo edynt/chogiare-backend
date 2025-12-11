@@ -8,9 +8,27 @@ import { LoggingInterceptor } from '@common/interceptors/logging.interceptor';
 import { TransformInterceptor } from '@common/interceptors/transform.interceptor';
 import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
 import { AuthModule } from '@modules/auth/auth.module';
+import { CategoryModule } from '@modules/category/category.module';
+import { ProductModule } from '@modules/product/product.module';
+import { UploadModule } from '@modules/upload/upload.module';
+import { CustomerModule } from '@modules/customer/customer.module';
+import { PaymentModule } from '@modules/payment/payment.module';
+import { BoostModule } from '@modules/boost/boost.module';
+import { InventoryModule } from '@modules/inventory/inventory.module';
 
 @Module({
-  imports: [ConfigModule, DatabaseModule, AuthModule],
+  imports: [
+    ConfigModule,
+    DatabaseModule,
+    AuthModule,
+    CategoryModule,
+    ProductModule,
+    UploadModule,
+    CustomerModule,
+    PaymentModule,
+    BoostModule,
+    InventoryModule,
+  ],
   providers: [
     {
       provide: APP_GUARD,

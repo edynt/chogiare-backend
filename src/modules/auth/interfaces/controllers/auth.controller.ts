@@ -1,10 +1,15 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get, Put } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { AuthService } from '@modules/auth/application/services/auth.service';
 import { LoginDto } from '@modules/auth/application/dto/login.dto';
 import { RegisterDto } from '@modules/auth/application/dto/register.dto';
 import { RefreshTokenDto } from '@modules/auth/application/dto/refresh-token.dto';
 import { VerifyEmailDto } from '@modules/auth/application/dto/verify-email.dto';
+import { ForgotPasswordDto } from '@modules/auth/application/dto/forgot-password.dto';
+import { ResetPasswordDto } from '@modules/auth/application/dto/reset-password.dto';
+import { ChangePasswordDto } from '@modules/auth/application/dto/change-password.dto';
+import { UpdateProfileDto } from '@modules/auth/application/dto/update-profile.dto';
+import { ResendVerificationDto } from '@modules/auth/application/dto/resend-verification.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '@common/decorators/current-user.decorator';
 import { Public } from '@common/decorators/public.decorator';
@@ -84,6 +89,51 @@ export class AuthController {
 
   @Public()
   @SkipHeaderValidation()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request password reset' })
+  @ApiBody({
+    type: ForgotPasswordDto,
+    examples: {
+      example1: {
+        summary: 'Forgot password example',
+        value: {
+          email: 'user@example.com',
+        },
+      },
+    },
+  })
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return await this.authService.forgotPassword(forgotPasswordDto);
+  }
+
+  @Public()
+  @SkipHeaderValidation()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset password with reset token' })
+  @ApiBody({
+    type: ResetPasswordDto,
+    examples: {
+      example1: {
+        summary: 'Reset password example',
+        value: {
+          resetToken:
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxNjM4MzY4MDAwMDAwIiwidHlwZSI6InBhc3N3b3JkLXJlc2V0IiwiaWF0IjoxNjM4MzY4MDAwLCJleHAiOjE2MzgzNzE2MDB9.example',
+          newPassword: 'newPassword123',
+        },
+      },
+    },
+  })
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    await this.authService.resetPassword(resetPasswordDto);
+    return {
+      message: MESSAGES.AUTH.PASSWORD_RESET_SUCCESS,
+    };
+  }
+
+  @Public()
+  @SkipHeaderValidation()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token using refresh token' })
@@ -145,11 +195,89 @@ export class AuthController {
     };
   }
 
+  @Public()
+  @SkipHeaderValidation()
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resend email verification code' })
+  @ApiBody({
+    type: ResendVerificationDto,
+    examples: {
+      example1: {
+        summary: 'Resend verification example',
+        value: {
+          email: 'user@example.com',
+        },
+      },
+    },
+  })
+  async resendVerification(@Body() resendVerificationDto: ResendVerificationDto) {
+    await this.authService.resendVerificationEmail(resendVerificationDto.email);
+    return {
+      message: MESSAGES.AUTH.VERIFICATION_EMAIL_RESENT,
+    };
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiOperation({ summary: 'Get current user profile with roles' })
   async getProfile(@CurrentUser() user: CurrentUserPayload) {
-    return user;
+    return await this.authService.getProfile(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('profile')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update user profile' })
+  @ApiBody({
+    type: UpdateProfileDto,
+    examples: {
+      example1: {
+        summary: 'Update profile example',
+        value: {
+          fullName: 'Nguyen Van B',
+          phoneNumber: '+84901234567',
+          language: 'en',
+        },
+      },
+    },
+  })
+  async updateProfile(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    await this.authService.updateProfile(user.id, updateProfileDto);
+    return {
+      message: MESSAGES.AUTH.PROFILE_UPDATED,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Change password' })
+  @ApiBody({
+    type: ChangePasswordDto,
+    examples: {
+      example1: {
+        summary: 'Change password example',
+        value: {
+          currentPassword: 'oldPassword123',
+          newPassword: 'newPassword123',
+        },
+      },
+    },
+  })
+  async changePassword(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    await this.authService.changePassword(user.id, changePasswordDto);
+    return {
+      message: MESSAGES.AUTH.PASSWORD_CHANGED_SUCCESS,
+    };
   }
 }

@@ -4,6 +4,8 @@ import {
   ConflictException,
   Inject,
   Logger,
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -18,6 +20,10 @@ import { ERROR_CODES } from '@common/constants/error-codes.constants';
 import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
+import { ForgotPasswordDto } from '../dto/forgot-password.dto';
+import { ResetPasswordDto } from '../dto/reset-password.dto';
+import { ChangePasswordDto } from '../dto/change-password.dto';
+import { UpdateProfileDto } from '../dto/update-profile.dto';
 
 export interface AuthTokens {
   accessToken: string;
@@ -39,6 +45,10 @@ export interface AuthResponse {
 export interface RegisterResponse {
   message: string;
   email: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
 }
 
 @Injectable()
@@ -317,5 +327,326 @@ export class AuthService {
         where: { userId: verification.userId },
       }),
     ]);
+  }
+
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto): Promise<ForgotPasswordResponse> {
+    const user = await this.userRepository.findByEmail(forgotPasswordDto.email);
+    if (!user) {
+      return {
+        message: MESSAGES.AUTH.PASSWORD_RESET_EMAIL_SENT,
+      };
+    }
+
+    if (!user.status) {
+      return {
+        message: MESSAGES.AUTH.PASSWORD_RESET_EMAIL_SENT,
+      };
+    }
+
+    const resetToken = await this.generateResetToken();
+    const expiresAt = BigInt(Date.now() + 60 * 60 * 1000);
+    const now = BigInt(Date.now());
+
+    await this.prisma.$transaction([
+      this.prisma.passwordReset.deleteMany({
+        where: { userId: user.id },
+      }),
+      this.prisma.passwordReset.create({
+        data: {
+          userId: user.id,
+          resetToken,
+          expiresAt,
+          createdAt: now,
+        },
+      }),
+    ]);
+
+    return {
+      message: MESSAGES.AUTH.PASSWORD_RESET_EMAIL_SENT,
+    };
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<void> {
+    try {
+      const payload = await this.jwtService.verifyAsync(resetPasswordDto.resetToken, {
+        secret: this.configService.get<string>('jwt.secret'),
+      });
+
+      if (payload.type !== 'password-reset') {
+        throw new UnauthorizedException({
+          message: MESSAGES.AUTH.INVALID_RESET_TOKEN,
+          errorCode: ERROR_CODES.AUTH_INVALID_RESET_TOKEN,
+        });
+      }
+    } catch (error) {
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.INVALID_RESET_TOKEN,
+        errorCode: ERROR_CODES.AUTH_INVALID_RESET_TOKEN,
+      });
+    }
+
+    const passwordReset = await this.prisma.passwordReset.findFirst({
+      where: {
+        resetToken: resetPasswordDto.resetToken,
+        expiresAt: {
+          gt: BigInt(Date.now()),
+        },
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!passwordReset) {
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.INVALID_RESET_TOKEN,
+        errorCode: ERROR_CODES.AUTH_INVALID_RESET_TOKEN,
+      });
+    }
+
+    if (!passwordReset.user.status) {
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.ACCOUNT_LOCKED,
+        errorCode: ERROR_CODES.AUTH_ACCOUNT_LOCKED,
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(resetPasswordDto.newPassword, 10);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: passwordReset.userId },
+        data: { hashedPassword },
+      }),
+      this.prisma.passwordReset.deleteMany({
+        where: { userId: passwordReset.userId },
+      }),
+      this.prisma.session.deleteMany({
+        where: { userId: passwordReset.userId },
+      }),
+    ]);
+  }
+
+  private async generateResetToken(): Promise<string> {
+    const payload = {
+      sub: Date.now().toString(),
+      type: 'password-reset',
+    };
+    return await this.jwtService.signAsync(payload, {
+      secret: this.configService.get<string>('jwt.secret'),
+      expiresIn: '1h',
+    });
+  }
+
+  async changePassword(userId: number, changePasswordDto: ChangePasswordDto): Promise<void> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException({
+        message: MESSAGES.AUTH.USER_NOT_FOUND,
+        errorCode: ERROR_CODES.AUTH_USER_NOT_FOUND,
+      });
+    }
+
+    if (!user.status) {
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.ACCOUNT_LOCKED,
+        errorCode: ERROR_CODES.AUTH_ACCOUNT_LOCKED,
+      });
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      changePasswordDto.currentPassword,
+      user.hashedPassword,
+    );
+    if (!isPasswordValid) {
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.INVALID_CREDENTIALS,
+        errorCode: ERROR_CODES.AUTH_INVALID_CREDENTIALS,
+      });
+    }
+
+    if (changePasswordDto.currentPassword === changePasswordDto.newPassword) {
+      throw new BadRequestException({
+        message: MESSAGES.AUTH.NEW_PASSWORD_SAME_AS_OLD,
+        errorCode: ERROR_CODES.AUTH_NEW_PASSWORD_SAME_AS_OLD,
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(changePasswordDto.newPassword, 10);
+
+    await this.userRepository.update(userId, { hashedPassword });
+
+    await this.prisma.session.deleteMany({
+      where: { userId },
+    });
+  }
+
+  async resendVerificationEmail(email: string): Promise<void> {
+    const user = await this.userRepository.findByEmail(email);
+    if (!user) {
+      return;
+    }
+
+    if (user.isVerified) {
+      throw new ConflictException({
+        message: MESSAGES.AUTH.EMAIL_ALREADY_VERIFIED,
+        errorCode: ERROR_CODES.AUTH_EMAIL_ALREADY_VERIFIED,
+      });
+    }
+
+    if (!user.status) {
+      return;
+    }
+
+    const verificationCode = this.generateVerificationCode();
+    const expiresAt = BigInt(Date.now() + 24 * 60 * 60 * 1000);
+    const now = BigInt(Date.now());
+
+    await this.prisma.$transaction([
+      this.prisma.emailVerification.deleteMany({
+        where: { userId: user.id },
+      }),
+      this.prisma.emailVerification.create({
+        data: {
+          userId: user.id,
+          code: verificationCode,
+          expiresAt,
+          createdAt: now,
+        },
+      }),
+    ]);
+  }
+
+  async updateProfile(userId: number, updateProfileDto: UpdateProfileDto): Promise<void> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException({
+        message: MESSAGES.AUTH.USER_NOT_FOUND,
+        errorCode: ERROR_CODES.AUTH_USER_NOT_FOUND,
+      });
+    }
+
+    if (!user.status) {
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.ACCOUNT_LOCKED,
+        errorCode: ERROR_CODES.AUTH_ACCOUNT_LOCKED,
+      });
+    }
+
+    const now = BigInt(Date.now());
+    const updateData: {
+      fullName?: string;
+      phoneNumber?: string;
+      avatarUrl?: string;
+      gender?: string;
+      dateOfBirth?: string;
+      address?: string;
+      country?: string;
+      updatedAt: bigint;
+    } = {
+      updatedAt: now,
+    };
+
+    if (updateProfileDto.fullName !== undefined) {
+      updateData.fullName = updateProfileDto.fullName;
+    }
+    if (updateProfileDto.phoneNumber !== undefined) {
+      updateData.phoneNumber = updateProfileDto.phoneNumber;
+    }
+    if (updateProfileDto.avatarUrl !== undefined) {
+      updateData.avatarUrl = updateProfileDto.avatarUrl;
+    }
+    if (updateProfileDto.gender !== undefined) {
+      updateData.gender = updateProfileDto.gender;
+    }
+    if (updateProfileDto.dateOfBirth !== undefined) {
+      updateData.dateOfBirth = updateProfileDto.dateOfBirth;
+    }
+    if (updateProfileDto.address !== undefined) {
+      updateData.address = updateProfileDto.address;
+    }
+    if (updateProfileDto.country !== undefined) {
+      updateData.country = updateProfileDto.country;
+    }
+
+    const userInfo = await this.prisma.userInfo.findUnique({
+      where: { userId },
+    });
+
+    if (userInfo) {
+      await this.prisma.userInfo.update({
+        where: { userId },
+        data: updateData,
+      });
+    } else {
+      await this.prisma.userInfo.create({
+        data: {
+          userId,
+          ...updateData,
+          createdAt: now,
+        },
+      });
+    }
+
+    if (updateProfileDto.language !== undefined) {
+      await this.userRepository.update(userId, { language: updateProfileDto.language });
+    }
+  }
+
+  async getProfile(userId: number): Promise<{
+    id: number;
+    email: string;
+    isVerified: boolean;
+    status: boolean;
+    language: string;
+    userInfo: {
+      fullName: string | null;
+      avatarUrl: string | null;
+      gender: string | null;
+      dateOfBirth: string | null;
+      phoneNumber: string | null;
+      address: string | null;
+      country: string | null;
+    } | null;
+    roles: string[];
+  }> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException({
+        message: MESSAGES.AUTH.USER_NOT_FOUND,
+        errorCode: ERROR_CODES.AUTH_USER_NOT_FOUND,
+      });
+    }
+
+    const userInfo = await this.prisma.userInfo.findUnique({
+      where: { userId },
+    });
+
+    const userRoles = await this.prisma.userRole.findMany({
+      where: { userId },
+      include: { role: true },
+    });
+
+    const roles = userRoles.map((ur) => ur.role.name);
+
+    return {
+      id: user.id,
+      email: user.email,
+      isVerified: user.isVerified,
+      status: user.status,
+      language: user.language,
+      userInfo: userInfo
+        ? {
+            fullName: userInfo.fullName,
+            avatarUrl: userInfo.avatarUrl,
+            gender: userInfo.gender,
+            dateOfBirth: userInfo.dateOfBirth,
+            phoneNumber: userInfo.phoneNumber,
+            address: userInfo.address,
+            country: userInfo.country,
+          }
+        : null,
+      roles,
+    };
   }
 }
