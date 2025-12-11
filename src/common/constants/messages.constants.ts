@@ -159,6 +159,18 @@ export const MESSAGES = {
     INSUFFICIENT_STOCK: 'Insufficient stock available',
     PRODUCT_NOT_AVAILABLE: 'Product is not available',
   },
+  ORDER: {
+    CREATED: 'Order created successfully',
+    CANCELLED: 'Order cancelled successfully',
+    NOT_FOUND: 'Order not found',
+    UNAUTHORIZED_ACCESS: 'Unauthorized to access this order',
+    CANNOT_CANCEL: 'Order cannot be cancelled',
+    CART_EMPTY: 'Cart is empty',
+    NO_ITEMS_FOR_STORE: 'No items found for this store in cart',
+    STORE_NOT_FOUND: 'Store not found',
+    PRODUCT_NOT_AVAILABLE: 'Product is not available',
+    INSUFFICIENT_STOCK: 'Insufficient stock available',
+  },
 } as const;
 
 export const VALIDATION_MESSAGES = {

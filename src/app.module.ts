@@ -19,6 +19,7 @@ import { ProductImportExportModule } from '@modules/product-import-export/produc
 import { AdminModule } from '@modules/admin/admin.module';
 import { ChatModule } from '@modules/chat/chat.module';
 import { CartModule } from '@modules/cart/cart.module';
+import { OrderModule } from '@modules/order/order.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { CartModule } from '@modules/cart/cart.module';
     AdminModule,
     ChatModule,
     CartModule,
+    OrderModule,
   ],
   providers: [
     {
