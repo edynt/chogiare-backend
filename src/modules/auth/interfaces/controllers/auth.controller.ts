@@ -2,6 +2,7 @@ import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get, Put } fro
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { AuthService } from '@modules/auth/application/services/auth.service';
 import { LoginDto } from '@modules/auth/application/dto/login.dto';
+import { AdminLoginDto } from '@modules/auth/application/dto/admin-login.dto';
 import { RegisterDto } from '@modules/auth/application/dto/register.dto';
 import { RefreshTokenDto } from '@modules/auth/application/dto/refresh-token.dto';
 import { VerifyEmailDto } from '@modules/auth/application/dto/verify-email.dto';
@@ -62,6 +63,27 @@ export class AuthController {
   })
   async login(@Body() loginDto: LoginDto) {
     return await this.authService.login(loginDto);
+  }
+
+  @Public()
+  @SkipHeaderValidation()
+  @Post('admin/login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Admin login with email and password' })
+  @ApiBody({
+    type: AdminLoginDto,
+    examples: {
+      example1: {
+        summary: 'Admin login example',
+        value: {
+          email: 'admin@example.com',
+          password: 'adminPassword123',
+        },
+      },
+    },
+  })
+  async adminLogin(@Body() adminLoginDto: AdminLoginDto) {
+    return await this.authService.adminLogin(adminLoginDto);
   }
 
   @Public()

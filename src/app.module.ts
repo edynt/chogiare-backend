@@ -15,6 +15,8 @@ import { CustomerModule } from '@modules/customer/customer.module';
 import { PaymentModule } from '@modules/payment/payment.module';
 import { BoostModule } from '@modules/boost/boost.module';
 import { InventoryModule } from '@modules/inventory/inventory.module';
+import { ProductImportExportModule } from '@modules/product-import-export/product-import-export.module';
+import { AdminModule } from '@modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { InventoryModule } from '@modules/inventory/inventory.module';
     PaymentModule,
     BoostModule,
     InventoryModule,
+    ProductImportExportModule,
+    AdminModule,
   ],
   providers: [
     {

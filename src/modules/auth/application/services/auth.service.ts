@@ -18,6 +18,7 @@ import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
 import { LoginDto } from '../dto/login.dto';
+import { AdminLoginDto } from '../dto/admin-login.dto';
 import { RegisterDto } from '../dto/register.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { ForgotPasswordDto } from '../dto/forgot-password.dto';
@@ -40,6 +41,8 @@ export interface AuthResponse {
     language: string;
   };
   tokens: AuthTokens;
+  roles?: string[];
+  permissions?: string[];
 }
 
 export interface RegisterResponse {
@@ -155,6 +158,89 @@ export class AuthService {
       },
       tokens,
     };
+  }
+
+  async adminLogin(adminLoginDto: AdminLoginDto): Promise<AuthResponse> {
+    const user = await this.userRepository.findByEmail(adminLoginDto.email);
+    if (!user) {
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.INVALID_CREDENTIALS,
+        errorCode: ERROR_CODES.AUTH_INVALID_CREDENTIALS,
+      });
+    }
+
+    if (!user.status) {
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.ACCOUNT_LOCKED,
+        errorCode: ERROR_CODES.AUTH_ACCOUNT_LOCKED,
+      });
+    }
+
+    const userRoles = await this.prisma.userRole.findMany({
+      where: { userId: user.id },
+      include: { role: true },
+    });
+
+    const isAdmin = userRoles.some((ur) => ur.role.name === 'admin');
+    if (!isAdmin) {
+      throw new UnauthorizedException({
+        message: MESSAGES.USER.INSUFFICIENT_PERMISSIONS,
+        errorCode: ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS,
+      });
+    }
+
+    const isPasswordValid = await bcrypt.compare(adminLoginDto.password, user.hashedPassword);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.INVALID_CREDENTIALS,
+        errorCode: ERROR_CODES.AUTH_INVALID_CREDENTIALS,
+      });
+    }
+
+    const tokens = await this.generateTokens(user.id, user.email);
+
+    await this.saveRefreshToken(user.id, tokens.refreshToken);
+
+    const permissions = await this.getUserPermissions(user.id);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        isVerified: user.isVerified,
+        status: user.status,
+        language: user.language,
+      },
+      tokens,
+      roles: userRoles.map((ur) => ur.role.name),
+      permissions,
+    };
+  }
+
+  private async getUserPermissions(userId: number): Promise<string[]> {
+    const userRoles = await this.prisma.userRole.findMany({
+      where: { userId },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const permissions = new Set<string>();
+    userRoles.forEach((userRole) => {
+      userRole.role.rolePermissions.forEach((rp) => {
+        permissions.add(rp.permission.name);
+      });
+    });
+
+    return Array.from(permissions);
   }
 
   async refreshToken(refreshTokenDto: RefreshTokenDto): Promise<AuthTokens> {
