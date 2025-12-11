@@ -15,10 +15,13 @@ export class ConversationRepository implements IConversationRepository {
     return conversation ? this.toDomain(conversation) : null;
   }
 
-  async findByUserId(userId: number, options?: {
-    page?: number;
-    pageSize?: number;
-  }): Promise<{ items: Conversation[]; total: number }> {
+  async findByUserId(
+    userId: number,
+    options?: {
+      page?: number;
+      pageSize?: number;
+    },
+  ): Promise<{ items: Conversation[]; total: number }> {
     const page = options?.page || 1;
     const pageSize = options?.pageSize || 10;
     const skip = (page - 1) * pageSize;
@@ -54,35 +57,32 @@ export class ConversationRepository implements IConversationRepository {
   }
 
   async findByParticipants(userId1: number, userId2: number): Promise<Conversation | null> {
-    const conversation = await this.prisma.conversation.findFirst({
+    const conversations = await this.prisma.conversation.findMany({
       where: {
         type: ConversationType.direct,
         participants: {
-          every: {
-            userId: {
-              in: [userId1, userId2],
-            },
+          some: {
+            userId: userId1,
           },
         },
-        AND: [
-          {
-            participants: {
-              some: {
-                userId: userId1,
-              },
-            },
-          },
-          {
-            participants: {
-              some: {
-                userId: userId2,
-              },
-            },
-          },
-        ],
+      },
+      include: {
+        participants: true,
       },
     });
-    return conversation ? this.toDomain(conversation) : null;
+
+    for (const conversation of conversations) {
+      const participantUserIds = conversation.participants.map((p) => p.userId);
+      if (
+        participantUserIds.includes(userId1) &&
+        participantUserIds.includes(userId2) &&
+        participantUserIds.length === 2
+      ) {
+        return this.toDomain(conversation);
+      }
+    }
+
+    return null;
   }
 
   async create(conversation: Partial<Conversation>): Promise<Conversation> {
@@ -135,4 +135,3 @@ export class ConversationRepository implements IConversationRepository {
     };
   }
 }
-

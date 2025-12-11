@@ -9,8 +9,12 @@ export interface CurrentUserPayload {
 }
 
 export const CurrentUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): CurrentUserPayload => {
+  (
+    data: keyof CurrentUserPayload | undefined,
+    ctx: ExecutionContext,
+  ): CurrentUserPayload | number | string | boolean => {
     const request = ctx.switchToHttp().getRequest();
-    return request.user;
+    const user = request.user;
+    return data ? user?.[data] : user;
   },
 );

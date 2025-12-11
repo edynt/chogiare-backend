@@ -149,6 +149,16 @@ export const MESSAGES = {
     MESSAGE_MARKED_AS_READ: 'Message marked as read successfully',
     MESSAGES_MARKED_AS_READ: 'Messages marked as read successfully',
   },
+  CART: {
+    ITEM_ADDED: 'Item added to cart successfully',
+    ITEM_UPDATED: 'Cart item updated successfully',
+    ITEM_REMOVED: 'Item removed from cart successfully',
+    CLEARED: 'Cart cleared successfully',
+    NOT_FOUND: 'Cart not found',
+    ITEM_NOT_FOUND: 'Cart item not found',
+    INSUFFICIENT_STOCK: 'Insufficient stock available',
+    PRODUCT_NOT_AVAILABLE: 'Product is not available',
+  },
 } as const;
 
 export const VALIDATION_MESSAGES = {

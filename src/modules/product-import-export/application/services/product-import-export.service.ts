@@ -162,12 +162,11 @@ export class ProductImportExportService {
     }
 
     const workbook = new ExcelJS.Workbook();
-    const buffer =
+    const buffer: Buffer =
       file.buffer instanceof Buffer
         ? file.buffer
         : Buffer.from(file.buffer as unknown as ArrayBuffer);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await workbook.xlsx.load(buffer as any);
+    await workbook.xlsx.load(buffer as unknown as Parameters<typeof workbook.xlsx.load>[0]);
 
     const worksheet = workbook.getWorksheet(1);
     if (!worksheet) {

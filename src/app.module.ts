@@ -17,6 +17,8 @@ import { BoostModule } from '@modules/boost/boost.module';
 import { InventoryModule } from '@modules/inventory/inventory.module';
 import { ProductImportExportModule } from '@modules/product-import-export/product-import-export.module';
 import { AdminModule } from '@modules/admin/admin.module';
+import { ChatModule } from '@modules/chat/chat.module';
+import { CartModule } from '@modules/cart/cart.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { AdminModule } from '@modules/admin/admin.module';
     InventoryModule,
     ProductImportExportModule,
     AdminModule,
+    ChatModule,
+    CartModule,
   ],
   providers: [
     {
