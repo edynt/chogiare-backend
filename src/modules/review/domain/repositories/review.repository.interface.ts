@@ -27,10 +27,4 @@ export interface IReviewRepository {
   addImage(reviewId: number, imageUrl: string): Promise<void>;
   removeImages(reviewId: number): Promise<void>;
   getImages(reviewId: number): Promise<string[]>;
-  markHelpful(reviewId: number, userId: number): Promise<void>;
-  unmarkHelpful(reviewId: number, userId: number): Promise<void>;
-  isHelpfulMarked(reviewId: number, userId: number): Promise<boolean>;
-  getHelpfulCount(reviewId: number): Promise<number>;
 }
-
-

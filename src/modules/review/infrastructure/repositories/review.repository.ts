@@ -87,7 +87,6 @@ export class ReviewRepository implements IReviewRepository {
         title: data.title,
         comment: data.comment,
         isVerified: data.isVerified,
-        helpfulCount: 0,
         reviewMetadata: {},
         createdAt: now,
         updatedAt: now,
@@ -159,87 +158,6 @@ export class ReviewRepository implements IReviewRepository {
     return images.map((img) => img.imageUrl);
   }
 
-  async markHelpful(reviewId: number, userId: number): Promise<void> {
-    const existing = await this.prisma.reviewHelpful.findUnique({
-      where: {
-        reviewId_userId: {
-          reviewId,
-          userId,
-        },
-      },
-    });
-
-    if (!existing) {
-      await this.prisma.reviewHelpful.create({
-        data: {
-          reviewId,
-          userId,
-          createdAt: BigInt(Date.now()),
-        },
-      });
-
-      await this.prisma.review.update({
-        where: { id: reviewId },
-        data: {
-          helpfulCount: {
-            increment: 1,
-          },
-        },
-      });
-    }
-  }
-
-  async unmarkHelpful(reviewId: number, userId: number): Promise<void> {
-    const existing = await this.prisma.reviewHelpful.findUnique({
-      where: {
-        reviewId_userId: {
-          reviewId,
-          userId,
-        },
-      },
-    });
-
-    if (existing) {
-      await this.prisma.reviewHelpful.delete({
-        where: {
-          reviewId_userId: {
-            reviewId,
-            userId,
-          },
-        },
-      });
-
-      await this.prisma.review.update({
-        where: { id: reviewId },
-        data: {
-          helpfulCount: {
-            decrement: 1,
-          },
-        },
-      });
-    }
-  }
-
-  async isHelpfulMarked(reviewId: number, userId: number): Promise<boolean> {
-    const existing = await this.prisma.reviewHelpful.findUnique({
-      where: {
-        reviewId_userId: {
-          reviewId,
-          userId,
-        },
-      },
-    });
-    return !!existing;
-  }
-
-  async getHelpfulCount(reviewId: number): Promise<number> {
-    const review = await this.prisma.review.findUnique({
-      where: { id: reviewId },
-      select: { helpfulCount: true },
-    });
-    return review?.helpfulCount || 0;
-  }
-
   private toDomainReview(review: {
     id: number;
     productId: number;
@@ -249,7 +167,6 @@ export class ReviewRepository implements IReviewRepository {
     title: string | null;
     comment: string | null;
     isVerified: boolean;
-    helpfulCount: number;
     reviewMetadata: unknown;
     createdAt: bigint;
     updatedAt: bigint;
@@ -263,7 +180,6 @@ export class ReviewRepository implements IReviewRepository {
       title: review.title || undefined,
       comment: review.comment || undefined,
       isVerified: review.isVerified,
-      helpfulCount: review.helpfulCount,
       reviewMetadata: review.reviewMetadata as Record<string, unknown>,
       createdAt: review.createdAt,
       updatedAt: review.updatedAt,
