@@ -3,6 +3,7 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { APP_NAME } from '@common/constants/app.constants';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -66,8 +67,8 @@ async function bootstrap() {
 
   if (nodeEnv !== 'production') {
     const config = new DocumentBuilder()
-      .setTitle('Chogiare Wholesale Marketplace API')
-      .setDescription('Backend API documentation for Chogiare Wholesale Marketplace')
+      .setTitle(`${APP_NAME} Wholesale Marketplace API`)
+      .setDescription(`Backend API documentation for ${APP_NAME} Wholesale Marketplace`)
       .setVersion('1.0')
       .addBearerAuth(
         {

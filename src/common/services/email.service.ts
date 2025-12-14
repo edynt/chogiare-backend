@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import { Transporter } from 'nodemailer';
+import { APP_NAME } from '@common/constants/app.constants';
 
 @Injectable()
 export class EmailService {
@@ -26,13 +27,13 @@ export class EmailService {
     const mailConfig = this.configService.get('mail');
     const appConfig = this.configService.get('app');
 
-    const html = this.getOTPEmailTemplate(fullName, otpCode, appConfig?.name || 'ChoGiaRe');
+    const html = this.getOTPEmailTemplate(fullName, otpCode, appConfig?.name || APP_NAME);
 
     try {
       await this.transporter.sendMail({
         from: `"${mailConfig.from.name}" <${mailConfig.from.email}>`,
         to: email,
-        subject: 'Xác minh email của bạn - ChoGiaRe',
+        subject: `Xác minh email của bạn - ${APP_NAME}`,
         html,
       });
 
@@ -55,14 +56,14 @@ export class EmailService {
     const html = this.getPasswordResetEmailTemplate(
       fullName,
       resetUrl,
-      appConfig?.name || 'ChoGiaRe',
+      appConfig?.name || APP_NAME,
     );
 
     try {
       await this.transporter.sendMail({
         from: `"${mailConfig.from.name}" <${mailConfig.from.email}>`,
         to: email,
-        subject: 'Đặt lại mật khẩu - ChoGiaRe',
+        subject: `Đặt lại mật khẩu - ${APP_NAME}`,
         html,
       });
 
