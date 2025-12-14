@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ProductController } from './interfaces/controllers/product.controller';
+import { SellerProductController } from './interfaces/controllers/seller-product.controller';
 import { ProductService } from './application/services/product.service';
 import { ProductRepository } from './infrastructure/repositories/product.repository';
 import { PRODUCT_REPOSITORY } from './domain/repositories/product.repository.interface';
@@ -8,7 +9,7 @@ import { DatabaseModule } from '@common/database/database.module';
 
 @Module({
   imports: [DatabaseModule, CategoryModule],
-  controllers: [ProductController],
+  controllers: [ProductController, SellerProductController],
   providers: [
     ProductService,
     {

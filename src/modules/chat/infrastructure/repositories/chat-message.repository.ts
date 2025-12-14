@@ -91,6 +91,26 @@ export class ChatMessageRepository implements IChatMessageRepository {
     });
   }
 
+  async markMessageAsRead(conversationId: number, messageId: number, userId: number): Promise<void> {
+    await this.prisma.chatMessage.updateMany({
+      where: {
+        id: messageId,
+        conversationId,
+        senderId: { not: userId },
+      },
+      data: {
+        isRead: true,
+        updatedAt: BigInt(Date.now()),
+      },
+    });
+  }
+
+  async delete(id: number): Promise<void> {
+    await this.prisma.chatMessage.delete({
+      where: { id },
+    });
+  }
+
   async exists(id: number): Promise<boolean> {
     const count = await this.prisma.chatMessage.count({
       where: { id },

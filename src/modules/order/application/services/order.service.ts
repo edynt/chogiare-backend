@@ -19,6 +19,7 @@ import {
 import { CreateOrderDto } from '../dto/create-order.dto';
 import { CreateOrderFromCartDto } from '../dto/create-order-from-cart.dto';
 import { QueryOrderDto } from '../dto/query-order.dto';
+import { UpdateOrderDto } from '../dto/update-order.dto';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 @Injectable()
@@ -443,21 +444,18 @@ export class OrderService {
         : null,
     ]);
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: order.userId },
+      include: { userInfo: true },
+    });
+
     return {
-      id: order.id,
+      id: order.id.toString(),
       userId: order.userId,
-      store: store
-        ? {
-            id: store.id,
-            name: store.name,
-            slug: store.slug,
-            logo: store.logo,
-            isVerified: store.isVerified,
-          }
-        : null,
+      storeId: order.storeId.toString(),
       status: order.status,
       paymentStatus: order.paymentStatus,
-      paymentMethod: order.paymentMethod,
+      paymentMethod: order.paymentMethod || '',
       subtotal: order.subtotal,
       tax: order.tax,
       shipping: order.shipping,
@@ -465,46 +463,238 @@ export class OrderService {
       total: order.total,
       currency: order.currency,
       shippingAddress: shippingAddress
-        ? {
-            id: shippingAddress.id,
-            recipientName: shippingAddress.recipientName,
-            recipientPhone: shippingAddress.recipientPhone,
-            street: shippingAddress.street,
-            city: shippingAddress.city,
-            state: shippingAddress.state,
-            district: shippingAddress.district,
-            ward: shippingAddress.ward,
-            zipCode: shippingAddress.zipCode,
-            country: shippingAddress.country,
-          }
-        : null,
+        ? `${shippingAddress.street}, ${shippingAddress.ward || ''}, ${shippingAddress.district || ''}, ${shippingAddress.city}, ${shippingAddress.state}`
+        : '',
       billingAddress: billingAddress
-        ? {
-            id: billingAddress.id,
-            recipientName: billingAddress.recipientName,
-            recipientPhone: billingAddress.recipientPhone,
-            street: billingAddress.street,
-            city: billingAddress.city,
-            state: billingAddress.state,
-            district: billingAddress.district,
-            ward: billingAddress.ward,
-            zipCode: billingAddress.zipCode,
-            country: billingAddress.country,
-          }
-        : null,
-      notes: order.notes,
-      sellerNotes: order.sellerNotes,
+        ? `${billingAddress.street}, ${billingAddress.ward || ''}, ${billingAddress.district || ''}, ${billingAddress.city}, ${billingAddress.state}`
+        : '',
+      notes: order.notes || undefined,
+      storeName: store?.name,
+      storeLogo: store?.logo || undefined,
+      userEmail: user?.email,
+      userName: user?.userInfo?.fullName || undefined,
       items: items.map((item) => ({
-        id: item.id,
-        productId: item.productId,
+        id: item.id.toString(),
+        orderId: order.id.toString(),
+        productId: item.productId.toString(),
         productName: item.productName,
-        productImage: item.productImage,
+        productImage: item.productImage || '',
         price: Number(item.price),
         quantity: item.quantity,
         subtotal: Number(item.subtotal),
+        createdAt: item.createdAt.toString(),
+        updatedAt: item.updatedAt.toString(),
       })),
       createdAt: order.createdAt.toString(),
       updatedAt: order.updatedAt.toString(),
+    };
+  }
+
+  async getStoreOrders(storeId: number, queryDto: QueryOrderDto) {
+    const page = queryDto.page || 1;
+    const pageSize = queryDto.pageSize || 10;
+
+    const result = await this.orderRepository.findByStoreId(storeId, {
+      status: queryDto.status,
+      paymentStatus: queryDto.paymentStatus,
+      page,
+      pageSize,
+    });
+
+    const orders = await Promise.all(
+      result.items.map(async (order) => {
+        return await this.enrichOrder(order);
+      }),
+    );
+
+    return {
+      items: orders,
+      total: result.total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(result.total / pageSize),
+    };
+  }
+
+  async updateOrderStatus(orderId: number, status: string, userId: number) {
+    const order = await this.orderRepository.findById(orderId);
+    if (!order) {
+      throw new NotFoundException({
+        message: MESSAGES.ORDER.NOT_FOUND,
+        errorCode: ERROR_CODES.ORDER_NOT_FOUND,
+      });
+    }
+
+    const store = await this.prisma.store.findUnique({
+      where: { id: order.storeId },
+    });
+
+    if (!store) {
+      throw new NotFoundException({
+        message: MESSAGES.STORE.NOT_FOUND,
+        errorCode: ERROR_CODES.STORE_NOT_FOUND || 'STORE_NOT_FOUND',
+      });
+    }
+
+    const userRoles = await this.prisma.userRole.findMany({
+      where: { userId },
+      include: { role: true },
+    });
+    const isAdmin = userRoles.some((ur) => ur.role.name === 'admin');
+
+    if (order.userId !== userId && store.userId !== userId && !isAdmin) {
+      throw new ForbiddenException({
+        message: MESSAGES.ORDER.UNAUTHORIZED_ACCESS,
+        errorCode: ERROR_CODES.ORDER_UNAUTHORIZED_ACCESS,
+      });
+    }
+
+    const updatedOrder = await this.orderRepository.updateStatus(orderId, status);
+    return await this.enrichOrder(updatedOrder);
+  }
+
+  async confirmOrder(orderId: number, sellerNotes: string | undefined, userId: number) {
+    const order = await this.orderRepository.findById(orderId);
+    if (!order) {
+      throw new NotFoundException({
+        message: MESSAGES.ORDER.NOT_FOUND,
+        errorCode: ERROR_CODES.ORDER_NOT_FOUND,
+      });
+    }
+
+    const store = await this.prisma.store.findUnique({
+      where: { id: order.storeId },
+    });
+
+    if (!store) {
+      throw new NotFoundException({
+        message: MESSAGES.STORE.NOT_FOUND,
+        errorCode: ERROR_CODES.STORE_NOT_FOUND || 'STORE_NOT_FOUND',
+      });
+    }
+
+    if (store.userId !== userId) {
+      throw new ForbiddenException({
+        message: MESSAGES.ORDER.UNAUTHORIZED_ACCESS,
+        errorCode: ERROR_CODES.ORDER_UNAUTHORIZED_ACCESS,
+      });
+    }
+
+    const updatedOrder = await this.orderRepository.update(orderId, {
+      status: OrderStatus.confirmed,
+      sellerNotes: sellerNotes || null,
+    });
+
+    return await this.enrichOrder(updatedOrder);
+  }
+
+  async updatePaymentStatus(orderId: number, paymentStatus: string, userId: number) {
+    const order = await this.orderRepository.findById(orderId);
+    if (!order) {
+      throw new NotFoundException({
+        message: MESSAGES.ORDER.NOT_FOUND,
+        errorCode: ERROR_CODES.ORDER_NOT_FOUND,
+      });
+    }
+
+    const store = await this.prisma.store.findUnique({
+      where: { id: order.storeId },
+    });
+
+    if (!store) {
+      throw new NotFoundException({
+        message: MESSAGES.STORE.NOT_FOUND,
+        errorCode: ERROR_CODES.STORE_NOT_FOUND || 'STORE_NOT_FOUND',
+      });
+    }
+
+    const userRoles = await this.prisma.userRole.findMany({
+      where: { userId },
+      include: { role: true },
+    });
+    const isAdmin = userRoles.some((ur) => ur.role.name === 'admin');
+
+    if (order.userId !== userId && store.userId !== userId && !isAdmin) {
+      throw new ForbiddenException({
+        message: MESSAGES.ORDER.UNAUTHORIZED_ACCESS,
+        errorCode: ERROR_CODES.ORDER_UNAUTHORIZED_ACCESS,
+      });
+    }
+
+    const updatedOrder = await this.orderRepository.updatePaymentStatus(orderId, paymentStatus);
+    return await this.enrichOrder(updatedOrder);
+  }
+
+  async updateOrder(orderId: number, updateOrderDto: UpdateOrderDto, userId: number) {
+    const order = await this.orderRepository.findById(orderId);
+    if (!order) {
+      throw new NotFoundException({
+        message: MESSAGES.ORDER.NOT_FOUND,
+        errorCode: ERROR_CODES.ORDER_NOT_FOUND,
+      });
+    }
+
+    if (order.userId !== userId) {
+      throw new ForbiddenException({
+        message: MESSAGES.ORDER.UNAUTHORIZED_ACCESS,
+        errorCode: ERROR_CODES.ORDER_UNAUTHORIZED_ACCESS,
+      });
+    }
+
+    const updatedOrder = await this.orderRepository.update(orderId, {
+      status: updateOrderDto.status,
+      paymentStatus: updateOrderDto.paymentStatus,
+      paymentMethod: updateOrderDto.paymentMethod,
+      shippingAddressId: updateOrderDto.shippingAddressId,
+      billingAddressId: updateOrderDto.billingAddressId,
+      notes: updateOrderDto.notes,
+    });
+
+    return await this.enrichOrder(updatedOrder);
+  }
+
+  async getOrderStats(userId?: number, storeId?: number) {
+    const where: Record<string, unknown> = {};
+
+    if (userId) {
+      where.userId = userId;
+    }
+
+    if (storeId) {
+      where.storeId = storeId;
+    }
+
+    const orders = await this.prisma.order.findMany({
+      where,
+      select: {
+        status: true,
+        paymentStatus: true,
+        total: true,
+      },
+    });
+
+    const totalOrders = orders.length;
+    const pendingOrders = orders.filter((o) => o.status === OrderStatus.pending).length;
+    const processingOrders = orders.filter((o) => o.status === OrderStatus.confirmed).length;
+    const shippedOrders = orders.filter((o) => o.status === OrderStatus.ready_for_pickup).length;
+    const deliveredOrders = orders.filter((o) => o.status === OrderStatus.completed).length;
+    const cancelledOrders = orders.filter((o) => o.status === OrderStatus.cancelled).length;
+
+    const totalRevenue = orders
+      .filter((o) => o.status === OrderStatus.completed && o.paymentStatus === PaymentStatus.completed)
+      .reduce((sum, o) => sum + Number(o.total), 0);
+
+    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+    return {
+      totalOrders,
+      pendingOrders,
+      processingOrders,
+      shippedOrders,
+      deliveredOrders,
+      cancelledOrders,
+      totalRevenue,
+      averageOrderValue: Math.round(averageOrderValue * 100) / 100,
     };
   }
 }

@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Post,
+  Put,
+  Delete,
   Body,
   Param,
   Query,
@@ -115,6 +117,123 @@ export class ChatController {
     await this.chatService.markAsRead(conversationId, user.id);
     return {
       message: MESSAGES.CHAT.MESSAGES_MARKED_AS_READ,
+    };
+  }
+
+  @Post('messages')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a message (alternative endpoint)' })
+  @ApiQuery({ name: 'conversationId', required: true, type: Number })
+  async createMessage(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query('conversationId', ParseIntPipe) conversationId: number,
+    @Body() sendDto: SendMessageDto,
+  ) {
+    const message = await this.chatService.sendMessage(conversationId, user.id, sendDto);
+    return {
+      message: MESSAGES.CHAT.MESSAGE_SENT,
+      data: message,
+    };
+  }
+
+  @Get('messages/:id')
+  @ApiOperation({ summary: 'Get a message by ID' })
+  @ApiParam({ name: 'id', type: Number })
+  async getMessage(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id', ParseIntPipe) messageId: number,
+  ) {
+    const message = await this.chatService.getMessage(messageId, user.id);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: message,
+    };
+  }
+
+  @Delete('messages/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a message' })
+  @ApiParam({ name: 'id', type: Number })
+  async deleteMessage(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id', ParseIntPipe) messageId: number,
+  ) {
+    await this.chatService.deleteMessage(messageId, user.id);
+    return {
+      message: MESSAGES.DELETED,
+    };
+  }
+
+  @Delete('conversations/:conversationId/messages/:messageId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a message (alternative endpoint)' })
+  @ApiParam({ name: 'conversationId', type: Number })
+  @ApiParam({ name: 'messageId', type: Number })
+  async deleteMessageAlternative(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('messageId', ParseIntPipe) messageId: number,
+  ) {
+    await this.chatService.deleteMessage(messageId, user.id);
+    return {
+      message: MESSAGES.DELETED,
+    };
+  }
+
+  @Post('conversations/:conversationId/participants/:userId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Add a participant to a conversation' })
+  @ApiParam({ name: 'conversationId', type: Number })
+  @ApiParam({ name: 'userId', type: Number })
+  async addParticipant(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('conversationId', ParseIntPipe) conversationId: number,
+    @Param('userId', ParseIntPipe) targetUserId: number,
+  ) {
+    await this.chatService.addParticipant(conversationId, targetUserId, user.id);
+    return {
+      message: MESSAGES.SUCCESS,
+    };
+  }
+
+  @Delete('conversations/:conversationId/participants/:userId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Remove a participant from a conversation' })
+  @ApiParam({ name: 'conversationId', type: Number })
+  @ApiParam({ name: 'userId', type: Number })
+  async removeParticipant(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('conversationId', ParseIntPipe) conversationId: number,
+    @Param('userId', ParseIntPipe) targetUserId: number,
+  ) {
+    await this.chatService.removeParticipant(conversationId, targetUserId, user.id);
+    return {
+      message: MESSAGES.SUCCESS,
+    };
+  }
+
+  @Post('conversations/:conversationId/messages/:messageId/read')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Mark a specific message as read' })
+  @ApiParam({ name: 'conversationId', type: Number })
+  @ApiParam({ name: 'messageId', type: Number })
+  async markMessageAsRead(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('conversationId', ParseIntPipe) conversationId: number,
+    @Param('messageId', ParseIntPipe) messageId: number,
+  ) {
+    await this.chatService.markMessageAsRead(conversationId, messageId, user.id);
+    return {
+      message: MESSAGES.CHAT.MESSAGES_MARKED_AS_READ,
+    };
+  }
+
+  @Get('stats')
+  @ApiOperation({ summary: 'Get chat statistics' })
+  async getChatStats(@CurrentUser() user?: CurrentUserPayload) {
+    const stats = await this.chatService.getChatStats(user?.id);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: stats,
     };
   }
 }

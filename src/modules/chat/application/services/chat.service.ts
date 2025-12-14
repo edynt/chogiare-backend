@@ -366,4 +366,185 @@ export class ChatService {
       this.participantRepository.updateLastReadAt(conversationId, userId, now),
     ]);
   }
+
+  async getMessage(messageId: number, userId: number) {
+    const message = await this.chatMessageRepository.findById(messageId);
+    if (!message) {
+      throw new NotFoundException({
+        message: MESSAGES.CHAT.MESSAGE_NOT_FOUND,
+        errorCode: ERROR_CODES.CHAT_MESSAGE_NOT_FOUND || 'CHAT_MESSAGE_NOT_FOUND',
+      });
+    }
+
+    const participant = await this.participantRepository.findByUserIdAndConversationId(
+      userId,
+      message.conversationId,
+    );
+
+    if (!participant) {
+      throw new UnauthorizedException({
+        message: MESSAGES.CHAT.UNAUTHORIZED_ACCESS,
+        errorCode: ERROR_CODES.CHAT_CONVERSATION_UNAUTHORIZED,
+      });
+    }
+
+    const sender = await this.prisma.user.findUnique({
+      where: { id: message.senderId },
+      include: { userInfo: true },
+    });
+
+    return {
+      ...message,
+      createdAt: message.createdAt.toString(),
+      updatedAt: message.updatedAt.toString(),
+      sender: {
+        userId: sender?.id,
+        fullName: sender?.userInfo?.fullName || null,
+        avatarUrl: sender?.userInfo?.avatarUrl || null,
+      },
+    };
+  }
+
+  async deleteMessage(messageId: number, userId: number) {
+    const message = await this.chatMessageRepository.findById(messageId);
+    if (!message) {
+      throw new NotFoundException({
+        message: MESSAGES.CHAT.MESSAGE_NOT_FOUND,
+        errorCode: ERROR_CODES.CHAT_MESSAGE_NOT_FOUND || 'CHAT_MESSAGE_NOT_FOUND',
+      });
+    }
+
+    if (message.senderId !== userId) {
+      throw new UnauthorizedException({
+        message: MESSAGES.CHAT.UNAUTHORIZED_ACCESS,
+        errorCode: ERROR_CODES.CHAT_CONVERSATION_UNAUTHORIZED,
+      });
+    }
+
+    await this.chatMessageRepository.delete(messageId);
+  }
+
+  async addParticipant(conversationId: number, targetUserId: number, userId: number) {
+    const conversation = await this.conversationRepository.findById(conversationId);
+    if (!conversation) {
+      throw new NotFoundException({
+        message: MESSAGES.CHAT.CONVERSATION_NOT_FOUND,
+        errorCode: ERROR_CODES.CHAT_CONVERSATION_NOT_FOUND,
+      });
+    }
+
+    const participant = await this.participantRepository.findByUserIdAndConversationId(
+      userId,
+      conversationId,
+    );
+
+    if (!participant) {
+      throw new UnauthorizedException({
+        message: MESSAGES.CHAT.UNAUTHORIZED_ACCESS,
+        errorCode: ERROR_CODES.CHAT_CONVERSATION_UNAUTHORIZED,
+      });
+    }
+
+    const exists = await this.participantRepository.exists(conversationId, targetUserId);
+    if (exists) {
+      throw new BadRequestException({
+        message: MESSAGES.CHAT.PARTICIPANT_ALREADY_EXISTS || 'Participant already exists',
+        errorCode: ERROR_CODES.CHAT_PARTICIPANT_ALREADY_EXISTS || 'CHAT_PARTICIPANT_ALREADY_EXISTS',
+      });
+    }
+
+    const now = BigInt(Date.now());
+    await this.participantRepository.create({
+      conversationId,
+      userId: targetUserId,
+      role: null,
+      joinedAt: now,
+      lastReadAt: null,
+      metadata: {},
+    });
+  }
+
+  async removeParticipant(conversationId: number, targetUserId: number, userId: number) {
+    const conversation = await this.conversationRepository.findById(conversationId);
+    if (!conversation) {
+      throw new NotFoundException({
+        message: MESSAGES.CHAT.CONVERSATION_NOT_FOUND,
+        errorCode: ERROR_CODES.CHAT_CONVERSATION_NOT_FOUND,
+      });
+    }
+
+    const participant = await this.participantRepository.findByUserIdAndConversationId(
+      userId,
+      conversationId,
+    );
+
+    if (!participant) {
+      throw new UnauthorizedException({
+        message: MESSAGES.CHAT.UNAUTHORIZED_ACCESS,
+        errorCode: ERROR_CODES.CHAT_CONVERSATION_UNAUTHORIZED,
+      });
+    }
+
+    await this.participantRepository.delete(conversationId, targetUserId);
+  }
+
+  async markMessageAsRead(conversationId: number, messageId: number, userId: number) {
+    const conversation = await this.conversationRepository.findById(conversationId);
+    if (!conversation) {
+      throw new NotFoundException({
+        message: MESSAGES.CHAT.CONVERSATION_NOT_FOUND,
+        errorCode: ERROR_CODES.CHAT_CONVERSATION_NOT_FOUND,
+      });
+    }
+
+    const participant = await this.participantRepository.findByUserIdAndConversationId(
+      userId,
+      conversationId,
+    );
+
+    if (!participant) {
+      throw new UnauthorizedException({
+        message: MESSAGES.CHAT.UNAUTHORIZED_ACCESS,
+        errorCode: ERROR_CODES.CHAT_CONVERSATION_UNAUTHORIZED,
+      });
+    }
+
+    const now = BigInt(Date.now());
+    await Promise.all([
+      this.chatMessageRepository.markMessageAsRead(conversationId, messageId, userId),
+      this.participantRepository.updateLastReadAt(conversationId, userId, now),
+    ]);
+  }
+
+  async getChatStats(userId?: number) {
+    const where: Record<string, unknown> = {};
+
+    if (userId) {
+      where.participants = {
+        some: {
+          userId,
+        },
+      };
+    }
+
+    const conversations = await this.prisma.conversation.count({ where });
+    const messages = await this.prisma.chatMessage.count({
+      where: userId
+        ? {
+            conversation: {
+              participants: {
+                some: {
+                  userId,
+                },
+              },
+            },
+          }
+        : {},
+    });
+
+    return {
+      totalConversations: conversations,
+      totalMessages: messages,
+    };
+  }
 }

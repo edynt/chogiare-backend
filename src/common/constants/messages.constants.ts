@@ -79,6 +79,8 @@ export const MESSAGES = {
     DELETE_FAILED: 'File deletion failed',
     UPLOAD_SUCCESS: 'File uploaded successfully',
     DELETE_SUCCESS: 'File deleted successfully',
+    FILE_NOT_FOUND: 'File not found',
+    LIST_FAILED: 'Failed to list files',
   },
   PAYMENT: {
     DEPOSIT_SUCCESS: 'Deposit successful',
@@ -146,6 +148,7 @@ export const MESSAGES = {
     UNAUTHORIZED_ACCESS: 'Unauthorized to access this conversation',
     CANNOT_CHAT_WITH_SELF: 'Cannot create conversation with yourself',
     PARTICIPANT_NOT_FOUND: 'Participant not found',
+    PARTICIPANT_ALREADY_EXISTS: 'Participant already exists in conversation',
     MESSAGE_MARKED_AS_READ: 'Message marked as read successfully',
     MESSAGES_MARKED_AS_READ: 'Messages marked as read successfully',
   },
@@ -170,6 +173,16 @@ export const MESSAGES = {
     STORE_NOT_FOUND: 'Store not found',
     PRODUCT_NOT_AVAILABLE: 'Product is not available',
     INSUFFICIENT_STOCK: 'Insufficient stock available',
+  },
+  STORE: {
+    NOT_FOUND: 'Store not found',
+    ALREADY_EXISTS: 'Store already exists',
+    SLUG_ALREADY_EXISTS: 'Store slug already exists',
+    UNAUTHORIZED_ACCESS: 'Unauthorized to access this store',
+    CREATED: 'Store created successfully',
+    UPDATED: 'Store updated successfully',
+    DELETED: 'Store deleted successfully',
+    STATS_RETRIEVED: 'Store statistics retrieved successfully',
   },
 } as const;
 

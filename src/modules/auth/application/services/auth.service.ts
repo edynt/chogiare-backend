@@ -735,4 +735,162 @@ export class AuthService {
       roles,
     };
   }
+
+  async oauthLogin(
+    provider: 'google' | 'facebook',
+    accessToken: string,
+    providerId?: string,
+  ): Promise<AuthResponse> {
+    try {
+      let userInfo: {
+        email: string;
+        name?: string;
+        picture?: string;
+        id?: string;
+      };
+
+      if (provider === 'google') {
+        const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new UnauthorizedException({
+            message: MESSAGES.AUTH.INVALID_CREDENTIALS,
+            errorCode: ERROR_CODES.AUTH_INVALID_CREDENTIALS,
+          });
+        }
+
+        userInfo = await response.json();
+      } else if (provider === 'facebook') {
+        const response = await fetch(
+          `https://graph.facebook.com/me?fields=id,name,email,picture&access_token=${accessToken}`,
+        );
+
+        if (!response.ok) {
+          throw new UnauthorizedException({
+            message: MESSAGES.AUTH.INVALID_CREDENTIALS,
+            errorCode: ERROR_CODES.AUTH_INVALID_CREDENTIALS,
+          });
+        }
+
+        const data = await response.json();
+        userInfo = {
+          email: data.email,
+          name: data.name,
+          picture: data.picture?.data?.url,
+          id: data.id,
+        };
+      } else {
+        throw new BadRequestException({
+          message: 'Invalid OAuth provider',
+          errorCode: 'INVALID_OAUTH_PROVIDER',
+        });
+      }
+
+      if (!userInfo.email) {
+        throw new BadRequestException({
+          message: 'Email is required from OAuth provider',
+          errorCode: 'OAUTH_EMAIL_REQUIRED',
+        });
+      }
+
+      let user = await this.userRepository.findByEmail(userInfo.email);
+
+      if (!user) {
+        const hashedPassword = await bcrypt.hash(`${provider}_${userInfo.id || Date.now()}`, 10);
+        user = await this.userRepository.create({
+          email: userInfo.email,
+          hashedPassword,
+          isVerified: true,
+          status: true,
+          language: 'vi',
+        });
+
+        const now = BigInt(Date.now());
+        await this.prisma.userInfo.create({
+          data: {
+            userId: user.id,
+            fullName: userInfo.name || null,
+            avatarUrl: userInfo.picture || null,
+            createdAt: now,
+            updatedAt: now,
+          },
+        });
+
+        await this.prisma.userRole.create({
+          data: {
+            userId: user.id,
+            roleId: 2,
+          },
+        });
+      } else {
+        if (!user.status) {
+          throw new UnauthorizedException({
+            message: MESSAGES.AUTH.ACCOUNT_LOCKED,
+            errorCode: 'AUTH_ACCOUNT_LOCKED',
+          });
+        }
+
+        const userInfoRecord = await this.prisma.userInfo.findUnique({
+          where: { userId: user.id },
+        });
+
+        if (!userInfoRecord) {
+          const now = BigInt(Date.now());
+          await this.prisma.userInfo.create({
+            data: {
+              userId: user.id,
+              fullName: userInfo.name || null,
+              avatarUrl: userInfo.picture || null,
+              createdAt: now,
+              updatedAt: now,
+            },
+          });
+        } else if (userInfo.picture && !userInfoRecord.avatarUrl) {
+          await this.prisma.userInfo.update({
+            where: { userId: user.id },
+            data: {
+              avatarUrl: userInfo.picture,
+              updatedAt: BigInt(Date.now()),
+            },
+          });
+        }
+      }
+
+      const tokens = await this.generateTokens(user.id, user.email);
+      await this.saveRefreshToken(user.id, tokens.refreshToken);
+
+      const userRoles = await this.prisma.userRole.findMany({
+        where: { userId: user.id },
+        include: { role: true },
+      });
+
+      const roles = userRoles.map((ur) => ur.role.name);
+
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          isVerified: user.isVerified,
+          status: user.status,
+          language: user.language,
+        },
+        tokens,
+        roles,
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException || error instanceof BadRequestException) {
+        throw error;
+      }
+
+      this.logger.error(`OAuth login error for ${provider}`, error instanceof Error ? error.stack : undefined);
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.INVALID_CREDENTIALS,
+        errorCode: ERROR_CODES.AUTH_INVALID_CREDENTIALS,
+      });
+    }
+  }
 }

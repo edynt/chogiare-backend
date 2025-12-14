@@ -304,6 +304,106 @@ export class CategoryService {
     return false;
   }
 
+  async getStats(id: number) {
+    const category = await this.categoryRepository.findById(id);
+    if (!category) {
+      throw new NotFoundException({
+        message: MESSAGES.CATEGORY.NOT_FOUND,
+        errorCode: ERROR_CODES.CATEGORY_NOT_FOUND,
+      });
+    }
+
+    const subcategoryCount = await this.prisma.category.count({
+      where: { parentId: id },
+    });
+
+    return {
+      productCount: category.productCount,
+      subcategoryCount,
+    };
+  }
+
+  async getProductsByCategory(
+    categoryId: number,
+    query: {
+      page?: number;
+      pageSize?: number;
+      status?: string;
+      search?: string;
+    },
+  ) {
+    const category = await this.categoryRepository.findById(categoryId);
+    if (!category) {
+      throw new NotFoundException({
+        message: MESSAGES.CATEGORY.NOT_FOUND,
+        errorCode: ERROR_CODES.CATEGORY_NOT_FOUND,
+      });
+    }
+
+    const page = query.page || 1;
+    const pageSize = query.pageSize || 10;
+    const skip = (page - 1) * pageSize;
+
+    const where: Record<string, unknown> = {
+      categoryId,
+    };
+
+    if (query.status) {
+      where.status = query.status;
+    } else {
+      where.status = 'active';
+    }
+
+    if (query.search) {
+      where.OR = [
+        { title: { contains: query.search, mode: 'insensitive' } },
+        { description: { contains: query.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where,
+        skip,
+        take: pageSize,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          category: true,
+        },
+      }),
+      this.prisma.product.count({ where }),
+    ]);
+
+    return {
+      items: products.map((p) => ({
+        id: p.id.toString(),
+        title: p.title,
+        description: p.description,
+        price: Number(p.price),
+        originalPrice: p.originalPrice ? Number(p.originalPrice) : undefined,
+        categoryId: p.categoryId.toString(),
+        category: p.category
+          ? {
+              id: p.category.id,
+              name: p.category.name,
+              slug: p.category.slug,
+            }
+          : null,
+        status: p.status,
+        rating: Number(p.rating),
+        reviewCount: p.reviewCount,
+        viewCount: p.viewCount,
+        stock: p.stock,
+        createdAt: p.createdAt.toString(),
+        updatedAt: p.updatedAt.toString(),
+      })),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
   private generateSlug(name: string): string {
     return name
       .toLowerCase()

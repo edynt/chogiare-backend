@@ -288,4 +288,27 @@ export class CartService {
       message: MESSAGES.CART.CLEARED,
     };
   }
+
+  async getCartStats(userId: number) {
+    const cart = await this.cartRepository.findByUserId(userId);
+    if (!cart) {
+      return {
+        totalItems: 0,
+        totalValue: 0,
+        uniqueProducts: 0,
+      };
+    }
+
+    const cartItems = await this.cartRepository.findCartItemsByCartId(cart.id);
+
+    const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    const totalValue = cartItems.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
+    const uniqueProducts = cartItems.length;
+
+    return {
+      totalItems,
+      totalValue: Math.round(totalValue * 100) / 100,
+      uniqueProducts,
+    };
+  }
 }

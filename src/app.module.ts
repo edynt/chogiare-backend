@@ -20,6 +20,11 @@ import { AdminModule } from '@modules/admin/admin.module';
 import { ChatModule } from '@modules/chat/chat.module';
 import { CartModule } from '@modules/cart/cart.module';
 import { OrderModule } from '@modules/order/order.module';
+import { CleanupModule } from '@modules/cleanup/cleanup.module';
+import { StoreModule } from '@modules/store/store.module';
+import { ReviewModule } from '@modules/review/review.module';
+import { AddressModule } from '@modules/address/address.module';
+import { ShippingModule } from '@modules/shipping/shipping.module';
 
 @Module({
   imports: [
@@ -38,6 +43,11 @@ import { OrderModule } from '@modules/order/order.module';
     ChatModule,
     CartModule,
     OrderModule,
+    CleanupModule,
+    StoreModule,
+    ReviewModule,
+    AddressModule,
+    ShippingModule,
   ],
   providers: [
     {

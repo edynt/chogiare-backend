@@ -62,6 +62,17 @@ export class ConversationParticipantRepository implements IConversationParticipa
     });
   }
 
+  async delete(conversationId: number, userId: number): Promise<void> {
+    await this.prisma.conversationParticipant.delete({
+      where: {
+        conversationId_userId: {
+          conversationId,
+          userId,
+        },
+      },
+    });
+  }
+
   async exists(conversationId: number, userId: number): Promise<boolean> {
     const count = await this.prisma.conversationParticipant.count({
       where: {

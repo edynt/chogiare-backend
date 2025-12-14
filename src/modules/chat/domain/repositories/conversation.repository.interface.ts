@@ -11,6 +11,7 @@ export interface IConversationRepository {
   findByParticipants(userId1: number, userId2: number): Promise<Conversation | null>;
   create(conversation: Partial<Conversation>): Promise<Conversation>;
   update(id: number, conversation: Partial<Conversation>): Promise<Conversation>;
+  delete(id: number): Promise<void>;
   exists(id: number): Promise<boolean>;
 }
 

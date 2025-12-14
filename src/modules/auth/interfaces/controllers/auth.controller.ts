@@ -302,4 +302,58 @@ export class AuthController {
       message: MESSAGES.AUTH.PASSWORD_CHANGED_SUCCESS,
     };
   }
+
+  @Public()
+  @SkipHeaderValidation()
+  @Post('google')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login or register with Google OAuth' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        accessToken: {
+          type: 'string',
+          description: 'Google OAuth access token',
+          example: 'ya29.a0AfH6SMBx...',
+        },
+        providerId: {
+          type: 'string',
+          description: 'Google user ID',
+          example: '123456789',
+        },
+      },
+      required: ['accessToken'],
+    },
+  })
+  async googleAuth(@Body() body: { accessToken: string; providerId?: string }) {
+    return await this.authService.oauthLogin('google', body.accessToken, body.providerId);
+  }
+
+  @Public()
+  @SkipHeaderValidation()
+  @Post('facebook')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login or register with Facebook OAuth' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        accessToken: {
+          type: 'string',
+          description: 'Facebook OAuth access token',
+          example: 'EAABwzLix...',
+        },
+        providerId: {
+          type: 'string',
+          description: 'Facebook user ID',
+          example: '123456789',
+        },
+      },
+      required: ['accessToken'],
+    },
+  })
+  async facebookAuth(@Body() body: { accessToken: string; providerId?: string }) {
+    return await this.authService.oauthLogin('facebook', body.accessToken, body.providerId);
+  }
 }

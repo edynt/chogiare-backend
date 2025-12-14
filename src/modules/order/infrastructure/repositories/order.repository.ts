@@ -105,6 +105,45 @@ export class OrderRepository implements IOrderRepository {
     };
   }
 
+  async findByStoreId(
+    storeId: number,
+    options?: {
+      status?: string;
+      paymentStatus?: string;
+      page?: number;
+      pageSize?: number;
+    },
+  ): Promise<{ items: Order[]; total: number }> {
+    const where: Prisma.OrderWhereInput = { storeId };
+
+    if (options?.status) {
+      where.status = options.status as OrderStatus;
+    }
+
+    if (options?.paymentStatus) {
+      where.paymentStatus = options.paymentStatus as PaymentStatus;
+    }
+
+    const page = options?.page || 1;
+    const pageSize = options?.pageSize || 10;
+    const skip = (page - 1) * pageSize;
+
+    const [orders, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        skip,
+        take: pageSize,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return {
+      items: orders.map((order) => this.toDomainOrder(order)),
+      total,
+    };
+  }
+
   async updateStatus(id: number, status: string): Promise<Order> {
     const order = await this.prisma.order.update({
       where: { id },
@@ -112,6 +151,48 @@ export class OrderRepository implements IOrderRepository {
         status: status as OrderStatus,
         updatedAt: BigInt(Date.now()),
       },
+    });
+
+    return this.toDomainOrder(order);
+  }
+
+  async updatePaymentStatus(id: number, paymentStatus: string): Promise<Order> {
+    const order = await this.prisma.order.update({
+      where: { id },
+      data: {
+        paymentStatus: paymentStatus as PaymentStatus,
+        updatedAt: BigInt(Date.now()),
+      },
+    });
+
+    return this.toDomainOrder(order);
+  }
+
+  async update(id: number, data: Partial<Order>): Promise<Order> {
+    const updateData: Prisma.OrderUpdateInput = {
+      updatedAt: BigInt(Date.now()),
+    };
+
+    if (data.status !== undefined) updateData.status = data.status as OrderStatus;
+    if (data.paymentStatus !== undefined) updateData.paymentStatus = data.paymentStatus as PaymentStatus;
+    if (data.paymentMethod !== undefined) updateData.paymentMethod = data.paymentMethod as PaymentMethod | null;
+    if (data.subtotal !== undefined) updateData.subtotal = data.subtotal;
+    if (data.tax !== undefined) updateData.tax = data.tax;
+    if (data.shipping !== undefined) updateData.shipping = data.shipping;
+    if (data.discount !== undefined) updateData.discount = data.discount;
+    if (data.total !== undefined) updateData.total = data.total;
+    if (data.shippingAddressId !== undefined) {
+      (updateData as { shippingAddressId?: number | null }).shippingAddressId = data.shippingAddressId || null;
+    }
+    if (data.billingAddressId !== undefined) {
+      (updateData as { billingAddressId?: number | null }).billingAddressId = data.billingAddressId || null;
+    }
+    if (data.notes !== undefined) updateData.notes = data.notes;
+    if (data.sellerNotes !== undefined) updateData.sellerNotes = data.sellerNotes;
+
+    const order = await this.prisma.order.update({
+      where: { id },
+      data: updateData,
     });
 
     return this.toDomainOrder(order);

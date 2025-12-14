@@ -73,4 +73,24 @@ export class CartController {
   async clearCart(@CurrentUser('id') userId: number) {
     return await this.cartService.clearCart(userId);
   }
+
+  @Delete()
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Clear all items from cart (alternative endpoint)' })
+  async clearCartAlternative(@CurrentUser('id') userId: number) {
+    return await this.cartService.clearCart(userId);
+  }
+
+  @Get('stats')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get cart statistics' })
+  async getCartStats(@CurrentUser('id') userId: number) {
+    const stats = await this.cartService.getCartStats(userId);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: stats,
+    };
+  }
 }

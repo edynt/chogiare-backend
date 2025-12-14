@@ -32,7 +32,18 @@ export interface IOrderRepository {
       pageSize?: number;
     },
   ): Promise<{ items: Order[]; total: number }>;
+  findByStoreId(
+    storeId: number,
+    options?: {
+      status?: string;
+      paymentStatus?: string;
+      page?: number;
+      pageSize?: number;
+    },
+  ): Promise<{ items: Order[]; total: number }>;
   updateStatus(id: number, status: string): Promise<Order>;
+  updatePaymentStatus(id: number, paymentStatus: string): Promise<Order>;
+  update(id: number, data: Partial<Order>): Promise<Order>;
   createOrderItem(data: {
     orderId: number;
     productId: number;

@@ -102,4 +102,112 @@ export class ProductController {
       message: MESSAGES.DELETED,
     };
   }
+
+  @Public()
+  @Get('search')
+  @ApiOperation({ summary: 'Search products' })
+  @ApiQuery({ name: 'query', required: true, type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
+  @ApiQuery({ name: 'categoryId', required: false, type: Number })
+  async searchProducts(@Query('query') query: string, @Query() queryDto: QueryProductDto, @CurrentUser() user?: CurrentUserPayload) {
+    return await this.productService.searchProducts(query, queryDto, user?.id);
+  }
+
+  @Public()
+  @Get('featured')
+  @ApiOperation({ summary: 'Get featured products' })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async getFeaturedProducts(@Query('limit') limit?: number) {
+    const products = await this.productService.getFeaturedProducts(limit ? parseInt(limit.toString(), 10) : 10);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: products,
+    };
+  }
+
+  @Public()
+  @Get(':id/stats')
+  @ApiOperation({ summary: 'Get product statistics' })
+  @ApiParam({ name: 'id', type: Number })
+  async getProductStats(@Param('id', ParseIntPipe) id: number) {
+    const stats = await this.productService.getProductStats(id);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: stats,
+    };
+  }
+
+  @Public()
+  @Post(':id/views')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Increment product views' })
+  @ApiParam({ name: 'id', type: Number })
+  async incrementViews(@Param('id', ParseIntPipe) id: number) {
+    await this.productService.incrementViews(id);
+    return {
+      message: MESSAGES.SUCCESS,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('seller', 'admin')
+  @Patch(':id/status')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update product status' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiQuery({
+    name: 'status',
+    required: true,
+    enum: ['draft', 'active', 'sold', 'archived', 'suspended'],
+  })
+  async updateStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('status') status: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    const product = await this.productService.updateStatus(id, status, user.id);
+    return {
+      message: MESSAGES.UPDATED,
+      data: product,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('seller', 'admin')
+  @Patch(':id/stock')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update product stock' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiQuery({ name: 'stock', required: true, type: Number })
+  async updateStock(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('stock') stock: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    const product = await this.productService.updateStock(id, parseInt(stock, 10), user.id);
+    return {
+      message: MESSAGES.UPDATED,
+      data: product,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('seller', 'admin')
+  @Patch('bulk')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Bulk update products' })
+  async bulkUpdate(
+    @Body() body: { updates: Array<{ id: number; data: Partial<UpdateProductDto> }> },
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    const products = await this.productService.bulkUpdate(body.updates, user.id);
+    return {
+      message: MESSAGES.UPDATED,
+      data: products,
+    };
+  }
 }

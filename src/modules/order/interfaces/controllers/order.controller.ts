@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Patch,
   Param,
   Body,
@@ -16,6 +17,7 @@ import { OrderService } from '@modules/order/application/services/order.service'
 import { CreateOrderDto } from '@modules/order/application/dto/create-order.dto';
 import { CreateOrderFromCartDto } from '@modules/order/application/dto/create-order-from-cart.dto';
 import { QueryOrderDto } from '@modules/order/application/dto/query-order.dto';
+import { UpdateOrderDto } from '@modules/order/application/dto/update-order.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { MESSAGES } from '@common/constants/messages.constants';
@@ -95,6 +97,166 @@ export class OrderController {
     return {
       message: MESSAGES.ORDER.CANCELLED,
       data: order,
+    };
+  }
+
+  @Get('my')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get user orders' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['pending', 'confirmed', 'ready_for_pickup', 'completed', 'cancelled', 'refunded'],
+  })
+  @ApiQuery({
+    name: 'paymentStatus',
+    required: false,
+    enum: ['pending', 'completed', 'failed', 'refunded'],
+  })
+  async getUserOrders(@CurrentUser('id') userId: number, @Query() queryDto: QueryOrderDto) {
+    const result = await this.orderService.getOrders(userId, queryDto);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: result,
+    };
+  }
+
+  @Get('store/:storeId')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get store orders' })
+  @ApiParam({ name: 'storeId', type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['pending', 'confirmed', 'ready_for_pickup', 'completed', 'cancelled', 'refunded'],
+  })
+  @ApiQuery({
+    name: 'paymentStatus',
+    required: false,
+    enum: ['pending', 'completed', 'failed', 'refunded'],
+  })
+  async getStoreOrders(
+    @Param('storeId', ParseIntPipe) storeId: number,
+    @Query() queryDto: QueryOrderDto,
+  ) {
+    const result = await this.orderService.getStoreOrders(storeId, queryDto);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: result,
+    };
+  }
+
+  @Put(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update order' })
+  @ApiParam({ name: 'id', type: Number })
+  async updateOrder(
+    @Param('id', ParseIntPipe) orderId: number,
+    @CurrentUser('id') userId: number,
+    @Body() updateOrderDto: UpdateOrderDto,
+  ) {
+    const order = await this.orderService.updateOrder(orderId, updateOrderDto, userId);
+    return {
+      message: MESSAGES.UPDATED,
+      data: order,
+    };
+  }
+
+  @Patch(':id/status')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update order status' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiQuery({ name: 'status', required: true, type: String })
+  async updateOrderStatus(
+    @Param('id', ParseIntPipe) orderId: number,
+    @Query('status') status: string,
+    @CurrentUser('id') userId: number,
+  ) {
+    const order = await this.orderService.updateOrderStatus(orderId, status, userId);
+    return {
+      message: MESSAGES.UPDATED,
+      data: order,
+    };
+  }
+
+  @Patch(':id/confirm')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Confirm order' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiQuery({ name: 'sellerNotes', required: false, type: String })
+  async confirmOrder(
+    @Param('id', ParseIntPipe) orderId: number,
+    @Query('sellerNotes') sellerNotes: string | undefined,
+    @CurrentUser('id') userId: number,
+  ) {
+    const order = await this.orderService.confirmOrder(orderId, sellerNotes, userId);
+    return {
+      message: MESSAGES.UPDATED,
+      data: order,
+    };
+  }
+
+  @Patch(':id/payment-status')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update payment status' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiQuery({ name: 'paymentStatus', required: true, type: String })
+  async updatePaymentStatus(
+    @Param('id', ParseIntPipe) orderId: number,
+    @Query('paymentStatus') paymentStatus: string,
+    @CurrentUser('id') userId: number,
+  ) {
+    const order = await this.orderService.updatePaymentStatus(orderId, paymentStatus, userId);
+    return {
+      message: MESSAGES.UPDATED,
+      data: order,
+    };
+  }
+
+  @Get('stats')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get order statistics' })
+  async getOrderStats() {
+    const stats = await this.orderService.getOrderStats();
+    return {
+      message: MESSAGES.SUCCESS,
+      data: stats,
+    };
+  }
+
+  @Get('stats/my')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get user order statistics' })
+  async getUserOrderStats(@CurrentUser('id') userId: number) {
+    const stats = await this.orderService.getOrderStats(userId);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: stats,
+    };
+  }
+
+  @Get('stats/store/:storeId')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get store order statistics' })
+  @ApiParam({ name: 'storeId', type: String })
+  async getStoreOrderStats(@Param('storeId', ParseIntPipe) storeId: number) {
+    const stats = await this.orderService.getOrderStats(undefined, storeId);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: stats,
     };
   }
 }

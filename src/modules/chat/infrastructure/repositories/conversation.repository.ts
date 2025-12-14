@@ -117,6 +117,12 @@ export class ConversationRepository implements IConversationRepository {
     return this.toDomain(updated);
   }
 
+  async delete(id: number): Promise<void> {
+    await this.prisma.conversation.delete({
+      where: { id },
+    });
+  }
+
   async exists(id: number): Promise<boolean> {
     const count = await this.prisma.conversation.count({
       where: { id },

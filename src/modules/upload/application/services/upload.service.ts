@@ -5,7 +5,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
 import {
@@ -160,6 +160,71 @@ export class UploadService {
 
   async deleteMultipleFiles(keys: string[]): Promise<void> {
     await Promise.all(keys.map((key) => this.deleteFile(key)));
+  }
+
+  async getFileInfo(key: string): Promise<UploadResult> {
+    try {
+      const command = new HeadObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      });
+
+      const response = await this.s3Client.send(command);
+      const url = this.cdnUrl ? `${this.cdnUrl}/${key}` : this.getS3Url(key);
+      const fileName = key.split('/').pop() || key;
+
+      return {
+        url,
+        key,
+        fileName,
+        size: response.ContentLength || 0,
+        mimeType: response.ContentType || 'application/octet-stream',
+      };
+    } catch (error) {
+      this.logger.error('S3 get file info error', error instanceof Error ? error.stack : undefined);
+      throw new InternalServerErrorException({
+        message: MESSAGES.UPLOAD.FILE_NOT_FOUND || 'File not found',
+        errorCode: ERROR_CODES.UPLOAD_FILE_NOT_FOUND || 'UPLOAD_FILE_NOT_FOUND',
+      });
+    }
+  }
+
+  async listFiles(prefix: string): Promise<UploadResult[]> {
+    try {
+      const command = new ListObjectsV2Command({
+        Bucket: this.bucket,
+        Prefix: prefix,
+        MaxKeys: 100,
+      });
+
+      const response = await this.s3Client.send(command);
+      const files: UploadResult[] = [];
+
+      if (response.Contents) {
+        for (const object of response.Contents) {
+          if (object.Key) {
+            const url = this.cdnUrl ? `${this.cdnUrl}/${object.Key}` : this.getS3Url(object.Key);
+            const fileName = object.Key.split('/').pop() || object.Key;
+
+            files.push({
+              url,
+              key: object.Key,
+              fileName,
+              size: object.Size || 0,
+              mimeType: 'application/octet-stream',
+            });
+          }
+        }
+      }
+
+      return files;
+    } catch (error) {
+      this.logger.error('S3 list files error', error instanceof Error ? error.stack : undefined);
+      throw new InternalServerErrorException({
+        message: MESSAGES.UPLOAD.LIST_FAILED || 'Failed to list files',
+        errorCode: ERROR_CODES.UPLOAD_LIST_FAILED || 'UPLOAD_LIST_FAILED',
+      });
+    }
   }
 
   private validateFile(file: Express.Multer.File): void {

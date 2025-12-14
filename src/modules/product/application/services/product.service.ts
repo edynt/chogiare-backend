@@ -345,6 +345,182 @@ export class ProductService {
     await this.categoryRepository.updateProductCount(product.categoryId, -1);
   }
 
+  async searchProducts(query: string, queryDto: QueryProductDto, userId?: number) {
+    return this.findAll({ ...queryDto, search: query }, userId);
+  }
+
+  async getFeaturedProducts(limit: number = 10) {
+    const result = await this.productRepository.findAll({
+      page: 1,
+      pageSize: limit,
+      status: 'active',
+    });
+
+    const featuredProducts = result.items.filter((p) => p.isFeatured);
+    const products = await Promise.all(
+      featuredProducts.map(async (product) => {
+        const category = await this.categoryRepository.findById(product.categoryId);
+        const images = await this.prisma.productImage.findMany({
+          where: { productId: product.id },
+          orderBy: { displayOrder: 'asc' },
+        });
+
+        return {
+          ...product,
+          createdAt: product.createdAt.toString(),
+          updatedAt: product.updatedAt.toString(),
+          category: category
+            ? {
+                id: category.id,
+                name: category.name,
+                slug: category.slug,
+              }
+            : null,
+          images: images.map((img) => ({
+            id: img.id,
+            imageUrl: img.imageUrl,
+            displayOrder: img.displayOrder,
+          })),
+        };
+      }),
+    );
+
+    return products;
+  }
+
+  async getProductStats(id: number) {
+    const product = await this.productRepository.findById(id);
+    if (!product) {
+      throw new NotFoundException({
+        message: MESSAGES.PRODUCT.NOT_FOUND,
+        errorCode: ERROR_CODES.PRODUCT_NOT_FOUND,
+      });
+    }
+
+    const orders = await this.prisma.orderItem.findMany({
+      where: { productId: id },
+      include: {
+        order: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+
+    const sales = orders.filter((oi) => oi.order.status === 'completed').length;
+    const views = product.viewCount;
+    const rating = Number(product.rating);
+
+    return {
+      views,
+      sales,
+      rating,
+    };
+  }
+
+  async incrementViews(id: number) {
+    const product = await this.productRepository.findById(id);
+    if (!product) {
+      throw new NotFoundException({
+        message: MESSAGES.PRODUCT.NOT_FOUND,
+        errorCode: ERROR_CODES.PRODUCT_NOT_FOUND,
+      });
+    }
+
+    await this.productRepository.update(id, {
+      viewCount: product.viewCount + 1,
+      updatedAt: BigInt(Date.now()),
+    });
+  }
+
+  async updateStatus(id: number, status: string, userId: number) {
+    const product = await this.productRepository.findById(id);
+    if (!product) {
+      throw new NotFoundException({
+        message: MESSAGES.PRODUCT.NOT_FOUND,
+        errorCode: ERROR_CODES.PRODUCT_NOT_FOUND,
+      });
+    }
+
+    const userRoles = await this.prisma.userRole.findMany({
+      where: { userId },
+      include: { role: true },
+    });
+    const isAdmin = userRoles.some((ur) => ur.role.name === 'admin');
+
+    if (product.sellerId !== userId && !isAdmin) {
+      throw new UnauthorizedException({
+        message: MESSAGES.PRODUCT.UNAUTHORIZED_ACCESS,
+        errorCode: ERROR_CODES.PRODUCT_UNAUTHORIZED_ACCESS,
+      });
+    }
+
+    const validTransitions = this.getValidStatusTransitions(product.status);
+    if (!validTransitions.includes(status)) {
+      throw new BadRequestException({
+        message: MESSAGES.PRODUCT.INVALID_STATUS_TRANSITION,
+        errorCode: ERROR_CODES.PRODUCT_INVALID_STATUS_TRANSITION,
+      });
+    }
+
+    return await this.update(id, { status } as UpdateProductDto, userId);
+  }
+
+  async updateStock(id: number, stock: number, userId: number) {
+    const product = await this.productRepository.findById(id);
+    if (!product) {
+      throw new NotFoundException({
+        message: MESSAGES.PRODUCT.NOT_FOUND,
+        errorCode: ERROR_CODES.PRODUCT_NOT_FOUND,
+      });
+    }
+
+    const userRoles = await this.prisma.userRole.findMany({
+      where: { userId },
+      include: { role: true },
+    });
+    const isAdmin = userRoles.some((ur) => ur.role.name === 'admin');
+
+    if (product.sellerId !== userId && !isAdmin) {
+      throw new UnauthorizedException({
+        message: MESSAGES.PRODUCT.UNAUTHORIZED_ACCESS,
+        errorCode: ERROR_CODES.PRODUCT_UNAUTHORIZED_ACCESS,
+      });
+    }
+
+    return await this.update(id, { stock } as UpdateProductDto, userId);
+  }
+
+  async bulkUpdate(updates: Array<{ id: number; data: Partial<UpdateProductDto> }>, userId: number) {
+    const userRoles = await this.prisma.userRole.findMany({
+      where: { userId },
+      include: { role: true },
+    });
+    const isAdmin = userRoles.some((ur) => ur.role.name === 'admin');
+
+    const results = await Promise.all(
+      updates.map(async (update) => {
+        const product = await this.productRepository.findById(update.id);
+        if (!product) {
+          return null;
+        }
+
+        if (product.sellerId !== userId && !isAdmin) {
+          return null;
+        }
+
+        return await this.update(update.id, update.data, userId);
+      }),
+    );
+
+    return results.filter((r) => r !== null);
+  }
+
+  async getSellerProducts(sellerId: number, queryDto: QueryProductDto) {
+    return this.findAll({ ...queryDto, sellerId }, sellerId);
+  }
+
   private getValidStatusTransitions(currentStatus: string): string[] {
     const transitions: Record<string, string[]> = {
       draft: ['active', 'archived'],
