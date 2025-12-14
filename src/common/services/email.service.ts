@@ -199,7 +199,7 @@ export class EmailService {
               <table role="presentation" style="width: 100%; margin: 30px 0; border-collapse: collapse;">
                 <tr>
                   <td align="center" style="padding: 0;">
-                    <a href="${resetUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">
+                    <a href="${resetUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3); color: #1a1a1a">
                       Đặt lại mật khẩu
                     </a>
                   </td>

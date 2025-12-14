@@ -1,6 +1,7 @@
-import { IsNotEmpty, IsString, MinLength, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsString, MinLength, MaxLength, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { VALIDATION_MESSAGES } from '@common/constants/messages.constants';
+import { PASSWORD_PATTERNS, PASSWORD_MESSAGES } from '@common/constants/password.constants';
 
 export class ResetPasswordDto {
   @ApiProperty({
@@ -15,13 +16,18 @@ export class ResetPasswordDto {
 
   @ApiProperty({
     description: 'New password',
-    example: 'newPassword123',
+    example: 'NewPassword123!',
     minLength: 6,
     maxLength: 100,
   })
   @IsString({ message: VALIDATION_MESSAGES.IS_STRING })
   @IsNotEmpty({ message: VALIDATION_MESSAGES.IS_NOT_EMPTY })
-  @MinLength(6, { message: VALIDATION_MESSAGES.MIN_LENGTH(6) })
+  @MinLength(PASSWORD_PATTERNS.MIN_LENGTH, {
+    message: VALIDATION_MESSAGES.MIN_LENGTH(PASSWORD_PATTERNS.MIN_LENGTH),
+  })
   @MaxLength(100, { message: VALIDATION_MESSAGES.MAX_LENGTH(100) })
+  @Matches(PASSWORD_PATTERNS.LOWERCASE, { message: PASSWORD_MESSAGES.LOWERCASE })
+  @Matches(PASSWORD_PATTERNS.UPPERCASE, { message: PASSWORD_MESSAGES.UPPERCASE })
+  @Matches(PASSWORD_PATTERNS.SPECIAL_CHAR, { message: PASSWORD_MESSAGES.SPECIAL_CHAR })
   newPassword: string;
 }
