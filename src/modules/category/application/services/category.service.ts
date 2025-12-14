@@ -5,6 +5,7 @@ import {
   BadRequestException,
   Inject,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
@@ -18,11 +19,39 @@ import { QueryCategoryDto } from '../dto/query-category.dto';
 
 @Injectable()
 export class CategoryService {
+  private readonly cdnUrl: string;
+  private readonly s3Bucket: string;
+  private readonly s3Region: string;
+  private readonly s3Endpoint: string;
+
   constructor(
     @Inject(CATEGORY_REPOSITORY)
     private readonly categoryRepository: ICategoryRepository,
     private readonly prisma: PrismaService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    const s3Config = this.configService.get('s3');
+    this.cdnUrl = s3Config?.cdnUrl || '';
+    this.s3Bucket = s3Config?.bucket || '';
+    this.s3Region = s3Config?.region || '';
+    this.s3Endpoint = s3Config?.endpoint || '';
+  }
+
+  private getImageUrl(imageUrl: string): string {
+    if (!imageUrl) {
+      return '';
+    }
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+    if (this.cdnUrl) {
+      return `${this.cdnUrl}/${imageUrl}`;
+    }
+    if (this.s3Endpoint) {
+      return `${this.s3Endpoint}/${this.s3Bucket}/${imageUrl}`;
+    }
+    return `https://${this.s3Bucket}.s3.${this.s3Region}.amazonaws.com/${imageUrl}`;
+  }
 
   async create(createCategoryDto: CreateCategoryDto) {
     let slug = createCategoryDto.slug;
@@ -374,29 +403,41 @@ export class CategoryService {
       this.prisma.product.count({ where }),
     ]);
 
+    const productsWithImages = await Promise.all(
+      products.map(async (p) => {
+        const images = await this.prisma.productImage.findMany({
+          where: { productId: p.id },
+          orderBy: { displayOrder: 'asc' },
+        });
+
+        return {
+          id: p.id.toString(),
+          title: p.title,
+          description: p.description,
+          price: Number(p.price),
+          originalPrice: p.originalPrice ? Number(p.originalPrice) : undefined,
+          categoryId: p.categoryId.toString(),
+          category: p.category
+            ? {
+                id: p.category.id,
+                name: p.category.name,
+                slug: p.category.slug,
+              }
+            : null,
+          status: p.status,
+          rating: Number(p.rating),
+          reviewCount: p.reviewCount,
+          viewCount: p.viewCount,
+          stock: p.stock,
+          images: images.map((img) => this.getImageUrl(img.imageUrl)),
+          createdAt: p.createdAt.toString(),
+          updatedAt: p.updatedAt.toString(),
+        };
+      }),
+    );
+
     return {
-      items: products.map((p) => ({
-        id: p.id.toString(),
-        title: p.title,
-        description: p.description,
-        price: Number(p.price),
-        originalPrice: p.originalPrice ? Number(p.originalPrice) : undefined,
-        categoryId: p.categoryId.toString(),
-        category: p.category
-          ? {
-              id: p.category.id,
-              name: p.category.name,
-              slug: p.category.slug,
-            }
-          : null,
-        status: p.status,
-        rating: Number(p.rating),
-        reviewCount: p.reviewCount,
-        viewCount: p.viewCount,
-        stock: p.stock,
-        createdAt: p.createdAt.toString(),
-        updatedAt: p.updatedAt.toString(),
-      })),
+      items: productsWithImages,
       total,
       page,
       pageSize,

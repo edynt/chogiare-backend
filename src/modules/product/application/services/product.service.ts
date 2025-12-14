@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
   Inject,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
@@ -23,13 +24,41 @@ import { QueryProductDto } from '../dto/query-product.dto';
 
 @Injectable()
 export class ProductService {
+  private readonly cdnUrl: string;
+  private readonly s3Bucket: string;
+  private readonly s3Region: string;
+  private readonly s3Endpoint: string;
+
   constructor(
     @Inject(PRODUCT_REPOSITORY)
     private readonly productRepository: IProductRepository,
     @Inject(CATEGORY_REPOSITORY)
     private readonly categoryRepository: ICategoryRepository,
     private readonly prisma: PrismaService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    const s3Config = this.configService.get('s3');
+    this.cdnUrl = s3Config?.cdnUrl || '';
+    this.s3Bucket = s3Config?.bucket || '';
+    this.s3Region = s3Config?.region || '';
+    this.s3Endpoint = s3Config?.endpoint || '';
+  }
+
+  private getImageUrl(imageUrl: string): string {
+    if (!imageUrl) {
+      return '';
+    }
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+    if (this.cdnUrl) {
+      return `${this.cdnUrl}/${imageUrl}`;
+    }
+    if (this.s3Endpoint) {
+      return `${this.s3Endpoint}/${this.s3Bucket}/${imageUrl}`;
+    }
+    return `https://${this.s3Bucket}.s3.${this.s3Region}.amazonaws.com/${imageUrl}`;
+  }
 
   async create(sellerId: number, createProductDto: CreateProductDto) {
     const category = await this.categoryRepository.findById(createProductDto.categoryId);
@@ -171,11 +200,7 @@ export class ProductService {
                 slug: category.slug,
               }
             : null,
-          images: images.map((img) => ({
-            id: img.id,
-            imageUrl: img.imageUrl,
-            displayOrder: img.displayOrder,
-          })),
+          images: images.map((img) => this.getImageUrl(img.imageUrl)),
         };
       }),
     );
@@ -376,11 +401,7 @@ export class ProductService {
                 slug: category.slug,
               }
             : null,
-          images: images.map((img) => ({
-            id: img.id,
-            imageUrl: img.imageUrl,
-            displayOrder: img.displayOrder,
-          })),
+          images: images.map((img) => this.getImageUrl(img.imageUrl)),
         };
       }),
     );
