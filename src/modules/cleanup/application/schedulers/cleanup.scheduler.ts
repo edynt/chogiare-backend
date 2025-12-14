@@ -8,26 +8,26 @@ export class CleanupScheduler {
 
   constructor(private readonly cleanupService: CleanupService) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_2AM)
+  @Cron(CronExpression.EVERY_DAY_AT_2AM, { name: 'logsCleanup' })
   async handleLogsCleanup() {
     this.logger.log('Starting scheduled cleanup of old logs');
     await this.cleanupService.cleanupOldLogs();
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  @Cron(CronExpression.EVERY_DAY_AT_3AM, { name: 'cartsCleanup' })
   async handleCartsCleanup() {
     this.logger.log('Starting scheduled cleanup of old carts');
     await this.cleanupService.cleanupOldCarts();
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_4AM)
+  @Cron(CronExpression.EVERY_DAY_AT_4AM, { name: 'ordersCleanup' })
   async handleOrdersCleanup() {
     this.logger.log('Starting scheduled cleanup of old orders');
     await this.cleanupService.cleanupOldOrders();
     await this.cleanupService.cleanupRejectedOrders();
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_4AM)
+  @Cron(CronExpression.EVERY_DAY_AT_4AM, { name: 'expiredSessionsCleanup' })
   async handleExpiredSessionsCleanup() {
     this.logger.log('Starting scheduled cleanup of expired sessions');
     await this.cleanupService.cleanupExpiredSessions();

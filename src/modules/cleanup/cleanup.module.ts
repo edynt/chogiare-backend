@@ -7,6 +7,7 @@ import { CleanupScheduler } from './application/schedulers/cleanup.scheduler';
 @Module({
   imports: [ScheduleModule.forRoot(), DatabaseModule],
   providers: [CleanupService, CleanupScheduler],
+  exports: [CleanupService],
 })
 export class CleanupModule {}
 
