@@ -26,5 +26,10 @@ export class CleanupScheduler {
     await this.cleanupService.cleanupOldOrders();
     await this.cleanupService.cleanupRejectedOrders();
   }
-}
 
+  @Cron(CronExpression.EVERY_DAY_AT_4AM)
+  async handleExpiredSessionsCleanup() {
+    this.logger.log('Starting scheduled cleanup of expired sessions');
+    await this.cleanupService.cleanupExpiredSessions();
+  }
+}

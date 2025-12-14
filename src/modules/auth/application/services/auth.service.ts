@@ -113,7 +113,10 @@ export class AuthService {
     try {
       await this.emailService.sendOTPEmail(user.email, registerDto.fullName, verificationCode);
     } catch (error) {
-      this.logger.error('Failed to send OTP email', error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        'Failed to send OTP email',
+        error instanceof Error ? error.stack : undefined,
+      );
     }
 
     return {
@@ -497,11 +500,71 @@ export class AuthService {
         resetToken,
       );
     } catch (error) {
-      this.logger.error('Failed to send password reset email', error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        'Failed to send password reset email',
+        error instanceof Error ? error.stack : undefined,
+      );
     }
 
     return {
       message: MESSAGES.AUTH.PASSWORD_RESET_EMAIL_SENT,
+    };
+  }
+
+  async verifyResetToken(token: string): Promise<{ valid: boolean; message?: string }> {
+    try {
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret: this.configService.get<string>('jwt.secret'),
+      });
+
+      if (payload.type !== 'password-reset') {
+        return {
+          valid: false,
+          message: MESSAGES.AUTH.INVALID_RESET_TOKEN,
+        };
+      }
+    } catch (error) {
+      return {
+        valid: false,
+        message: MESSAGES.AUTH.INVALID_RESET_TOKEN,
+      };
+    }
+
+    const passwordReset = await this.prisma.passwordReset.findFirst({
+      where: {
+        resetToken: token,
+        expiresAt: {
+          gt: BigInt(Date.now()),
+        },
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!passwordReset) {
+      return {
+        valid: false,
+        message: MESSAGES.AUTH.INVALID_RESET_TOKEN,
+      };
+    }
+
+    if (passwordReset.used) {
+      return {
+        valid: false,
+        message: MESSAGES.AUTH.RESET_TOKEN_ALREADY_USED,
+      };
+    }
+
+    if (!passwordReset.user.status) {
+      return {
+        valid: false,
+        message: MESSAGES.AUTH.ACCOUNT_LOCKED,
+      };
+    }
+
+    return {
+      valid: true,
     };
   }
 
@@ -543,6 +606,13 @@ export class AuthService {
       });
     }
 
+    if (passwordReset.used) {
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.RESET_TOKEN_ALREADY_USED,
+        errorCode: ERROR_CODES.AUTH_RESET_TOKEN_ALREADY_USED,
+      });
+    }
+
     if (!passwordReset.user.status) {
       throw new UnauthorizedException({
         message: MESSAGES.AUTH.ACCOUNT_LOCKED,
@@ -557,8 +627,9 @@ export class AuthService {
         where: { id: passwordReset.userId },
         data: { hashedPassword },
       }),
-      this.prisma.passwordReset.deleteMany({
-        where: { userId: passwordReset.userId },
+      this.prisma.passwordReset.update({
+        where: { id: passwordReset.id },
+        data: { used: true },
       }),
       this.prisma.session.deleteMany({
         where: { userId: passwordReset.userId },
@@ -666,7 +737,10 @@ export class AuthService {
         verificationCode,
       );
     } catch (error) {
-      this.logger.error('Failed to send OTP email', error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        'Failed to send OTP email',
+        error instanceof Error ? error.stack : undefined,
+      );
     }
   }
 
@@ -953,7 +1027,10 @@ export class AuthService {
         throw error;
       }
 
-      this.logger.error(`OAuth login error for ${provider}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `OAuth login error for ${provider}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw new UnauthorizedException({
         message: MESSAGES.AUTH.INVALID_CREDENTIALS,
         errorCode: ERROR_CODES.AUTH_INVALID_CREDENTIALS,

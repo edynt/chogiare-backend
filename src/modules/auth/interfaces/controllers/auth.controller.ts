@@ -1,5 +1,5 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get, Put } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get, Put, Query, UnauthorizedException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { AuthService } from '@modules/auth/application/services/auth.service';
 import { LoginDto } from '@modules/auth/application/dto/login.dto';
 import { AdminLoginDto } from '@modules/auth/application/dto/admin-login.dto';
@@ -16,6 +16,7 @@ import { CurrentUser, CurrentUserPayload } from '@common/decorators/current-user
 import { Public } from '@common/decorators/public.decorator';
 import { SkipHeaderValidation } from '@common/decorators/skip-header-validation.decorator';
 import { MESSAGES } from '@common/constants/messages.constants';
+import { ERROR_CODES } from '@common/constants/error-codes.constants';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -124,6 +125,32 @@ export class AuthController {
   })
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     return await this.authService.forgotPassword(forgotPasswordDto);
+  }
+
+  @Public()
+  @SkipHeaderValidation()
+  @Get('verify-reset-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify reset password token' })
+  @ApiQuery({
+    name: 'token',
+    required: true,
+    type: String,
+    description: 'Password reset token',
+  })
+  async verifyResetToken(@Query('token') token: string) {
+    const result = await this.authService.verifyResetToken(token);
+    if (!result.valid) {
+      throw new UnauthorizedException({
+        message: result.message || MESSAGES.AUTH.INVALID_RESET_TOKEN,
+        errorCode: result.message === MESSAGES.AUTH.RESET_TOKEN_ALREADY_USED
+          ? ERROR_CODES.AUTH_RESET_TOKEN_ALREADY_USED
+          : ERROR_CODES.AUTH_INVALID_RESET_TOKEN,
+      });
+    }
+    return {
+      valid: true,
+    };
   }
 
   @Public()

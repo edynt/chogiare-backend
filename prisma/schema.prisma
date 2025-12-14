@@ -181,17 +181,19 @@ model EmailVerification {
 }
 
 model PasswordReset {
-  id         Int    @id @default(autoincrement())
-  userId     Int    @map("user_id")
-  resetToken String @map("reset_token") @db.VarChar(500)
-  expiresAt  BigInt @map("expires_at")
-  createdAt  BigInt @map("created_at")
+  id         Int     @id @default(autoincrement())
+  userId     Int     @map("user_id")
+  resetToken String  @map("reset_token") @db.VarChar(500)
+  expiresAt  BigInt  @map("expires_at")
+  used       Boolean @default(false)
+  createdAt  BigInt  @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([resetToken])
   @@index([expiresAt])
+  @@index([used])
   @@map("password_resets")
 }
 

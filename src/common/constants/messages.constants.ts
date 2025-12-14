@@ -27,6 +27,7 @@ export const MESSAGES = {
     EMAIL_VERIFIED: 'Email verified successfully',
     PASSWORD_RESET_EMAIL_SENT: 'Password reset email has been sent. Please check your email.',
     INVALID_RESET_TOKEN: 'Invalid or expired reset token',
+    RESET_TOKEN_ALREADY_USED: 'This reset link has already been used. Please request a new password reset link.',
     PASSWORD_RESET_SUCCESS: 'Password has been reset successfully',
     PASSWORD_CHANGED_SUCCESS: 'Password has been changed successfully',
     NEW_PASSWORD_SAME_AS_OLD: 'New password must be different from current password',

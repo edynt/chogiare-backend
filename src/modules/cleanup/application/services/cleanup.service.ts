@@ -270,5 +270,30 @@ export class CleanupService {
       );
     }
   }
+
+  async cleanupExpiredSessions(): Promise<void> {
+    try {
+      const now = BigInt(Date.now());
+
+      const result = await this.prisma.session.deleteMany({
+        where: {
+          expiresAt: {
+            lt: now,
+          },
+        },
+      });
+
+      if (result.count > 0) {
+        this.logger.log(`Cleaned up ${result.count} expired sessions`);
+      } else {
+        this.logger.log('No expired sessions to clean up');
+      }
+    } catch (error) {
+      this.logger.error(
+        'Error cleaning up expired sessions',
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
+  }
 }
 
