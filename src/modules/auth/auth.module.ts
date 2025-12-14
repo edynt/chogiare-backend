@@ -9,6 +9,7 @@ import { UserRepository } from './infrastructure/repositories/user.repository';
 import { USER_REPOSITORY } from './domain/repositories/user.repository.interface';
 import { JwtStrategy } from './infrastructure/strategies/jwt.strategy';
 import { DatabaseModule } from '@common/database/database.module';
+import { EmailService } from '@common/services/email.service';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { DatabaseModule } from '@common/database/database.module';
     AuthService,
     RolePermissionService,
     JwtStrategy,
+    EmailService,
     {
       provide: USER_REPOSITORY,
       useClass: UserRepository,

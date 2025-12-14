@@ -103,10 +103,7 @@ export class AuthController {
     },
   })
   async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
-    await this.authService.verifyEmail(verifyEmailDto.code);
-    return {
-      message: 'Email verified successfully',
-    };
+    return await this.authService.verifyEmail(verifyEmailDto.code);
   }
 
   @Public()

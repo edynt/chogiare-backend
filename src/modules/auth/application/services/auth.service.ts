@@ -15,6 +15,7 @@ import {
   USER_REPOSITORY,
 } from '@modules/auth/domain/repositories/user.repository.interface';
 import { PrismaService } from '@common/database/prisma.service';
+import { EmailService } from '@common/services/email.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
 import { LoginDto } from '../dto/login.dto';
@@ -25,6 +26,7 @@ import { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import { ResetPasswordDto } from '../dto/reset-password.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
+import { ResendVerificationDto } from '../dto/resend-verification.dto';
 
 export interface AuthTokens {
   accessToken: string;
@@ -64,6 +66,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<RegisterResponse> {
@@ -106,6 +109,12 @@ export class AuthService {
         createdAt: now,
       },
     });
+
+    try {
+      await this.emailService.sendOTPEmail(user.email, registerDto.fullName, verificationCode);
+    } catch (error) {
+      this.logger.error('Failed to send OTP email', error instanceof Error ? error.stack : undefined);
+    }
 
     return {
       message: MESSAGES.AUTH.EMAIL_VERIFICATION_SENT,
@@ -377,7 +386,7 @@ export class AuthService {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
-  async verifyEmail(code: string): Promise<void> {
+  async verifyEmail(code: string): Promise<AuthResponse> {
     const verification = await this.prisma.emailVerification.findFirst({
       where: {
         code,
@@ -404,6 +413,14 @@ export class AuthService {
       });
     }
 
+    const user = await this.userRepository.findById(verification.userId);
+    if (!user || !user.status) {
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.USER_NOT_FOUND,
+        errorCode: ERROR_CODES.AUTH_USER_NOT_FOUND,
+      });
+    }
+
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id: verification.userId },
@@ -413,6 +430,28 @@ export class AuthService {
         where: { userId: verification.userId },
       }),
     ]);
+
+    const updatedUser = await this.userRepository.findById(verification.userId);
+    if (!updatedUser) {
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.USER_NOT_FOUND,
+        errorCode: ERROR_CODES.AUTH_USER_NOT_FOUND,
+      });
+    }
+
+    const tokens = await this.generateTokens(updatedUser.id, updatedUser.email);
+    await this.saveRefreshToken(updatedUser.id, tokens.refreshToken);
+
+    return {
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        isVerified: updatedUser.isVerified,
+        status: updatedUser.status,
+        language: updatedUser.language,
+      },
+      tokens,
+    };
   }
 
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto): Promise<ForgotPasswordResponse> {
@@ -446,6 +485,20 @@ export class AuthService {
         },
       }),
     ]);
+
+    const userInfo = await this.prisma.userInfo.findUnique({
+      where: { userId: user.id },
+    });
+
+    try {
+      await this.emailService.sendPasswordResetEmail(
+        user.email,
+        userInfo?.fullName || 'Người dùng',
+        resetToken,
+      );
+    } catch (error) {
+      this.logger.error('Failed to send password reset email', error instanceof Error ? error.stack : undefined);
+    }
 
     return {
       message: MESSAGES.AUTH.PASSWORD_RESET_EMAIL_SENT,
@@ -601,6 +654,20 @@ export class AuthService {
         },
       }),
     ]);
+
+    const userInfo = await this.prisma.userInfo.findUnique({
+      where: { userId: user.id },
+    });
+
+    try {
+      await this.emailService.sendOTPEmail(
+        user.email,
+        userInfo?.fullName || 'Người dùng',
+        verificationCode,
+      );
+    } catch (error) {
+      this.logger.error('Failed to send OTP email', error instanceof Error ? error.stack : undefined);
+    }
   }
 
   async updateProfile(userId: number, updateProfileDto: UpdateProfileDto): Promise<void> {
