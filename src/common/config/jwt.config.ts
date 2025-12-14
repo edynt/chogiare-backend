@@ -5,4 +5,6 @@ export default registerAs('jwt', () => ({
   expiresIn: process.env.JWT_EXPIRES_IN || '1h',
   refreshSecret: process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key',
   refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+  adminSecret: process.env.JWT_ADMIN_SECRET || 'your-admin-secret-key',
+  adminRefreshSecret: process.env.JWT_ADMIN_REFRESH_SECRET || 'your-admin-refresh-secret-key',
 }));
