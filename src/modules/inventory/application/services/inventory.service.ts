@@ -16,6 +16,10 @@ import {
   IProductRepository,
   PRODUCT_REPOSITORY,
 } from '@modules/product/domain/repositories/product.repository.interface';
+import {
+  ICategoryRepository,
+  CATEGORY_REPOSITORY,
+} from '@modules/category/domain/repositories/category.repository.interface';
 import { StockInDto } from '../dto/stock-in.dto';
 import { StockOutDto } from '../dto/stock-out.dto';
 import { StockAdjustmentDto } from '../dto/stock-adjustment.dto';
@@ -29,6 +33,8 @@ export class InventoryService {
     private readonly inventoryRepository: IInventoryRepository,
     @Inject(PRODUCT_REPOSITORY)
     private readonly productRepository: IProductRepository,
+    @Inject(CATEGORY_REPOSITORY)
+    private readonly categoryRepository: ICategoryRepository,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -441,8 +447,18 @@ export class InventoryService {
       this.inventoryRepository.getLowStockProducts(userId),
     ]);
 
+    const uniqueCategoryIds = [...new Set(products.items.map((p) => p.categoryId))];
+    const categories = await Promise.all(
+      uniqueCategoryIds.map((id) => this.categoryRepository.findById(id)),
+    );
+    const categoryMap = new Map<number, string>();
+    categories.forEach((category) => {
+      if (category) {
+        categoryMap.set(category.id, category.name);
+      }
+    });
+
     const inventoryData = products.items.map((product) => {
-      const stock = this.inventoryRepository.getProductStock(product.id);
       const productStockInRecords = stockInRecords.items.filter(
         (record) => record.productId === product.id,
       );
@@ -461,7 +477,7 @@ export class InventoryService {
         id: product.id.toString(),
         name: product.title,
         sku: product.sku || `SKU-${product.id}`,
-        category: product.category?.name || 'Khác',
+        category: categoryMap.get(product.categoryId) || 'Khác',
         currentStock: product.stock || 0,
         minStock: product.minStock || 0,
         maxStock: product.maxStock || null,
@@ -476,7 +492,7 @@ export class InventoryService {
             : (product.stock || 0) === 0
               ? 'out_of_stock'
               : 'in_stock',
-        lastUpdated: product.updatedAt.toISOString(),
+        lastUpdated: new Date(Number(product.updatedAt)).toISOString(),
         supplier: productStockInRecords[0]?.supplier || 'N/A',
         location: 'Kho chính',
       };

@@ -112,6 +112,7 @@ enum NotificationType {
   payment
   system
   promotion
+  message
 }
 
 model User {

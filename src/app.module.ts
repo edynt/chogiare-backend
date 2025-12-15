@@ -25,6 +25,7 @@ import { StoreModule } from '@modules/store/store.module';
 import { ReviewModule } from '@modules/review/review.module';
 import { AddressModule } from '@modules/address/address.module';
 import { ReportsModule } from '@modules/reports/reports.module';
+import { NotificationModule } from '@modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { ReportsModule } from '@modules/reports/reports.module';
     ReviewModule,
     AddressModule,
     ReportsModule,
+    NotificationModule,
   ],
   providers: [
     {

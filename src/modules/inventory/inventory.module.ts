@@ -1,13 +1,14 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '@common/database/database.module';
 import { ProductModule } from '@modules/product/product.module';
+import { CategoryModule } from '@modules/category/category.module';
 import { InventoryService } from './application/services/inventory.service';
 import { InventoryController } from './interfaces/controllers/inventory.controller';
 import { InventoryRepository } from './infrastructure/repositories/inventory.repository';
 import { INVENTORY_REPOSITORY } from './domain/repositories/inventory.repository.interface';
 
 @Module({
-  imports: [DatabaseModule, ProductModule],
+  imports: [DatabaseModule, ProductModule, CategoryModule],
   controllers: [InventoryController],
   providers: [
     InventoryService,
