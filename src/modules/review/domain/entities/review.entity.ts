@@ -7,7 +7,10 @@ export class Review {
   title?: string;
   comment?: string;
   isVerified: boolean;
+  helpfulCount: number;
   reviewMetadata: Record<string, unknown>;
   createdAt: bigint;
   updatedAt: bigint;
 }
+
+

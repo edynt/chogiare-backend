@@ -39,9 +39,7 @@ export class CleanupService {
             deletedCount++;
           }
         } catch (error) {
-          this.logger.warn(
-            `Failed to delete log file ${file}: ${error instanceof Error ? error.message : String(error)}`,
-          );
+          this.logger.warn(`Failed to delete log file ${file}: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
 
@@ -125,6 +123,7 @@ export class CleanupService {
         include: {
           items: true,
           transactions: true,
+          shippingInfo: true,
         },
       });
 
@@ -135,6 +134,20 @@ export class CleanupService {
 
       await this.prisma.$transaction(async (tx) => {
         for (const order of oldOrders) {
+          if (order.shippingInfo) {
+            const shippingId = order.shippingInfo.id;
+            await tx.shippingHistory.deleteMany({
+              where: {
+                shippingId,
+              },
+            });
+            await tx.shipping.delete({
+              where: {
+                id: shippingId,
+              },
+            });
+          }
+
           if (order.transactions.length > 0) {
             await tx.transaction.deleteMany({
               where: {
@@ -192,6 +205,7 @@ export class CleanupService {
         include: {
           items: true,
           transactions: true,
+          shippingInfo: true,
         },
       });
 
@@ -282,3 +296,4 @@ export class CleanupService {
     }
   }
 }
+

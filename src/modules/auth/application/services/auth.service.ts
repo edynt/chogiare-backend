@@ -209,7 +209,7 @@ export class AuthService {
       });
     }
 
-    const tokens = await this.generateAdminTokens(user.id, user.email);
+    const tokens = await this.generateTokens(user.id, user.email);
 
     await this.saveRefreshToken(user.id, tokens.refreshToken);
 
@@ -257,26 +257,9 @@ export class AuthService {
 
   async refreshToken(refreshTokenDto: RefreshTokenDto): Promise<AuthTokens> {
     try {
-      let payload: { sub: number | string; email?: string; type?: string };
-      let isAdmin = false;
-
-      try {
-        payload = await this.jwtService.verifyAsync(refreshTokenDto.refreshToken, {
-          secret: this.configService.get<string>('jwt.refreshSecret'),
-        });
-      } catch {
-        try {
-          payload = await this.jwtService.verifyAsync(refreshTokenDto.refreshToken, {
-            secret: this.configService.get<string>('jwt.adminRefreshSecret'),
-          });
-          isAdmin = payload.type === 'admin';
-        } catch {
-          throw new UnauthorizedException({
-            message: MESSAGES.AUTH.INVALID_REFRESH_TOKEN,
-            errorCode: ERROR_CODES.AUTH_INVALID_REFRESH_TOKEN,
-          });
-        }
-      }
+      const payload = await this.jwtService.verifyAsync(refreshTokenDto.refreshToken, {
+        secret: this.configService.get<string>('jwt.refreshSecret'),
+      });
 
       const session = await this.prisma.session.findFirst({
         where: {
@@ -304,9 +287,7 @@ export class AuthService {
         });
       }
 
-      const tokens = isAdmin
-        ? await this.generateAdminTokens(user.id, user.email)
-        : await this.generateTokens(user.id, user.email);
+      const tokens = await this.generateTokens(user.id, user.email);
 
       await this.prisma.session.update({
         where: { id: session.id },
@@ -355,30 +336,6 @@ export class AuthService {
       }),
       this.jwtService.signAsync(payload, {
         secret: this.configService.get<string>('jwt.refreshSecret'),
-        expiresIn: this.configService.get<string>('jwt.refreshExpiresIn') || '7d',
-      }),
-    ]);
-
-    const expiresInSeconds = this.parseExpiresIn(expiresIn);
-
-    return {
-      accessToken,
-      refreshToken,
-      expiresIn: expiresInSeconds,
-    };
-  }
-
-  private async generateAdminTokens(userId: number, email: string): Promise<AuthTokens> {
-    const payload = { sub: userId, email, type: 'admin' };
-    const expiresIn = this.configService.get<string>('jwt.expiresIn') || '1h';
-
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('jwt.adminSecret'),
-        expiresIn,
-      }),
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('jwt.adminRefreshSecret'),
         expiresIn: this.configService.get<string>('jwt.refreshExpiresIn') || '7d',
       }),
     ]);
