@@ -67,7 +67,10 @@ export class AddressController {
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Create a new address' })
-  async create(@CurrentUser() user: CurrentUserPayload, @Body() createAddressDto: CreateAddressDto) {
+  async create(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() createAddressDto: CreateAddressDto,
+  ) {
     const address = await this.addressService.create(user.id, createAddressDto);
     return {
       message: MESSAGES.CREATED,
@@ -117,5 +120,3 @@ export class AddressController {
     };
   }
 }
-
-

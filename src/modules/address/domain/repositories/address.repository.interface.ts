@@ -23,5 +23,3 @@ export interface IAddressRepository {
   delete(id: number): Promise<void>;
   setDefault(id: number, userId: number): Promise<void>;
 }
-
-

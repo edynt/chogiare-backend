@@ -19,5 +19,3 @@ export class OAuthLoginDto {
   @IsString({ message: VALIDATION_MESSAGES.IS_STRING })
   providerId?: string;
 }
-
-

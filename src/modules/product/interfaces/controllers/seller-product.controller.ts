@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Query,
-  HttpCode,
-  HttpStatus,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Query, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { ProductService } from '@modules/product/application/services/product.service';
 import { QueryProductDto } from '@modules/product/application/dto/query-product.dto';
@@ -43,5 +36,3 @@ export class SellerProductController {
     };
   }
 }
-
-

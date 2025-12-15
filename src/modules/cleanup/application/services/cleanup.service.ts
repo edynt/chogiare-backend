@@ -39,7 +39,9 @@ export class CleanupService {
             deletedCount++;
           }
         } catch (error) {
-          this.logger.warn(`Failed to delete log file ${file}: ${error instanceof Error ? error.message : String(error)}`);
+          this.logger.warn(
+            `Failed to delete log file ${file}: ${error instanceof Error ? error.message : String(error)}`,
+          );
         }
       }
 
@@ -296,4 +298,3 @@ export class CleanupService {
     }
   }
 }
-

@@ -14,4 +14,3 @@ export default registerAs('mail', () => ({
     email: process.env.MAIL_FROM_EMAIL || process.env.MAIL_USER || '',
   },
 }));
-

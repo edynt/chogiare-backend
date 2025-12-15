@@ -25,5 +25,3 @@ export class AdminLoginDto {
   @MaxLength(100, { message: VALIDATION_MESSAGES.MAX_LENGTH(100) })
   password: string;
 }
-
-

@@ -22,10 +22,7 @@ export class AddressRepository implements IAddressRepository {
   async findByUserId(userId: number): Promise<Address[]> {
     const addresses = await this.prisma.address.findMany({
       where: { userId },
-      orderBy: [
-        { isDefault: 'desc' },
-        { createdAt: 'desc' },
-      ],
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
     });
 
     return addresses.map((address) => this.toDomainAddress(address));
@@ -201,5 +198,3 @@ export class AddressRepository implements IAddressRepository {
     };
   }
 }
-
-

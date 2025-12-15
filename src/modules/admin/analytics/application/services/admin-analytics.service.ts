@@ -160,7 +160,10 @@ export class AdminAnalyticsService {
 
     return products.map((product) => {
       const completedOrderItems = product.orderItems.filter(
-        (item) => item.order && item.order.status !== OrderStatus.cancelled && item.order.paymentStatus === PaymentStatus.completed,
+        (item) =>
+          item.order &&
+          item.order.status !== OrderStatus.cancelled &&
+          item.order.paymentStatus === PaymentStatus.completed,
       );
       const revenue = completedOrderItems.reduce(
         (sum, item) => sum + Number(item.price) * item.quantity,
@@ -230,7 +233,10 @@ export class AdminAnalyticsService {
       const products = category.products;
       const revenue = products.reduce((sum, product) => {
         const completedOrderItems = product.orderItems.filter(
-          (item) => item.order && item.order.status !== OrderStatus.cancelled && item.order.paymentStatus === PaymentStatus.completed,
+          (item) =>
+            item.order &&
+            item.order.status !== OrderStatus.cancelled &&
+            item.order.paymentStatus === PaymentStatus.completed,
         );
         return (
           sum +
@@ -243,7 +249,10 @@ export class AdminAnalyticsService {
         products.flatMap((product) =>
           product.orderItems
             .filter(
-              (item) => item.order && item.order.status !== OrderStatus.cancelled && item.order.paymentStatus === PaymentStatus.completed,
+              (item) =>
+                item.order &&
+                item.order.status !== OrderStatus.cancelled &&
+                item.order.paymentStatus === PaymentStatus.completed,
             )
             .map((item) => item.orderId),
         ),

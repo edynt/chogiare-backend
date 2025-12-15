@@ -15,5 +15,3 @@ export class Address {
   createdAt: bigint;
   updatedAt: bigint;
 }
-
-

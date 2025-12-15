@@ -25,4 +25,3 @@ export class SendMessageDto {
   @IsEnum(MessageType, { message: VALIDATION_MESSAGES.IS_ENUM })
   messageType?: MessageType;
 }
-

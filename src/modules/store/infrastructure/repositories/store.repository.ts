@@ -161,12 +161,15 @@ export class StoreRepository implements IStoreRepository {
     });
   }
 
-  async updateStats(id: number, stats: {
-    productCount?: number;
-    reviewCount?: number;
-    followerCount?: number;
-    rating?: number;
-  }): Promise<void> {
+  async updateStats(
+    id: number,
+    stats: {
+      productCount?: number;
+      reviewCount?: number;
+      followerCount?: number;
+      rating?: number;
+    },
+  ): Promise<void> {
     const updateData: Record<string, unknown> = {
       updatedAt: BigInt(Date.now()),
     };
@@ -232,5 +235,3 @@ export class StoreRepository implements IStoreRepository {
     };
   }
 }
-
-

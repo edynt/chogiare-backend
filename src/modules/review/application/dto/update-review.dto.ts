@@ -1,5 +1,14 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsString, IsOptional, IsBoolean, IsArray, Min, Max, MaxLength } from 'class-validator';
+import {
+  IsInt,
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsArray,
+  Min,
+  Max,
+  MaxLength,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class UpdateReviewDto {
@@ -34,5 +43,3 @@ export class UpdateReviewDto {
   @IsBoolean()
   isVerified?: boolean;
 }
-
-

@@ -1,8 +1,15 @@
-import { Injectable, NotFoundException, BadRequestException, Inject, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Inject,
+  ForbiddenException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
+import { OrderStatus, PaymentStatus, BoostStatus } from '@prisma/client';
 import {
   IStoreRepository,
   STORE_REPOSITORY,
@@ -428,5 +435,268 @@ export class StoreService {
       updatedAt: new Date(Number(store.updatedAt)).toISOString(),
     };
   }
-}
 
+  async getDashboardStats(storeId: number) {
+    const now = new Date();
+    const lastMonth = new Date();
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    const nowBigInt = BigInt(now.getTime());
+    const lastMonthBigInt = BigInt(lastMonth.getTime());
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStartBigInt = BigInt(todayStart.getTime());
+
+    const [
+      totalProducts,
+      activeProducts,
+      totalOrders,
+      completedOrders,
+      pendingOrders,
+      monthlyRevenue,
+      previousMonthRevenue,
+      totalViews,
+      todayViews,
+    ] = await Promise.all([
+      this.prisma.product.count({
+        where: { storeId },
+      }),
+      this.prisma.product.count({
+        where: { storeId, status: 'active' },
+      }),
+      this.prisma.order.count({
+        where: {
+          storeId,
+          createdAt: { gte: lastMonthBigInt, lt: nowBigInt },
+        },
+      }),
+      this.prisma.order.count({
+        where: {
+          storeId,
+          createdAt: { gte: lastMonthBigInt, lt: nowBigInt },
+          status: OrderStatus.completed,
+          paymentStatus: PaymentStatus.completed,
+        },
+      }),
+      this.prisma.order.count({
+        where: {
+          storeId,
+          createdAt: { gte: lastMonthBigInt, lt: nowBigInt },
+          status: { in: [OrderStatus.pending, OrderStatus.confirmed] },
+        },
+      }),
+      this.prisma.order.aggregate({
+        where: {
+          storeId,
+          createdAt: { gte: lastMonthBigInt, lt: nowBigInt },
+          status: { not: OrderStatus.cancelled },
+          paymentStatus: PaymentStatus.completed,
+        },
+        _sum: { total: true },
+      }),
+      this.prisma.order.aggregate({
+        where: {
+          storeId,
+          createdAt: {
+            gte: BigInt(
+              new Date(
+                lastMonth.getFullYear(),
+                lastMonth.getMonth() - 1,
+                lastMonth.getDate(),
+              ).getTime(),
+            ),
+            lt: lastMonthBigInt,
+          },
+          status: { not: OrderStatus.cancelled },
+          paymentStatus: PaymentStatus.completed,
+        },
+        _sum: { total: true },
+      }),
+      this.prisma.product.findMany({
+        where: { storeId },
+        select: { viewCount: true },
+      }),
+      this.prisma.product.findMany({
+        where: {
+          storeId,
+          updatedAt: { gte: todayStartBigInt },
+        },
+        select: { viewCount: true },
+      }),
+    ]);
+
+    const currentRevenue = monthlyRevenue._sum.total ? Number(monthlyRevenue._sum.total) : 0;
+    const previousRevenue = previousMonthRevenue._sum.total
+      ? Number(previousMonthRevenue._sum.total)
+      : 0;
+    const revenueChange =
+      previousRevenue > 0 ? ((currentRevenue - previousRevenue) / previousRevenue) * 100 : 0;
+
+    const totalViewsCount = totalViews.reduce((sum, p) => sum + (p.viewCount || 0), 0);
+    const todayViewsCount = todayViews.reduce((sum, p) => sum + (p.viewCount || 0), 0);
+
+    const previousMonthProducts = await this.prisma.product.count({
+      where: {
+        storeId,
+        createdAt: {
+          gte: BigInt(
+            new Date(
+              lastMonth.getFullYear(),
+              lastMonth.getMonth() - 1,
+              lastMonth.getDate(),
+            ).getTime(),
+          ),
+          lt: lastMonthBigInt,
+        },
+      },
+    });
+    const productsChange =
+      previousMonthProducts > 0
+        ? ((totalProducts - previousMonthProducts) / previousMonthProducts) * 100
+        : 0;
+
+    const previousMonthOrders = await this.prisma.order.count({
+      where: {
+        storeId,
+        createdAt: {
+          gte: BigInt(
+            new Date(
+              lastMonth.getFullYear(),
+              lastMonth.getMonth() - 1,
+              lastMonth.getDate(),
+            ).getTime(),
+          ),
+          lt: lastMonthBigInt,
+        },
+      },
+    });
+    const ordersChange =
+      previousMonthOrders > 0
+        ? ((totalOrders - previousMonthOrders) / previousMonthOrders) * 100
+        : 0;
+
+    const profit = currentRevenue * 0.2;
+
+    return {
+      totalProducts: {
+        value: totalProducts,
+        change: productsChange,
+        changeType: productsChange >= 0 ? 'positive' : 'negative',
+        subtitle: `Hoạt động: ${activeProducts}`,
+      },
+      revenue: {
+        value: currentRevenue,
+        change: revenueChange,
+        changeType: revenueChange >= 0 ? 'positive' : 'negative',
+        subtitle: `Lợi nhuận: ${profit.toLocaleString('vi-VN')} VNĐ`,
+      },
+      orders: {
+        value: totalOrders,
+        change: ordersChange,
+        changeType: ordersChange >= 0 ? 'positive' : 'negative',
+        subtitle: `Chờ xử lý: ${pendingOrders}`,
+      },
+      views: {
+        value: totalViewsCount,
+        change: 0,
+        changeType: 'positive' as const,
+        subtitle: `Hôm nay: ${todayViewsCount}`,
+      },
+    };
+  }
+
+  async getLowStockProducts(storeId: number, limit: number = 20) {
+    const products = await this.prisma.product.findMany({
+      where: {
+        storeId,
+        OR: [
+          { availableStock: { lte: this.prisma.product.fields.minStock } },
+          { availableStock: 0 },
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        sku: true,
+        availableStock: true,
+        minStock: true,
+        maxStock: true,
+      },
+      orderBy: { availableStock: 'asc' },
+      take: limit,
+    });
+
+    return products.map((product) => {
+      let status = 'in_stock';
+      if (product.availableStock === 0) {
+        status = 'out_of_stock';
+      } else if (product.availableStock <= product.minStock) {
+        status = 'low_stock';
+      }
+
+      return {
+        id: product.id.toString(),
+        name: product.title,
+        sku: product.sku || '',
+        currentStock: product.availableStock,
+        minStock: product.minStock,
+        maxStock: product.maxStock || 0,
+        status,
+      };
+    });
+  }
+
+  async getPromotedProducts(storeId: number) {
+    const now = BigInt(Date.now());
+    const products = await this.prisma.product.findMany({
+      where: {
+        storeId,
+        productBoosts: {
+          some: {
+            status: BoostStatus.active,
+            startDate: { lte: now },
+            OR: [{ endDate: null }, { endDate: { gte: now } }],
+          },
+        },
+      },
+      include: {
+        productBoosts: {
+          where: {
+            status: BoostStatus.active,
+            startDate: { lte: now },
+            OR: [{ endDate: null }, { endDate: { gte: now } }],
+          },
+          include: {
+            boostPackage: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+        images: {
+          take: 1,
+          orderBy: { displayOrder: 'asc' },
+        },
+      },
+    });
+
+    return products.map((product) => {
+      const boost = product.productBoosts[0];
+      const boostPackage = boost?.boostPackage;
+      const image = product.images[0]?.imageUrl || '';
+
+      return {
+        id: product.id.toString(),
+        name: product.title,
+        image,
+        price: Number(product.price),
+        currentViews: boost?.viewsActual || 0,
+        totalViews: boost?.viewsTarget || 0,
+        startDate: new Date(Number(boost?.startDate || 0)),
+        endDate: boost?.endDate ? new Date(Number(boost.endDate)) : null,
+        remainingViews: (boost?.viewsTarget || 0) - (boost?.viewsActual || 0),
+        packageId: boostPackage?.id || '',
+        packageName: boostPackage?.name || '',
+        packageType: boostPackage?.type || 'payPerView',
+        packagePrice: boostPackage?.price ? Number(boostPackage.price) : 0,
+      };
+    });
+  }
+}

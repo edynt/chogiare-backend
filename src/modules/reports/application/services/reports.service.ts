@@ -1,7 +1,10 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
 import { QueryRevenueReportDto, TimeRange } from '../dto/query-revenue-report.dto';
-import { ORDER_REPOSITORY, IOrderRepository } from '@modules/order/domain/repositories/order.repository.interface';
+import {
+  ORDER_REPOSITORY,
+  IOrderRepository,
+} from '@modules/order/domain/repositories/order.repository.interface';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 @Injectable()
@@ -12,7 +15,11 @@ export class ReportsService {
     private readonly prisma: PrismaService,
   ) {}
 
-  private getDateRange(timeRange?: TimeRange, dateFrom?: string, dateTo?: string): { start: Date; end: Date } {
+  private getDateRange(
+    timeRange?: TimeRange,
+    dateFrom?: string,
+    dateTo?: string,
+  ): { start: Date; end: Date } {
     const end = dateTo ? new Date(dateTo) : new Date();
     let start: Date;
 
@@ -42,7 +49,12 @@ export class ReportsService {
     return { start, end };
   }
 
-  async getRevenueOverview(storeId?: number, timeRange?: TimeRange, dateFrom?: string, dateTo?: string) {
+  async getRevenueOverview(
+    storeId?: number,
+    timeRange?: TimeRange,
+    dateFrom?: string,
+    dateTo?: string,
+  ) {
     const { start, end } = this.getDateRange(timeRange, dateFrom, dateTo);
     const startBigInt = BigInt(start.getTime());
     const endBigInt = BigInt(end.getTime());
@@ -87,31 +99,33 @@ export class ReportsService {
 
     const currentRevenue = currentStats._sum.total ? Number(currentStats._sum.total) : 0;
     const previousRevenue = previousStats._sum.total ? Number(previousStats._sum.total) : 0;
-    const revenueChange = previousRevenue > 0 
-      ? ((currentRevenue - previousRevenue) / previousRevenue) * 100 
-      : 0;
+    const revenueChange =
+      previousRevenue > 0 ? ((currentRevenue - previousRevenue) / previousRevenue) * 100 : 0;
 
     const currentOrderCount = currentStats._count;
     const previousOrderCount = previousStats._count;
-    const orderChange = previousOrderCount > 0 
-      ? ((currentOrderCount - previousOrderCount) / previousOrderCount) * 100 
-      : 0;
+    const orderChange =
+      previousOrderCount > 0
+        ? ((currentOrderCount - previousOrderCount) / previousOrderCount) * 100
+        : 0;
 
-    const currentProductsSold = currentOrders.reduce((sum, order) => 
-      sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0
+    const currentProductsSold = currentOrders.reduce(
+      (sum, order) => sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0),
+      0,
     );
-    const previousProductsSold = previousOrders.reduce((sum, order) => 
-      sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0
+    const previousProductsSold = previousOrders.reduce(
+      (sum, order) => sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0),
+      0,
     );
-    const productsChange = previousProductsSold > 0 
-      ? ((currentProductsSold - previousProductsSold) / previousProductsSold) * 100 
-      : 0;
+    const productsChange =
+      previousProductsSold > 0
+        ? ((currentProductsSold - previousProductsSold) / previousProductsSold) * 100
+        : 0;
 
     const currentProfit = currentRevenue * 0.2;
     const previousProfit = previousRevenue * 0.2;
-    const profitChange = previousProfit > 0 
-      ? ((currentProfit - previousProfit) / previousProfit) * 100 
-      : 0;
+    const profitChange =
+      previousProfit > 0 ? ((currentProfit - previousProfit) / previousProfit) * 100 : 0;
 
     return {
       totalRevenue: {
@@ -137,11 +151,16 @@ export class ReportsService {
     };
   }
 
-  async getRevenueData(storeId?: number, timeRange?: TimeRange, dateFrom?: string, dateTo?: string) {
+  async getRevenueData(
+    storeId?: number,
+    timeRange?: TimeRange,
+    dateFrom?: string,
+    dateTo?: string,
+  ) {
     const { start, end } = this.getDateRange(timeRange, dateFrom, dateTo);
     const startBigInt = BigInt(start.getTime());
     const endBigInt = BigInt(end.getTime());
-    
+
     const orders = await this.prisma.order.findMany({
       where: {
         createdAt: { gte: startBigInt, lte: endBigInt },
@@ -162,11 +181,11 @@ export class ReportsService {
     orders.forEach((order) => {
       const dateKey = new Date(Number(order.createdAt)).toISOString().split('T')[0];
       const existing = dateMap.get(dateKey) || { revenue: 0, orders: 0, productsSold: 0 };
-      
+
       existing.revenue += Number(order.total);
       existing.orders += 1;
       existing.productsSold += order.items.reduce((sum, item) => sum + item.quantity, 0);
-      
+
       dateMap.set(dateKey, existing);
     });
 
@@ -182,11 +201,17 @@ export class ReportsService {
     return result;
   }
 
-  async getTopProducts(storeId?: number, timeRange?: TimeRange, dateFrom?: string, dateTo?: string, limit: number = 5) {
+  async getTopProducts(
+    storeId?: number,
+    timeRange?: TimeRange,
+    dateFrom?: string,
+    dateTo?: string,
+    limit: number = 5,
+  ) {
     const { start, end } = this.getDateRange(timeRange, dateFrom, dateTo);
     const startBigInt = BigInt(start.getTime());
     const endBigInt = BigInt(end.getTime());
-    
+
     const orders = await this.prisma.order.findMany({
       where: {
         createdAt: { gte: startBigInt, lte: endBigInt },
@@ -203,7 +228,10 @@ export class ReportsService {
       },
     });
 
-    const productMap = new Map<number, { name: string; orders: number; revenue: number; quantity: number }>();
+    const productMap = new Map<
+      number,
+      { name: string; orders: number; revenue: number; quantity: number }
+    >();
 
     orders.forEach((order) => {
       order.items.forEach((item) => {
@@ -214,11 +242,11 @@ export class ReportsService {
           revenue: 0,
           quantity: 0,
         };
-        
+
         existing.orders += 1;
         existing.revenue += Number(item.price) * item.quantity;
         existing.quantity += item.quantity;
-        
+
         productMap.set(productId, existing);
       });
     });
@@ -226,7 +254,7 @@ export class ReportsService {
     const previousStart = new Date(start);
     previousStart.setTime(start.getTime() - (end.getTime() - start.getTime()));
     const previousStartBigInt = BigInt(previousStart.getTime());
-    
+
     const previousOrders = await this.prisma.order.findMany({
       where: {
         createdAt: { gte: previousStartBigInt, lt: startBigInt },
@@ -250,10 +278,11 @@ export class ReportsService {
     const result = Array.from(productMap.entries())
       .map(([productId, data]) => {
         const previousQuantity = previousProductMap.get(productId) || 0;
-        const growth = previousQuantity > 0 
-          ? ((data.quantity - previousQuantity) / previousQuantity) * 100 
-          : 100;
-        
+        const growth =
+          previousQuantity > 0
+            ? ((data.quantity - previousQuantity) / previousQuantity) * 100
+            : 100;
+
         return {
           productId,
           name: data.name,
@@ -269,11 +298,16 @@ export class ReportsService {
     return result;
   }
 
-  async getCategoryRevenue(storeId?: number, timeRange?: TimeRange, dateFrom?: string, dateTo?: string) {
+  async getCategoryRevenue(
+    storeId?: number,
+    timeRange?: TimeRange,
+    dateFrom?: string,
+    dateTo?: string,
+  ) {
     const { start, end } = this.getDateRange(timeRange, dateFrom, dateTo);
     const startBigInt = BigInt(start.getTime());
     const endBigInt = BigInt(end.getTime());
-    
+
     const orders = await this.prisma.order.findMany({
       where: {
         createdAt: { gte: startBigInt, lte: endBigInt },
@@ -305,12 +339,12 @@ export class ReportsService {
           revenue: 0,
           orders: 0,
         };
-        
+
         const itemRevenue = Number(item.price) * item.quantity;
         existing.revenue += itemRevenue;
         existing.orders += 1;
         totalRevenue += itemRevenue;
-        
+
         categoryMap.set(categoryName, existing);
       });
     });

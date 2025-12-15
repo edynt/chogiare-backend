@@ -681,7 +681,9 @@ export class OrderService {
     const cancelledOrders = orders.filter((o) => o.status === OrderStatus.cancelled).length;
 
     const totalRevenue = orders
-      .filter((o) => o.status === OrderStatus.completed && o.paymentStatus === PaymentStatus.completed)
+      .filter(
+        (o) => o.status === OrderStatus.completed && o.paymentStatus === PaymentStatus.completed,
+      )
       .reduce((sum, o) => sum + Number(o.total), 0);
 
     const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
@@ -698,4 +700,3 @@ export class OrderService {
     };
   }
 }
-

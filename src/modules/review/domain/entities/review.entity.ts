@@ -12,5 +12,3 @@ export class Review {
   createdAt: bigint;
   updatedAt: bigint;
 }
-
-

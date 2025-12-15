@@ -1,4 +1,15 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get, Put, Query, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Get,
+  Put,
+  Query,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { AuthService } from '@modules/auth/application/services/auth.service';
 import { LoginDto } from '@modules/auth/application/dto/login.dto';
@@ -143,9 +154,10 @@ export class AuthController {
     if (!result.valid) {
       throw new UnauthorizedException({
         message: result.message || MESSAGES.AUTH.INVALID_RESET_TOKEN,
-        errorCode: result.message === MESSAGES.AUTH.RESET_TOKEN_ALREADY_USED
-          ? ERROR_CODES.AUTH_RESET_TOKEN_ALREADY_USED
-          : ERROR_CODES.AUTH_INVALID_RESET_TOKEN,
+        errorCode:
+          result.message === MESSAGES.AUTH.RESET_TOKEN_ALREADY_USED
+            ? ERROR_CODES.AUTH_RESET_TOKEN_ALREADY_USED
+            : ERROR_CODES.AUTH_INVALID_RESET_TOKEN,
       });
     }
     return {

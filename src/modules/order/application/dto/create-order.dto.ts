@@ -1,4 +1,12 @@
-import { IsInt, IsOptional, IsString, IsEnum, MaxLength, IsArray, ValidateNested } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  IsEnum,
+  MaxLength,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { VALIDATION_MESSAGES } from '@common/constants/messages.constants';
@@ -81,4 +89,3 @@ export class CreateOrderDto {
   @Type(() => OrderItemDto)
   items: OrderItemDto[];
 }
-

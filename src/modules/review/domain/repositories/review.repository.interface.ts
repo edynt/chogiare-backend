@@ -32,5 +32,3 @@ export interface IReviewRepository {
   isHelpfulMarked(reviewId: number, userId: number): Promise<boolean>;
   getHelpfulCount(reviewId: number): Promise<number>;
 }
-
-

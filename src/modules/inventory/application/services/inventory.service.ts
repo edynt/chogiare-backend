@@ -415,12 +415,7 @@ export class InventoryService {
     };
   }
 
-  async getInventoryReports(
-    userId: number,
-    type?: string,
-    dateFrom?: string,
-    dateTo?: string,
-  ) {
+  async getInventoryReports(userId: number, type?: string, dateFrom?: string, dateTo?: string) {
     const products = await this.productRepository.findAll({
       sellerId: userId,
       page: 1,
@@ -459,10 +454,7 @@ export class InventoryService {
         (sum, record) => sum + (record.costPrice || 0) * record.quantity,
         0,
       );
-      const totalQuantity = productStockInRecords.reduce(
-        (sum, record) => sum + record.quantity,
-        0,
-      );
+      const totalQuantity = productStockInRecords.reduce((sum, record) => sum + record.quantity, 0);
       const avgCostPrice = totalQuantity > 0 ? totalCost / totalQuantity : 0;
 
       return {
@@ -476,7 +468,8 @@ export class InventoryService {
         costPrice: avgCostPrice,
         sellingPrice: product.price,
         profit: product.price - avgCostPrice,
-        profitMargin: product.price > 0 ? ((product.price - avgCostPrice) / product.price) * 100 : 0,
+        profitMargin:
+          product.price > 0 ? ((product.price - avgCostPrice) / product.price) * 100 : 0,
         status:
           (product.stock || 0) <= (product.minStock || 0)
             ? 'low_stock'

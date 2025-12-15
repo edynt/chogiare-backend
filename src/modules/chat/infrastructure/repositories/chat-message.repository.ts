@@ -15,11 +15,14 @@ export class ChatMessageRepository implements IChatMessageRepository {
     return message ? this.toDomain(message) : null;
   }
 
-  async findByConversationId(conversationId: number, options?: {
-    page?: number;
-    pageSize?: number;
-    before?: bigint;
-  }): Promise<{ items: ChatMessage[]; total: number }> {
+  async findByConversationId(
+    conversationId: number,
+    options?: {
+      page?: number;
+      pageSize?: number;
+      before?: bigint;
+    },
+  ): Promise<{ items: ChatMessage[]; total: number }> {
     const page = options?.page || 1;
     const pageSize = options?.pageSize || 20;
     const skip = (page - 1) * pageSize;
@@ -91,7 +94,11 @@ export class ChatMessageRepository implements IChatMessageRepository {
     });
   }
 
-  async markMessageAsRead(conversationId: number, messageId: number, userId: number): Promise<void> {
+  async markMessageAsRead(
+    conversationId: number,
+    messageId: number,
+    userId: number,
+  ): Promise<void> {
     await this.prisma.chatMessage.updateMany({
       where: {
         id: messageId,
@@ -132,4 +139,3 @@ export class ChatMessageRepository implements IChatMessageRepository {
     };
   }
 }
-

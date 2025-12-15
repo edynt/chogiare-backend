@@ -80,5 +80,3 @@ export class UpdateStoreDto {
   @IsBoolean()
   isActive?: boolean;
 }
-
-

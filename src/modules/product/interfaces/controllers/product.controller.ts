@@ -110,7 +110,11 @@ export class ProductController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'pageSize', required: false, type: Number })
   @ApiQuery({ name: 'categoryId', required: false, type: Number })
-  async searchProducts(@Query('query') query: string, @Query() queryDto: QueryProductDto, @CurrentUser() user?: CurrentUserPayload) {
+  async searchProducts(
+    @Query('query') query: string,
+    @Query() queryDto: QueryProductDto,
+    @CurrentUser() user?: CurrentUserPayload,
+  ) {
     return await this.productService.searchProducts(query, queryDto, user?.id);
   }
 
@@ -119,7 +123,9 @@ export class ProductController {
   @ApiOperation({ summary: 'Get featured products' })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async getFeaturedProducts(@Query('limit') limit?: number) {
-    const products = await this.productService.getFeaturedProducts(limit ? parseInt(limit.toString(), 10) : 10);
+    const products = await this.productService.getFeaturedProducts(
+      limit ? parseInt(limit.toString(), 10) : 10,
+    );
     return {
       message: MESSAGES.SUCCESS,
       data: products,

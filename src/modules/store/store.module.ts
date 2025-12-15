@@ -18,5 +18,3 @@ import { DatabaseModule } from '@common/database/database.module';
   exports: [StoreService, STORE_REPOSITORY],
 })
 export class StoreModule {}
-
-

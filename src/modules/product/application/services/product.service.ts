@@ -513,7 +513,10 @@ export class ProductService {
     return await this.update(id, { stock } as UpdateProductDto, userId);
   }
 
-  async bulkUpdate(updates: Array<{ id: number; data: Partial<UpdateProductDto> }>, userId: number) {
+  async bulkUpdate(
+    updates: Array<{ id: number; data: Partial<UpdateProductDto> }>,
+    userId: number,
+  ) {
     const userRoles = await this.prisma.userRole.findMany({
       where: { userId },
       include: { role: true },

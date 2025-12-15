@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+} from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
@@ -52,7 +58,9 @@ export class ReviewService {
         });
       }
 
-      const hasProductInOrder = order.items.some((item) => item.productId === createReviewDto.productId);
+      const hasProductInOrder = order.items.some(
+        (item) => item.productId === createReviewDto.productId,
+      );
       if (!hasProductInOrder) {
         throw new BadRequestException({
           message: 'Product not found in order',
@@ -273,9 +281,7 @@ export class ReviewService {
     });
 
     const averageRating =
-      reviews.length > 0
-        ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-        : 0;
+      reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
 
     await this.prisma.product.update({
       where: { id: productId },
@@ -336,5 +342,3 @@ export class ReviewService {
     };
   }
 }
-
-

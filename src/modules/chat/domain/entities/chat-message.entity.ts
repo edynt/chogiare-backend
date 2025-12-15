@@ -9,4 +9,3 @@ export class ChatMessage {
   createdAt: bigint;
   updatedAt: bigint;
 }
-

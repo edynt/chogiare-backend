@@ -11,6 +11,7 @@ import {
   HttpStatus,
   UseGuards,
   ParseIntPipe,
+  NotFoundException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { StoreService } from '@modules/store/application/services/store.service';
@@ -202,5 +203,62 @@ export class StoreController {
       data: result,
     };
   }
-}
 
+  @UseGuards(JwtAuthGuard)
+  @Get('dashboard/stats')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get seller dashboard statistics' })
+  async getDashboardStats(@CurrentUser() user: CurrentUserPayload) {
+    const store = await this.storeService.findByUserId(user.id);
+    if (!store) {
+      throw new NotFoundException(MESSAGES.STORE.NOT_FOUND);
+    }
+    const storeId = typeof store.id === 'string' ? parseInt(store.id, 10) : store.id;
+    const stats = await this.storeService.getDashboardStats(storeId);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: stats,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('dashboard/low-stock')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get low stock products for seller dashboard' })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async getLowStockProducts(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query('limit', ParseIntPipe) limit?: number,
+  ) {
+    const store = await this.storeService.findByUserId(user.id);
+    if (!store) {
+      throw new NotFoundException(MESSAGES.STORE.NOT_FOUND);
+    }
+    const storeId = typeof store.id === 'string' ? parseInt(store.id, 10) : store.id;
+    const products = await this.storeService.getLowStockProducts(storeId, limit || 20);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: products,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('dashboard/promoted')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get promoted products for seller dashboard' })
+  async getPromotedProducts(@CurrentUser() user: CurrentUserPayload) {
+    const store = await this.storeService.findByUserId(user.id);
+    if (!store) {
+      throw new NotFoundException(MESSAGES.STORE.NOT_FOUND);
+    }
+    const storeId = typeof store.id === 'string' ? parseInt(store.id, 10) : store.id;
+    const products = await this.storeService.getPromotedProducts(storeId);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: products,
+    };
+  }
+}

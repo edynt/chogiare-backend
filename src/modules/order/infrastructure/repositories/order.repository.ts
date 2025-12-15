@@ -174,18 +174,22 @@ export class OrderRepository implements IOrderRepository {
     };
 
     if (data.status !== undefined) updateData.status = data.status as OrderStatus;
-    if (data.paymentStatus !== undefined) updateData.paymentStatus = data.paymentStatus as PaymentStatus;
-    if (data.paymentMethod !== undefined) updateData.paymentMethod = data.paymentMethod as PaymentMethod | null;
+    if (data.paymentStatus !== undefined)
+      updateData.paymentStatus = data.paymentStatus as PaymentStatus;
+    if (data.paymentMethod !== undefined)
+      updateData.paymentMethod = data.paymentMethod as PaymentMethod | null;
     if (data.subtotal !== undefined) updateData.subtotal = data.subtotal;
     if (data.tax !== undefined) updateData.tax = data.tax;
     if (data.shipping !== undefined) updateData.shipping = data.shipping;
     if (data.discount !== undefined) updateData.discount = data.discount;
     if (data.total !== undefined) updateData.total = data.total;
     if (data.shippingAddressId !== undefined) {
-      (updateData as { shippingAddressId?: number | null }).shippingAddressId = data.shippingAddressId || null;
+      (updateData as { shippingAddressId?: number | null }).shippingAddressId =
+        data.shippingAddressId || null;
     }
     if (data.billingAddressId !== undefined) {
-      (updateData as { billingAddressId?: number | null }).billingAddressId = data.billingAddressId || null;
+      (updateData as { billingAddressId?: number | null }).billingAddressId =
+        data.billingAddressId || null;
     }
     if (data.notes !== undefined) updateData.notes = data.notes;
     if (data.sellerNotes !== undefined) updateData.sellerNotes = data.sellerNotes;

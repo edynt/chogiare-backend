@@ -46,5 +46,3 @@ export class UpdateOrderDto {
   @MaxLength(1000)
   notes?: string;
 }
-
-

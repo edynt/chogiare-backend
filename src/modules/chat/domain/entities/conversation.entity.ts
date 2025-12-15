@@ -6,4 +6,3 @@ export class Conversation {
   createdAt: bigint;
   updatedAt: bigint;
 }
-

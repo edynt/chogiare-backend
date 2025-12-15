@@ -418,13 +418,7 @@ export class UploadController {
     @Query('path') path?: string,
     @Query('folder') folder?: string,
   ) {
-    const prefix = path
-      ? folder
-        ? `${path}/${folder}/`
-        : `${path}/`
-      : folder
-        ? `${folder}/`
-        : '';
+    const prefix = path ? (folder ? `${path}/${folder}/` : `${path}/`) : folder ? `${folder}/` : '';
     const files = await this.uploadService.listFiles(prefix);
     return {
       message: MESSAGES.SUCCESS,

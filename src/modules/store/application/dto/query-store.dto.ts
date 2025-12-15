@@ -34,5 +34,3 @@ export class QueryStoreDto {
   @IsBoolean()
   isActive?: boolean;
 }
-
-

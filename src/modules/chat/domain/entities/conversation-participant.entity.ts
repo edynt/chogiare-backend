@@ -7,4 +7,3 @@ export class ConversationParticipant {
   lastReadAt: bigint | null;
   metadata: Record<string, unknown>;
 }
-

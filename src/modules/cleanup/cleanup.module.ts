@@ -9,4 +9,3 @@ import { CleanupScheduler } from './application/schedulers/cleanup.scheduler';
   providers: [CleanupService, CleanupScheduler],
 })
 export class CleanupModule {}
-

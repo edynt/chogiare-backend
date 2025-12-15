@@ -22,5 +22,3 @@ export class Store {
   createdAt: bigint;
   updatedAt: bigint;
 }
-
-

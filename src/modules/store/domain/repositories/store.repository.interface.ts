@@ -30,12 +30,13 @@ export interface IStoreRepository {
   }): Promise<Store>;
   update(id: number, data: Partial<Store>): Promise<Store>;
   delete(id: number): Promise<void>;
-  updateStats(id: number, stats: {
-    productCount?: number;
-    reviewCount?: number;
-    followerCount?: number;
-    rating?: number;
-  }): Promise<void>;
+  updateStats(
+    id: number,
+    stats: {
+      productCount?: number;
+      reviewCount?: number;
+      followerCount?: number;
+      rating?: number;
+    },
+  ): Promise<void>;
 }
-
-

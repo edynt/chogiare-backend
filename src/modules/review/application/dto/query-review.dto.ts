@@ -43,4 +43,3 @@ export class QueryReviewDto {
   @Max(5)
   rating?: number;
 }
-

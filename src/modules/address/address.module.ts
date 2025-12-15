@@ -18,5 +18,3 @@ import { DatabaseModule } from '@common/database/database.module';
   exports: [AddressService, ADDRESS_REPOSITORY],
 })
 export class AddressModule {}
-
-

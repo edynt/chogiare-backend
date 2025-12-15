@@ -19,4 +19,3 @@ export class Order {
   createdAt: bigint;
   updatedAt: bigint;
 }
-
