@@ -24,6 +24,7 @@ import { CleanupModule } from '@modules/cleanup/cleanup.module';
 import { StoreModule } from '@modules/store/store.module';
 import { ReviewModule } from '@modules/review/review.module';
 import { AddressModule } from '@modules/address/address.module';
+import { ReportsModule } from '@modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { AddressModule } from '@modules/address/address.module';
     StoreModule,
     ReviewModule,
     AddressModule,
+    ReportsModule,
   ],
   providers: [
     {

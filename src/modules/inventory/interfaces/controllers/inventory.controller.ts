@@ -117,4 +117,16 @@ export class InventoryController {
   ) {
     return this.inventoryService.getProductStock(userId, productId);
   }
+
+  @Get('reports')
+  @ApiOperation({ summary: 'Get inventory reports' })
+  @ApiResponse({ status: 200, description: 'Inventory reports retrieved successfully' })
+  async getInventoryReports(
+    @CurrentUser('id') userId: number,
+    @Query('type') type?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    return this.inventoryService.getInventoryReports(userId, type, dateFrom, dateTo);
+  }
 }

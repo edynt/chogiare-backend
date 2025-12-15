@@ -415,6 +415,102 @@ export class InventoryService {
     };
   }
 
+  async getInventoryReports(
+    userId: number,
+    type?: string,
+    dateFrom?: string,
+    dateTo?: string,
+  ) {
+    const products = await this.productRepository.findAll({
+      sellerId: userId,
+      page: 1,
+      pageSize: 10000,
+    });
+
+    const productIds = products.items.map((p) => p.id);
+
+    const startDate = dateFrom ? new Date(dateFrom) : new Date();
+    startDate.setDate(startDate.getDate() - 30);
+    const endDate = dateTo ? new Date(dateTo) : new Date();
+
+    const [stockInRecords, stockMovements, lowStockProducts] = await Promise.all([
+      this.inventoryRepository.getStockInRecords({
+        sellerId: userId,
+        page: 1,
+        pageSize: 10000,
+      }),
+      this.inventoryRepository.getStockMovements({
+        page: 1,
+        pageSize: 10000,
+      }),
+      this.inventoryRepository.getLowStockProducts(userId),
+    ]);
+
+    const inventoryData = products.items.map((product) => {
+      const stock = this.inventoryRepository.getProductStock(product.id);
+      const productStockInRecords = stockInRecords.items.filter(
+        (record) => record.productId === product.id,
+      );
+      const productMovements = stockMovements.items.filter(
+        (movement) => movement.productId === product.id,
+      );
+
+      const totalCost = productStockInRecords.reduce(
+        (sum, record) => sum + (record.costPrice || 0) * record.quantity,
+        0,
+      );
+      const totalQuantity = productStockInRecords.reduce(
+        (sum, record) => sum + record.quantity,
+        0,
+      );
+      const avgCostPrice = totalQuantity > 0 ? totalCost / totalQuantity : 0;
+
+      return {
+        id: product.id.toString(),
+        name: product.title,
+        sku: product.sku || `SKU-${product.id}`,
+        category: product.category?.name || 'Khác',
+        currentStock: product.stock || 0,
+        minStock: product.minStock || 0,
+        maxStock: product.maxStock || null,
+        costPrice: avgCostPrice,
+        sellingPrice: product.price,
+        profit: product.price - avgCostPrice,
+        profitMargin: product.price > 0 ? ((product.price - avgCostPrice) / product.price) * 100 : 0,
+        status:
+          (product.stock || 0) <= (product.minStock || 0)
+            ? 'low_stock'
+            : (product.stock || 0) === 0
+              ? 'out_of_stock'
+              : 'in_stock',
+        lastUpdated: product.updatedAt.toISOString(),
+        supplier: productStockInRecords[0]?.supplier || 'N/A',
+        location: 'Kho chính',
+      };
+    });
+
+    const reports = [
+      {
+        id: '1',
+        name: `Báo cáo tồn kho ${new Date().toLocaleDateString('vi-VN')}`,
+        type: 'inventory',
+        generatedAt: new Date().toISOString(),
+        fileSize: '2.5 MB',
+        status: 'ready',
+      },
+    ];
+
+    return {
+      message: 'Inventory reports retrieved successfully',
+      data: {
+        reports,
+        inventoryData: type === 'inventory' ? inventoryData : [],
+        lowStockProducts: type === 'low_stock' ? lowStockProducts : [],
+        stockMovements: type === 'stock_movement' ? stockMovements.items : [],
+      },
+    };
+  }
+
   private async checkAndCreateLowStockAlert(
     productId: number,
     currentStock: number,
