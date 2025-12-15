@@ -24,7 +24,6 @@ import { CleanupModule } from '@modules/cleanup/cleanup.module';
 import { StoreModule } from '@modules/store/store.module';
 import { ReviewModule } from '@modules/review/review.module';
 import { AddressModule } from '@modules/address/address.module';
-import { ShippingModule } from '@modules/shipping/shipping.module';
 
 @Module({
   imports: [
@@ -47,7 +46,6 @@ import { ShippingModule } from '@modules/shipping/shipping.module';
     StoreModule,
     ReviewModule,
     AddressModule,
-    ShippingModule,
   ],
   providers: [
     {
