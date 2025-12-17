@@ -18,6 +18,7 @@ import { PrismaService } from '@common/database/prisma.service';
 import { EmailService } from '@common/services/email.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
+import { Prisma } from '@prisma/client';
 import { LoginDto } from '../dto/login.dto';
 import { AdminLoginDto } from '../dto/admin-login.dto';
 import { RegisterDto } from '../dto/register.dto';
@@ -769,6 +770,7 @@ export class AuthService {
       dateOfBirth?: string;
       address?: string;
       country?: string;
+      metadata?: Record<string, unknown>;
       updatedAt: bigint;
     } = {
       updatedAt: now,
@@ -800,16 +802,65 @@ export class AuthService {
       where: { userId },
     });
 
+    const currentMetadata = (userInfo?.metadata as Record<string, unknown>) || {};
+    const metadataUpdate: Record<string, unknown> = {};
+    if (updateProfileDto.showEmail !== undefined) {
+      metadataUpdate.showEmail = updateProfileDto.showEmail;
+    }
+    if (updateProfileDto.showPhone !== undefined) {
+      metadataUpdate.showPhone = updateProfileDto.showPhone;
+    }
+
+    const prismaData: {
+      fullName?: string;
+      phoneNumber?: string;
+      avatarUrl?: string;
+      gender?: string;
+      dateOfBirth?: string;
+      address?: string;
+      country?: string;
+      metadata?: Prisma.InputJsonValue;
+      updatedAt: bigint;
+    } = {
+      updatedAt: now,
+    };
+
+    if (updateData.fullName !== undefined) {
+      prismaData.fullName = updateData.fullName;
+    }
+    if (updateData.phoneNumber !== undefined) {
+      prismaData.phoneNumber = updateData.phoneNumber;
+    }
+    if (updateData.avatarUrl !== undefined) {
+      prismaData.avatarUrl = updateData.avatarUrl;
+    }
+    if (updateData.gender !== undefined) {
+      prismaData.gender = updateData.gender;
+    }
+    if (updateData.dateOfBirth !== undefined) {
+      prismaData.dateOfBirth = updateData.dateOfBirth;
+    }
+    if (updateData.address !== undefined) {
+      prismaData.address = updateData.address;
+    }
+    if (updateData.country !== undefined) {
+      prismaData.country = updateData.country;
+    }
+
+    if (Object.keys(metadataUpdate).length > 0) {
+      prismaData.metadata = { ...currentMetadata, ...metadataUpdate } as Prisma.InputJsonValue;
+    }
+
     if (userInfo) {
       await this.prisma.userInfo.update({
         where: { userId },
-        data: updateData,
+        data: prismaData,
       });
     } else {
       await this.prisma.userInfo.create({
         data: {
           userId,
-          ...updateData,
+          ...prismaData,
           createdAt: now,
         },
       });
@@ -834,6 +885,8 @@ export class AuthService {
       phoneNumber: string | null;
       address: string | null;
       country: string | null;
+      showEmail: boolean;
+      showPhone: boolean;
     } | null;
     roles: string[];
   }> {
@@ -856,6 +909,7 @@ export class AuthService {
 
     const roles = userRoles.map((ur) => ur.role.name);
 
+    const metadata = (userInfo?.metadata as Record<string, unknown>) || {};
     return {
       id: user.id,
       email: user.email,
@@ -871,6 +925,8 @@ export class AuthService {
             phoneNumber: userInfo.phoneNumber,
             address: userInfo.address,
             country: userInfo.country,
+            showEmail: (metadata.showEmail as boolean) || false,
+            showPhone: (metadata.showPhone as boolean) || false,
           }
         : null,
       roles,

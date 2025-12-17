@@ -10,3 +10,4 @@ export class Notification {
   createdAt: bigint;
   updatedAt: bigint;
 }
+

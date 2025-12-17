@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
 import { INotificationRepository } from '@modules/notification/domain/repositories/notification.repository.interface';
 import { Notification } from '@modules/notification/domain/entities/notification.entity';
+import { Prisma, NotificationType } from '@prisma/client';
 
 @Injectable()
 export class NotificationRepository implements INotificationRepository {
@@ -19,11 +20,11 @@ export class NotificationRepository implements INotificationRepository {
     const notification = await this.prisma.notification.create({
       data: {
         userId: data.userId,
-        type: data.type,
+        type: data.type as NotificationType,
         title: data.title,
         message: data.message,
         actionUrl: data.actionUrl || null,
-        notificationMetadata: data.metadata || {},
+        notificationMetadata: (data.metadata || {}) as Prisma.InputJsonValue,
         isRead: false,
         createdAt: data.createdAt,
       },
@@ -141,11 +142,11 @@ export class NotificationRepository implements INotificationRepository {
     const now = BigInt(Date.now());
     const notifications = userIds.map((userId) => ({
       userId,
-      type: data.type,
+      type: data.type as NotificationType,
       title: data.title,
       message: data.message,
       actionUrl: data.actionUrl || null,
-      notificationMetadata: data.metadata || {},
+      notificationMetadata: (data.metadata || {}) as Prisma.InputJsonValue,
       isRead: false,
       createdAt: data.createdAt || now,
     }));
@@ -160,14 +161,15 @@ export class NotificationRepository implements INotificationRepository {
   private toDomainNotification(notification: {
     id: number;
     userId: number;
-    type: string;
+    type: NotificationType;
     title: string;
     message: string;
     isRead: boolean;
     actionUrl: string | null;
-    notificationMetadata: Record<string, unknown>;
+    notificationMetadata: Prisma.JsonValue;
     createdAt: bigint;
   }): Notification {
+    const metadata = notification.notificationMetadata as Record<string, unknown> | null;
     return {
       id: notification.id,
       userId: notification.userId,
@@ -176,9 +178,10 @@ export class NotificationRepository implements INotificationRepository {
       message: notification.message,
       isRead: notification.isRead,
       actionUrl: notification.actionUrl || undefined,
-      metadata: notification.notificationMetadata,
+      metadata: metadata || {},
       createdAt: notification.createdAt,
       updatedAt: notification.createdAt,
     };
   }
 }
+

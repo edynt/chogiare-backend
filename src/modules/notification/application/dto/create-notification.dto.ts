@@ -38,3 +38,4 @@ export class CreateNotificationDto {
   @IsBoolean()
   targetAllUsers?: boolean;
 }
+

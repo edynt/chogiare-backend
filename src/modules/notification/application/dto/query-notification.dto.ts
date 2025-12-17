@@ -30,3 +30,4 @@ export class QueryNotificationDto {
   @IsBoolean()
   isRead?: boolean;
 }
+

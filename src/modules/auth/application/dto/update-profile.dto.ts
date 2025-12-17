@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MaxLength, IsEnum } from 'class-validator';
+import { IsOptional, IsString, MaxLength, IsEnum, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { VALIDATION_MESSAGES } from '@common/constants/messages.constants';
 
@@ -89,4 +89,22 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsEnum(['vi', 'en'], { message: VALIDATION_MESSAGES.IS_ENUM })
   language?: string;
+
+  @ApiProperty({
+    description: 'Show email publicly',
+    example: false,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean({ message: VALIDATION_MESSAGES.IS_BOOLEAN })
+  showEmail?: boolean;
+
+  @ApiProperty({
+    description: 'Show phone number publicly',
+    example: false,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean({ message: VALIDATION_MESSAGES.IS_BOOLEAN })
+  showPhone?: boolean;
 }

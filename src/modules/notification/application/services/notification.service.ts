@@ -72,8 +72,8 @@ export class NotificationService {
 
     if (notification.userId !== userId) {
       throw new BadRequestException({
-        message: MESSAGES.UNAUTHORIZED_ACCESS,
-        errorCode: ERROR_CODES.UNAUTHORIZED_ACCESS,
+        message: MESSAGES.FORBIDDEN,
+        errorCode: ERROR_CODES.FORBIDDEN,
       });
     }
 
@@ -107,8 +107,8 @@ export class NotificationService {
 
     if (notification.userId !== userId) {
       throw new BadRequestException({
-        message: MESSAGES.UNAUTHORIZED_ACCESS,
-        errorCode: ERROR_CODES.UNAUTHORIZED_ACCESS,
+        message: MESSAGES.FORBIDDEN,
+        errorCode: ERROR_CODES.FORBIDDEN,
       });
     }
 
@@ -178,3 +178,4 @@ export class NotificationService {
     };
   }
 }
+
