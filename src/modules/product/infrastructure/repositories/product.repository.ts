@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
 import { IProductRepository } from '@modules/product/domain/repositories/product.repository.interface';
-import { Product } from '@modules/product/domain/entities/product.entity';
+import { Product, ProductWithRelations } from '@modules/product/domain/entities/product.entity';
 import {
   Product as PrismaProduct,
   Prisma,
@@ -10,15 +10,55 @@ import {
   ProductBadge,
 } from '@prisma/client';
 
+// Type for product with eager-loaded relations
+type PrismaProductWithRelations = PrismaProduct & {
+  category: { id: number; name: string; slug: string } | null;
+  images: Array<{ id: number; imageUrl: string; displayOrder: number }>;
+  store?: {
+    id: number;
+    name: string;
+    slug: string;
+    logo: string | null;
+    isVerified: boolean;
+  } | null;
+};
+
 @Injectable()
 export class ProductRepository implements IProductRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  // Standard include for product relations - reused across methods
+  private readonly productInclude = {
+    category: {
+      select: { id: true, name: true, slug: true },
+    },
+    images: {
+      orderBy: { displayOrder: 'asc' as const },
+      select: { id: true, imageUrl: true, displayOrder: true },
+    },
+  };
+
+  private readonly productIncludeWithStore = {
+    ...this.productInclude,
+    store: {
+      select: { id: true, name: true, slug: true, logo: true, isVerified: true },
+    },
+  };
 
   async findById(id: number): Promise<Product | null> {
     const product = await this.prisma.product.findUnique({
       where: { id },
     });
     return product ? this.toDomain(product) : null;
+  }
+
+  // Optimized: Get product with all relations in a single query
+  async findByIdWithRelations(id: number): Promise<ProductWithRelations | null> {
+    const product = await this.prisma.product.findUnique({
+      where: { id },
+      include: this.productIncludeWithStore,
+    });
+    return product ? this.toDomainWithRelations(product as PrismaProductWithRelations) : null;
   }
 
   async findBySku(sku: string): Promise<Product | null> {
@@ -245,6 +285,15 @@ export class ProductRepository implements IProductRepository {
       metadata: prismaProduct.metadata as Record<string, unknown>,
       createdAt: prismaProduct.createdAt,
       updatedAt: prismaProduct.updatedAt,
+    };
+  }
+
+  private toDomainWithRelations(prismaProduct: PrismaProductWithRelations): ProductWithRelations {
+    return {
+      ...this.toDomain(prismaProduct),
+      category: prismaProduct.category,
+      images: prismaProduct.images,
+      store: prismaProduct.store || null,
     };
   }
 }

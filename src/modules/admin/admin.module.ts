@@ -4,6 +4,7 @@ import { AdminProductsModule } from './products/admin-products.module';
 import { AdminPaymentsModule } from './payments/admin-payments.module';
 import { AdminDashboardModule } from './dashboard/admin-dashboard.module';
 import { AdminAnalyticsModule } from './analytics/admin-analytics.module';
+import { AdminUsersModule } from './users/admin-users.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { AdminAnalyticsModule } from './analytics/admin-analytics.module';
     AdminPaymentsModule,
     AdminDashboardModule,
     AdminAnalyticsModule,
+    AdminUsersModule,
   ],
   exports: [
     AdminOrdersModule,
@@ -19,6 +21,7 @@ import { AdminAnalyticsModule } from './analytics/admin-analytics.module';
     AdminPaymentsModule,
     AdminDashboardModule,
     AdminAnalyticsModule,
+    AdminUsersModule,
   ],
 })
 export class AdminModule {}

@@ -45,4 +45,3 @@ export interface INotificationRepository {
 }
 
 export const NOTIFICATION_REPOSITORY = Symbol('NOTIFICATION_REPOSITORY');
-

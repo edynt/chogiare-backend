@@ -10,4 +10,3 @@ import { DatabaseModule } from '@common/database/database.module';
   exports: [AdminAnalyticsService],
 })
 export class AdminAnalyticsModule {}
-

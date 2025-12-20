@@ -184,4 +184,3 @@ export class NotificationRepository implements INotificationRepository {
     };
   }
 }
-

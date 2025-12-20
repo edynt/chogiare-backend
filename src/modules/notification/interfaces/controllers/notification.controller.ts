@@ -64,10 +64,7 @@ export class NotificationController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Mark notification as read' })
   @ApiParam({ name: 'id', type: String })
-  async markAsRead(
-    @Param('id') id: string,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  async markAsRead(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     const result = await this.notificationService.markAsRead(parseInt(id, 10), user.id);
     return {
       message: MESSAGES.SUCCESS,
@@ -92,14 +89,10 @@ export class NotificationController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Delete notification' })
   @ApiParam({ name: 'id', type: String })
-  async delete(
-    @Param('id') id: string,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  async delete(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     await this.notificationService.delete(parseInt(id, 10), user.id);
     return {
       message: MESSAGES.DELETED,
     };
   }
 }
-

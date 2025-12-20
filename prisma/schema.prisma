@@ -145,6 +145,11 @@ model User {
   notifications      Notification[]
   stockInRecords     StockInRecord[]
   stockAlerts        StockAlert[]
+  ticketsCreated     SupportTicket[]   @relation("TicketUser")
+  ticketsAssigned    SupportTicket[]   @relation("TicketAssignee")
+  ticketReplies      TicketReply[]
+  promotionsCreated  Promotion[]
+  contentsCreated    Content[]
 
   @@index([email])
   @@index([status])
@@ -807,4 +812,406 @@ model Notification {
   @@index([userId, isRead])
   @@index([createdAt])
   @@map("notifications")
+}
+
+// ==================== SUPPORT TICKETS ====================
+
+enum TicketStatus {
+  open
+  in_progress
+  pending
+  resolved
+  closed
+}
+
+enum TicketPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum TicketCategory {
+  account
+  product
+  payment
+  technical
+  report
+  question
+  other
+}
+
+model SupportTicket {
+  id          Int             @id @default(autoincrement())
+  userId      Int             @map("user_id")
+  assignedTo  Int?            @map("assigned_to")
+  category    TicketCategory
+  priority    TicketPriority  @default(medium)
+  status      TicketStatus    @default(open)
+  title       String          @db.VarChar(500)
+  description String          @db.Text
+  tags        String[]        @default([])
+  metadata    Json            @default("{}")
+  createdAt   BigInt          @map("created_at")
+  updatedAt   BigInt          @map("updated_at")
+  resolvedAt  BigInt?         @map("resolved_at")
+
+  user        User             @relation("TicketUser", fields: [userId], references: [id], onDelete: Cascade)
+  assignee    User?            @relation("TicketAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
+  replies     TicketReply[]
+  attachments TicketAttachment[]
+
+  @@index([userId])
+  @@index([assignedTo])
+  @@index([status])
+  @@index([priority])
+  @@index([category])
+  @@index([createdAt])
+  @@map("support_tickets")
+}
+
+model TicketReply {
+  id        Int     @id @default(autoincrement())
+  ticketId  Int     @map("ticket_id")
+  userId    Int     @map("user_id")
+  message   String  @db.Text
+  isInternal Boolean @default(false) @map("is_internal")
+  metadata  Json    @default("{}")
+  createdAt BigInt  @map("created_at")
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("ticket_replies")
+}
+
+model TicketAttachment {
+  id        Int    @id @default(autoincrement())
+  ticketId  Int    @map("ticket_id")
+  fileName  String @map("file_name") @db.VarChar(255)
+  fileUrl   String @map("file_url") @db.VarChar(500)
+  fileType  String @map("file_type") @db.VarChar(100)
+  fileSize  Int    @map("file_size")
+  createdAt BigInt @map("created_at")
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@map("ticket_attachments")
+}
+
+// ==================== PROMOTIONS ====================
+
+enum PromotionType {
+  percentage
+  fixed_amount
+  free_shipping
+  buy_x_get_y
+}
+
+enum PromotionStatus {
+  draft
+  active
+  paused
+  expired
+  cancelled
+}
+
+model Promotion {
+  id              Int             @id @default(autoincrement())
+  code            String          @unique @db.VarChar(50)
+  name            String          @db.VarChar(255)
+  description     String?         @db.Text
+  type            PromotionType
+  status          PromotionStatus @default(draft)
+  discountValue   Decimal         @map("discount_value") @db.Decimal(15, 2)
+  minOrderAmount  Decimal?        @map("min_order_amount") @db.Decimal(15, 2)
+  maxDiscount     Decimal?        @map("max_discount") @db.Decimal(15, 2)
+  usageLimit      Int?            @map("usage_limit")
+  usageCount      Int             @default(0) @map("usage_count")
+  userLimit       Int?            @map("user_limit")
+  startDate       BigInt          @map("start_date")
+  endDate         BigInt          @map("end_date")
+  applicableCategories Int[]      @default([]) @map("applicable_categories")
+  applicableProducts   Int[]      @default([]) @map("applicable_products")
+  excludedProducts     Int[]      @default([]) @map("excluded_products")
+  conditions      Json            @default("{}")
+  metadata        Json            @default("{}")
+  createdBy       Int             @map("created_by")
+  createdAt       BigInt          @map("created_at")
+  updatedAt       BigInt          @map("updated_at")
+
+  creator User              @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  usages  PromotionUsage[]
+
+  @@index([code])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@index([createdBy])
+  @@map("promotions")
+}
+
+model PromotionUsage {
+  id          Int     @id @default(autoincrement())
+  promotionId Int     @map("promotion_id")
+  userId      Int     @map("user_id")
+  orderId     Int?    @map("order_id")
+  discount    Decimal @db.Decimal(15, 2)
+  createdAt   BigInt  @map("created_at")
+
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+
+  @@index([promotionId])
+  @@index([userId])
+  @@index([orderId])
+  @@map("promotion_usages")
+}
+
+// ==================== CONTENT MANAGEMENT ====================
+
+enum ContentType {
+  policy
+  guide
+  faq
+  blog
+  announcement
+}
+
+enum ContentStatus {
+  draft
+  published
+  archived
+}
+
+model Content {
+  id          Int           @id @default(autoincrement())
+  type        ContentType
+  status      ContentStatus @default(draft)
+  title       String        @db.VarChar(500)
+  slug        String        @unique @db.VarChar(255)
+  content     String        @db.Text
+  excerpt     String?       @db.VarChar(500)
+  featuredImage String?     @map("featured_image") @db.VarChar(500)
+  tags        String[]      @default([])
+  viewCount   Int           @default(0) @map("view_count")
+  isPublic    Boolean       @default(true) @map("is_public")
+  publishedAt BigInt?       @map("published_at")
+  authorId    Int           @map("author_id")
+  metadata    Json          @default("{}")
+  createdAt   BigInt        @map("created_at")
+  updatedAt   BigInt        @map("updated_at")
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([type])
+  @@index([status])
+  @@index([slug])
+  @@index([authorId])
+  @@index([publishedAt])
+  @@map("contents")
+}
+
+// ==================== SYSTEM SETTINGS ====================
+
+enum SettingType {
+  string
+  number
+  boolean
+  json
+  text
+}
+
+model SystemSetting {
+  id          Int         @id @default(autoincrement())
+  key         String      @unique @db.VarChar(255)
+  value       String      @db.Text
+  type        SettingType @default(string)
+  group       String      @db.VarChar(100)
+  label       String      @db.VarChar(255)
+  description String?     @db.Text
+  isPublic    Boolean     @default(false) @map("is_public")
+  isEditable  Boolean     @default(true) @map("is_editable")
+  metadata    Json        @default("{}")
+  updatedBy   Int?        @map("updated_by")
+  createdAt   BigInt      @map("created_at")
+  updatedAt   BigInt      @map("updated_at")
+
+  @@index([key])
+  @@index([group])
+  @@index([isPublic])
+  @@map("system_settings")
+}
+
+// ==================== API KEYS ====================
+
+model ApiKey {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(255)
+  key         String   @unique @db.VarChar(255)
+  secret      String   @db.VarChar(500)
+  permissions String[] @default([])
+  rateLimit   Int      @default(1000) @map("rate_limit")
+  isActive    Boolean  @default(true) @map("is_active")
+  lastUsedAt  BigInt?  @map("last_used_at")
+  expiresAt   BigInt?  @map("expires_at")
+  createdBy   Int      @map("created_by")
+  metadata    Json     @default("{}")
+  createdAt   BigInt   @map("created_at")
+  updatedAt   BigInt   @map("updated_at")
+
+  @@index([key])
+  @@index([isActive])
+  @@index([createdBy])
+  @@map("api_keys")
+}
+
+// ==================== SYSTEM LOGS ====================
+
+enum LogLevel {
+  debug
+  info
+  warning
+  error
+  critical
+}
+
+enum LogCategory {
+  auth
+  user
+  order
+  payment
+  product
+  system
+  security
+  api
+}
+
+model SystemLog {
+  id        Int         @id @default(autoincrement())
+  level     LogLevel
+  category  LogCategory
+  action    String      @db.VarChar(255)
+  message   String      @db.Text
+  userId    Int?        @map("user_id")
+  ipAddress String?     @map("ip_address") @db.VarChar(45)
+  userAgent String?     @map("user_agent") @db.VarChar(500)
+  requestId String?     @map("request_id") @db.VarChar(100)
+  duration  Int?
+  metadata  Json        @default("{}")
+  createdAt BigInt      @map("created_at")
+
+  @@index([level])
+  @@index([category])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("system_logs")
+}
+
+// ==================== NOTIFICATION CAMPAIGNS ====================
+
+enum CampaignStatus {
+  draft
+  scheduled
+  sending
+  completed
+  cancelled
+}
+
+enum CampaignTargetType {
+  all_users
+  buyers
+  sellers
+  specific_users
+  by_segment
+}
+
+model NotificationCampaign {
+  id            Int                 @id @default(autoincrement())
+  name          String              @db.VarChar(255)
+  description   String?             @db.Text
+  status        CampaignStatus      @default(draft)
+  targetType    CampaignTargetType  @map("target_type")
+  targetUserIds Int[]               @default([]) @map("target_user_ids")
+  targetSegment Json?               @map("target_segment")
+  notificationType NotificationType @map("notification_type")
+  title         String              @db.VarChar(255)
+  message       String              @db.Text
+  actionUrl     String?             @map("action_url") @db.VarChar(500)
+  scheduledAt   BigInt?             @map("scheduled_at")
+  sentAt        BigInt?             @map("sent_at")
+  sentCount     Int                 @default(0) @map("sent_count")
+  openCount     Int                 @default(0) @map("open_count")
+  clickCount    Int                 @default(0) @map("click_count")
+  metadata      Json                @default("{}")
+  createdBy     Int                 @map("created_by")
+  createdAt     BigInt              @map("created_at")
+  updatedAt     BigInt              @map("updated_at")
+
+  @@index([status])
+  @@index([targetType])
+  @@index([scheduledAt])
+  @@index([createdBy])
+  @@map("notification_campaigns")
+}
+
+model NotificationTemplate {
+  id          Int              @id @default(autoincrement())
+  name        String           @db.VarChar(255)
+  code        String           @unique @db.VarChar(100)
+  type        NotificationType
+  title       String           @db.VarChar(255)
+  message     String           @db.Text
+  variables   String[]         @default([])
+  isActive    Boolean          @default(true) @map("is_active")
+  metadata    Json             @default("{}")
+  createdAt   BigInt           @map("created_at")
+  updatedAt   BigInt           @map("updated_at")
+
+  @@index([code])
+  @@index([type])
+  @@index([isActive])
+  @@map("notification_templates")
+}
+
+// ==================== PRODUCT MODERATION ====================
+
+enum ModerationStatus {
+  pending
+  approved
+  rejected
+  flagged
+}
+
+enum ModerationReason {
+  policy_violation
+  inappropriate_content
+  counterfeit
+  spam
+  duplicate
+  other
+}
+
+model ProductModeration {
+  id            Int               @id @default(autoincrement())
+  productId     Int               @map("product_id")
+  status        ModerationStatus  @default(pending)
+  reason        ModerationReason?
+  notes         String?           @db.Text
+  aiScore       Decimal?          @map("ai_score") @db.Decimal(5, 2)
+  aiFlags       String[]          @default([]) @map("ai_flags")
+  reviewedBy    Int?              @map("reviewed_by")
+  reviewedAt    BigInt?           @map("reviewed_at")
+  metadata      Json              @default("{}")
+  createdAt     BigInt            @map("created_at")
+  updatedAt     BigInt            @map("updated_at")
+
+  @@index([productId])
+  @@index([status])
+  @@index([reviewedBy])
+  @@index([createdAt])
+  @@map("product_moderations")
 }

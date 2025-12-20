@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Inject,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
@@ -135,7 +130,10 @@ export class NotificationService {
           createdAt: now,
         });
       }
-    } else if (createNotificationDto.targetUserIds && createNotificationDto.targetUserIds.length > 0) {
+    } else if (
+      createNotificationDto.targetUserIds &&
+      createNotificationDto.targetUserIds.length > 0
+    ) {
       const validUserIds = await this.prisma.user.findMany({
         where: {
           id: {
@@ -178,4 +176,3 @@ export class NotificationService {
     };
   }
 }
-

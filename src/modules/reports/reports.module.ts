@@ -12,4 +12,3 @@ import { DatabaseModule } from '@common/database/database.module';
   exports: [ReportsService],
 })
 export class ReportsModule {}
-

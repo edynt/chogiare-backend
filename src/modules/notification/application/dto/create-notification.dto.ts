@@ -1,4 +1,12 @@
-import { IsEnum, IsString, IsOptional, IsArray, IsBoolean, IsUrl, MaxLength } from 'class-validator';
+import {
+  IsEnum,
+  IsString,
+  IsOptional,
+  IsArray,
+  IsBoolean,
+  IsUrl,
+  MaxLength,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateNotificationDto {
@@ -38,4 +46,3 @@ export class CreateNotificationDto {
   @IsBoolean()
   targetAllUsers?: boolean;
 }
-

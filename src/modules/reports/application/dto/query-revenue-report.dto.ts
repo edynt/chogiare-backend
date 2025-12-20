@@ -30,4 +30,3 @@ export class QueryRevenueReportDto {
   @Type(() => Number)
   storeId?: number;
 }
-

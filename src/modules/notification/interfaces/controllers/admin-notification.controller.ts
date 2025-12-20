@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  HttpCode,
-  HttpStatus,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { NotificationService } from '@modules/notification/application/services/notification.service';
 import { CreateNotificationDto } from '@modules/notification/application/dto/create-notification.dto';
@@ -33,4 +26,3 @@ export class AdminNotificationController {
     };
   }
 }
-

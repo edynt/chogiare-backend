@@ -34,3 +34,15 @@ export class Product {
   createdAt: bigint;
   updatedAt: bigint;
 }
+
+export interface ProductWithRelations extends Product {
+  category: { id: number; name: string; slug: string } | null;
+  images: Array<{ id: number; imageUrl: string; displayOrder: number }>;
+  store?: {
+    id: number;
+    name: string;
+    slug: string;
+    logo: string | null;
+    isVerified: boolean;
+  } | null;
+}
