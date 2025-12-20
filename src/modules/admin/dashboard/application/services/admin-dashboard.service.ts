@@ -366,4 +366,116 @@ export class AdminDashboardService {
     if (unit === 'ngày') return value * 1440;
     return 0;
   }
+
+  async getHeaderNotifications(limit: number = 10) {
+    const now = new Date();
+    const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const last24HoursBigInt = BigInt(last24Hours.getTime());
+
+    // Get pending users (unverified users that need approval)
+    const pendingUsers = await this.prisma.user.findMany({
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      where: {
+        isVerified: false,
+        createdAt: {
+          gte: last24HoursBigInt,
+        },
+      },
+      select: {
+        id: true,
+        email: true,
+        createdAt: true,
+        userInfo: {
+          select: {
+            fullName: true,
+          },
+        },
+      },
+    });
+
+    // Get pending products (need moderation)
+    const pendingProducts = await this.prisma.product.findMany({
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      where: {
+        status: 'draft',
+        createdAt: {
+          gte: last24HoursBigInt,
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        createdAt: true,
+      },
+    });
+
+    // Get recent orders that need attention
+    const pendingOrders = await this.prisma.order.findMany({
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      where: {
+        status: OrderStatus.pending,
+        createdAt: {
+          gte: last24HoursBigInt,
+        },
+      },
+      select: {
+        id: true,
+        total: true,
+        createdAt: true,
+      },
+    });
+
+    const notifications = [
+      ...pendingUsers.map((user) => ({
+        id: `user-${user.id}`,
+        title: `Tài khoản mới cần duyệt: ${user.userInfo?.fullName || user.email}`,
+        time: this.getTimeAgo(user.createdAt),
+        unread: true,
+        type: 'user' as const,
+        link: `/admin/users?id=${user.id}`,
+      })),
+      ...pendingProducts.map((product) => ({
+        id: `product-${product.id}`,
+        title: `Sản phẩm cần kiểm duyệt: ${product.title}`,
+        time: this.getTimeAgo(product.createdAt),
+        unread: true,
+        type: 'product' as const,
+        link: `/admin/moderation?id=${product.id}`,
+      })),
+      ...pendingOrders.map((order) => ({
+        id: `order-${order.id}`,
+        title: `Đơn hàng mới cần xử lý: #${order.id}`,
+        time: this.getTimeAgo(order.createdAt),
+        unread: true,
+        type: 'order' as const,
+        link: `/admin/orders?id=${order.id}`,
+      })),
+    ]
+      .sort((a, b) => {
+        const timeA = this.parseTimeAgo(a.time);
+        const timeB = this.parseTimeAgo(b.time);
+        return timeA - timeB; // Most recent first
+      })
+      .slice(0, limit);
+
+    return {
+      items: notifications,
+      unreadCount: notifications.filter((n) => n.unread).length,
+    };
+  }
+
+  async markNotificationAsRead(notificationId: string) {
+    // In a real implementation, you would store notification read status in a database
+    // For now, we just return success
+    return { success: true, id: notificationId };
+  }
+
+  async markAllNotificationsAsRead() {
+    // In a real implementation, you would update all notifications in the database
+    // For now, we just return success
+    return { success: true };
+  }
 }

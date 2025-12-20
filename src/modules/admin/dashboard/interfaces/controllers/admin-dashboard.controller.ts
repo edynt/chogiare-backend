@@ -1,5 +1,5 @@
-import { Controller, Get, Query, UseGuards, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Post, Query, Param, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
@@ -46,6 +46,41 @@ export class AdminDashboardController {
     return {
       success: true,
       data: await this.adminDashboardService.getTopSellers(limit || 5),
+    };
+  }
+
+  @Get('header-notifications')
+  @ApiOperation({ summary: 'Get admin header notifications' })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async getHeaderNotifications(
+    @CurrentUser('id') _adminId: number,
+    @Query('limit') limit?: number,
+  ) {
+    return {
+      success: true,
+      data: await this.adminDashboardService.getHeaderNotifications(limit || 10),
+    };
+  }
+
+  @Post('header-notifications/:id/read')
+  @ApiOperation({ summary: 'Mark a header notification as read' })
+  @ApiParam({ name: 'id', type: String })
+  async markNotificationAsRead(
+    @CurrentUser('id') _adminId: number,
+    @Param('id') notificationId: string,
+  ) {
+    return {
+      success: true,
+      data: await this.adminDashboardService.markNotificationAsRead(notificationId),
+    };
+  }
+
+  @Post('header-notifications/read-all')
+  @ApiOperation({ summary: 'Mark all header notifications as read' })
+  async markAllNotificationsAsRead(@CurrentUser('id') _adminId: number) {
+    return {
+      success: true,
+      data: await this.adminDashboardService.markAllNotificationsAsRead(),
     };
   }
 }
