@@ -29,6 +29,10 @@ import { MESSAGES } from '@common/constants/messages.constants';
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
+  // ============================================================
+  // GET STATIC ROUTES (must come BEFORE dynamic :id routes)
+  // ============================================================
+
   @Public()
   @Get()
   @ApiOperation({ summary: 'Get all products (public)' })
@@ -45,62 +49,6 @@ export class ProductController {
   @ApiQuery({ name: 'isPromoted', required: false, type: Boolean })
   async findAll(@Query() queryDto: QueryProductDto, @CurrentUser() user?: CurrentUserPayload) {
     return await this.productService.findAll(queryDto, user?.id);
-  }
-
-  @Public()
-  @Get(':id')
-  @ApiOperation({ summary: 'Get product by ID (public)' })
-  @ApiParam({ name: 'id', type: Number })
-  async findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user?: CurrentUserPayload) {
-    return await this.productService.findOne(id, user?.id);
-  }
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Create a new product (Seller/Admin only)' })
-  async create(
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() createProductDto: CreateProductDto,
-  ) {
-    const product = await this.productService.create(user.id, createProductDto);
-    return {
-      message: MESSAGES.CREATED,
-      data: product,
-    };
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Patch(':id')
-  @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Update product (Owner/Admin only)' })
-  @ApiParam({ name: 'id', type: Number })
-  async update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateProductDto: UpdateProductDto,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
-    const product = await this.productService.update(id, updateProductDto, user.id);
-    return {
-      message: MESSAGES.UPDATED,
-      data: product,
-    };
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Delete(':id')
-  @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Delete product (Owner/Admin only)' })
-  @ApiParam({ name: 'id', type: Number })
-  async remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: CurrentUserPayload) {
-    await this.productService.remove(id, user.id);
-    return {
-      message: MESSAGES.DELETED,
-    };
   }
 
   @Public()
@@ -132,6 +80,18 @@ export class ProductController {
     };
   }
 
+  // ============================================================
+  // GET DYNAMIC ROUTES (must come AFTER static routes)
+  // ============================================================
+
+  @Public()
+  @Get(':id')
+  @ApiOperation({ summary: 'Get product by ID (public)' })
+  @ApiParam({ name: 'id', type: Number })
+  async findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user?: CurrentUserPayload) {
+    return await this.productService.findOne(id, user?.id);
+  }
+
   @Public()
   @Get(':id/stats')
   @ApiOperation({ summary: 'Get product statistics' })
@@ -144,6 +104,27 @@ export class ProductController {
     };
   }
 
+  // ============================================================
+  // POST ROUTES
+  // ============================================================
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('seller', 'admin')
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Create a new product (Seller/Admin only)' })
+  async create(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() createProductDto: CreateProductDto,
+  ) {
+    const product = await this.productService.create(user.id, createProductDto);
+    return {
+      message: MESSAGES.CREATED,
+      data: product,
+    };
+  }
+
   @Public()
   @Post(':id/views')
   @HttpCode(HttpStatus.OK)
@@ -153,6 +134,28 @@ export class ProductController {
     await this.productService.incrementViews(id);
     return {
       message: MESSAGES.SUCCESS,
+    };
+  }
+
+  // ============================================================
+  // PATCH ROUTES
+  // ============================================================
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update product (Owner/Admin only)' })
+  @ApiParam({ name: 'id', type: Number })
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateProductDto: UpdateProductDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    const product = await this.productService.update(id, updateProductDto, user.id);
+    return {
+      message: MESSAGES.UPDATED,
+      data: product,
     };
   }
 
@@ -214,6 +217,23 @@ export class ProductController {
     return {
       message: MESSAGES.UPDATED,
       data: products,
+    };
+  }
+
+  // ============================================================
+  // DELETE ROUTES
+  // ============================================================
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Delete product (Owner/Admin only)' })
+  @ApiParam({ name: 'id', type: Number })
+  async remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: CurrentUserPayload) {
+    await this.productService.remove(id, user.id);
+    return {
+      message: MESSAGES.DELETED,
     };
   }
 }

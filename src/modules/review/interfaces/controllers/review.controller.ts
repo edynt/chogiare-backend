@@ -27,6 +27,10 @@ import { MESSAGES } from '@common/constants/messages.constants';
 export class ReviewController {
   constructor(private readonly reviewService: ReviewService) {}
 
+  // ============================================================
+  // POST ROUTES
+  // ============================================================
+
   @UseGuards(JwtAuthGuard)
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -40,6 +44,10 @@ export class ReviewController {
     };
   }
 
+  // ============================================================
+  // GET STATIC ROUTES (must come BEFORE dynamic :id routes)
+  // ============================================================
+
   @Public()
   @Get()
   @HttpCode(HttpStatus.OK)
@@ -52,40 +60,6 @@ export class ReviewController {
   @ApiQuery({ name: 'rating', required: false, type: Number })
   async findAll(@Query() queryDto: QueryReviewDto) {
     const result = await this.reviewService.findAll(queryDto);
-    return {
-      message: MESSAGES.SUCCESS,
-      data: result,
-    };
-  }
-
-  @Public()
-  @Get(':id')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get review by ID' })
-  @ApiParam({ name: 'id', type: String })
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    const review = await this.reviewService.findOne(id);
-    return {
-      message: MESSAGES.SUCCESS,
-      data: review,
-    };
-  }
-
-  @Public()
-  @Get('product/:productId')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get reviews by product ID' })
-  @ApiParam({ name: 'productId', type: String })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'pageSize', required: false, type: Number })
-  async getProductReviews(
-    @Param('productId', ParseIntPipe) productId: number,
-    @Query() queryDto: QueryReviewDto,
-  ) {
-    const result = await this.reviewService.findAll({
-      ...queryDto,
-      productId,
-    });
     return {
       message: MESSAGES.SUCCESS,
       data: result,
@@ -111,95 +85,24 @@ export class ReviewController {
   }
 
   @Public()
-  @Get('store/:storeId')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get reviews by store ID' })
-  @ApiParam({ name: 'storeId', type: String })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'pageSize', required: false, type: Number })
-  async getStoreReviews(
-    @Param('storeId', ParseIntPipe) storeId: number,
-    @Query() queryDto: QueryReviewDto,
-  ) {
-    const result = await this.reviewService.findAll({
-      ...queryDto,
-      storeId,
-    });
-    return {
-      message: MESSAGES.SUCCESS,
-      data: result,
-    };
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Put(':id')
-  @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Update review' })
-  @ApiParam({ name: 'id', type: String })
-  async update(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() updateReviewDto: UpdateReviewDto,
-  ) {
-    const review = await this.reviewService.update(id, user.id, updateReviewDto);
-    return {
-      message: MESSAGES.UPDATED,
-      data: review,
-    };
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Delete(':id')
-  @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Delete review' })
-  @ApiParam({ name: 'id', type: String })
-  async delete(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: CurrentUserPayload) {
-    await this.reviewService.delete(id, user.id);
-    return {
-      message: MESSAGES.DELETED,
-    };
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Post(':id/helpful')
-  @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Mark review as helpful' })
-  @ApiParam({ name: 'id', type: String })
-  async markHelpful(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
-    await this.reviewService.markHelpful(id, user.id);
-    return {
-      message: MESSAGES.SUCCESS,
-    };
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Delete(':id/helpful')
-  @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Unmark review as helpful' })
-  @ApiParam({ name: 'id', type: String })
-  async unmarkHelpful(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
-    await this.reviewService.unmarkHelpful(id, user.id);
-    return {
-      message: MESSAGES.SUCCESS,
-    };
-  }
-
-  @Public()
   @Get('stats')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get review statistics' })
   async getStats() {
     const stats = await this.reviewService.getStats();
+    return {
+      message: MESSAGES.SUCCESS,
+      data: stats,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('stats/my')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get my review statistics' })
+  async getMyStats(@CurrentUser() user: CurrentUserPayload) {
+    const stats = await this.reviewService.getStats(undefined, undefined, user.id);
     return {
       message: MESSAGES.SUCCESS,
       data: stats,
@@ -232,16 +135,137 @@ export class ReviewController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('stats/my')
+  @Public()
+  @Get('product/:productId')
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get my review statistics' })
-  async getMyStats(@CurrentUser() user: CurrentUserPayload) {
-    const stats = await this.reviewService.getStats(undefined, undefined, user.id);
+  @ApiOperation({ summary: 'Get reviews by product ID' })
+  @ApiParam({ name: 'productId', type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
+  async getProductReviews(
+    @Param('productId', ParseIntPipe) productId: number,
+    @Query() queryDto: QueryReviewDto,
+  ) {
+    const result = await this.reviewService.findAll({
+      ...queryDto,
+      productId,
+    });
     return {
       message: MESSAGES.SUCCESS,
-      data: stats,
+      data: result,
+    };
+  }
+
+  @Public()
+  @Get('store/:storeId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get reviews by store ID' })
+  @ApiParam({ name: 'storeId', type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
+  async getStoreReviews(
+    @Param('storeId', ParseIntPipe) storeId: number,
+    @Query() queryDto: QueryReviewDto,
+  ) {
+    const result = await this.reviewService.findAll({
+      ...queryDto,
+      storeId,
+    });
+    return {
+      message: MESSAGES.SUCCESS,
+      data: result,
+    };
+  }
+
+  // ============================================================
+  // GET DYNAMIC ROUTES (must come AFTER static routes)
+  // ============================================================
+
+  @Public()
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get review by ID' })
+  @ApiParam({ name: 'id', type: String })
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const review = await this.reviewService.findOne(id);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: review,
+    };
+  }
+
+  // ============================================================
+  // PUT ROUTES
+  // ============================================================
+
+  @UseGuards(JwtAuthGuard)
+  @Put(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update review' })
+  @ApiParam({ name: 'id', type: String })
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() updateReviewDto: UpdateReviewDto,
+  ) {
+    const review = await this.reviewService.update(id, user.id, updateReviewDto);
+    return {
+      message: MESSAGES.UPDATED,
+      data: review,
+    };
+  }
+
+  // ============================================================
+  // DELETE ROUTES
+  // ============================================================
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Delete review' })
+  @ApiParam({ name: 'id', type: String })
+  async delete(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: CurrentUserPayload) {
+    await this.reviewService.delete(id, user.id);
+    return {
+      message: MESSAGES.DELETED,
+    };
+  }
+
+  // ============================================================
+  // HELPFUL ROUTES
+  // ============================================================
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/helpful')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Mark review as helpful' })
+  @ApiParam({ name: 'id', type: String })
+  async markHelpful(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    await this.reviewService.markHelpful(id, user.id);
+    return {
+      message: MESSAGES.SUCCESS,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id/helpful')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Unmark review as helpful' })
+  @ApiParam({ name: 'id', type: String })
+  async unmarkHelpful(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    await this.reviewService.unmarkHelpful(id, user.id);
+    return {
+      message: MESSAGES.SUCCESS,
     };
   }
 }

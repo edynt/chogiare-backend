@@ -1,9 +1,56 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
-import { IOrderRepository } from '@modules/order/domain/repositories/order.repository.interface';
+import {
+  IOrderRepository,
+  OrderWithRelations,
+} from '@modules/order/domain/repositories/order.repository.interface';
 import { Order } from '@modules/order/domain/entities/order.entity';
 import { OrderItem } from '@modules/order/domain/entities/order-item.entity';
 import { OrderStatus, PaymentStatus, PaymentMethod, Prisma } from '@prisma/client';
+
+const ORDER_INCLUDE_RELATIONS = {
+  store: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      logo: true,
+      isVerified: true,
+    },
+  },
+  items: true,
+  shippingAddress: {
+    select: {
+      id: true,
+      street: true,
+      ward: true,
+      district: true,
+      city: true,
+      state: true,
+    },
+  },
+  billingAddress: {
+    select: {
+      id: true,
+      street: true,
+      ward: true,
+      district: true,
+      city: true,
+      state: true,
+    },
+  },
+  user: {
+    select: {
+      id: true,
+      email: true,
+      userInfo: {
+        select: {
+          fullName: true,
+        },
+      },
+    },
+  },
+};
 
 @Injectable()
 export class OrderRepository implements IOrderRepository {
@@ -66,6 +113,19 @@ export class OrderRepository implements IOrderRepository {
     return this.toDomainOrder(order);
   }
 
+  async findByIdWithRelations(id: number): Promise<OrderWithRelations | null> {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: ORDER_INCLUDE_RELATIONS,
+    });
+
+    if (!order) {
+      return null;
+    }
+
+    return this.toDomainOrderWithRelations(order);
+  }
+
   async findByUserId(
     userId: number,
     options?: {
@@ -105,6 +165,46 @@ export class OrderRepository implements IOrderRepository {
     };
   }
 
+  async findByUserIdWithRelations(
+    userId: number,
+    options?: {
+      status?: string;
+      paymentStatus?: string;
+      page?: number;
+      pageSize?: number;
+    },
+  ): Promise<{ items: OrderWithRelations[]; total: number }> {
+    const where: Prisma.OrderWhereInput = { userId };
+
+    if (options?.status) {
+      where.status = options.status as OrderStatus;
+    }
+
+    if (options?.paymentStatus) {
+      where.paymentStatus = options.paymentStatus as PaymentStatus;
+    }
+
+    const page = options?.page || 1;
+    const pageSize = options?.pageSize || 10;
+    const skip = (page - 1) * pageSize;
+
+    const [orders, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        skip,
+        take: pageSize,
+        orderBy: { createdAt: 'desc' },
+        include: ORDER_INCLUDE_RELATIONS,
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return {
+      items: orders.map((order) => this.toDomainOrderWithRelations(order)),
+      total,
+    };
+  }
+
   async findByStoreId(
     storeId: number,
     options?: {
@@ -140,6 +240,46 @@ export class OrderRepository implements IOrderRepository {
 
     return {
       items: orders.map((order) => this.toDomainOrder(order)),
+      total,
+    };
+  }
+
+  async findByStoreIdWithRelations(
+    storeId: number,
+    options?: {
+      status?: string;
+      paymentStatus?: string;
+      page?: number;
+      pageSize?: number;
+    },
+  ): Promise<{ items: OrderWithRelations[]; total: number }> {
+    const where: Prisma.OrderWhereInput = { storeId };
+
+    if (options?.status) {
+      where.status = options.status as OrderStatus;
+    }
+
+    if (options?.paymentStatus) {
+      where.paymentStatus = options.paymentStatus as PaymentStatus;
+    }
+
+    const page = options?.page || 1;
+    const pageSize = options?.pageSize || 10;
+    const skip = (page - 1) * pageSize;
+
+    const [orders, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        skip,
+        take: pageSize,
+        orderBy: { createdAt: 'desc' },
+        include: ORDER_INCLUDE_RELATIONS,
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return {
+      items: orders.map((order) => this.toDomainOrderWithRelations(order)),
       total,
     };
   }
@@ -301,6 +441,52 @@ export class OrderRepository implements IOrderRepository {
       itemMetadata: orderItem.itemMetadata as Record<string, unknown>,
       createdAt: orderItem.createdAt,
       updatedAt: orderItem.updatedAt,
+    };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private toDomainOrderWithRelations(order: any): OrderWithRelations {
+    const baseOrder = this.toDomainOrder(order);
+    return {
+      ...baseOrder,
+      store: {
+        id: order.store.id,
+        name: order.store.name,
+        slug: order.store.slug,
+        logo: order.store.logo,
+        isVerified: order.store.isVerified,
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      items: order.items.map((item: any) => this.toDomainOrderItem(item)),
+      shippingAddress: order.shippingAddress
+        ? {
+            id: order.shippingAddress.id,
+            street: order.shippingAddress.street,
+            ward: order.shippingAddress.ward,
+            district: order.shippingAddress.district,
+            city: order.shippingAddress.city,
+            state: order.shippingAddress.state,
+          }
+        : null,
+      billingAddress: order.billingAddress
+        ? {
+            id: order.billingAddress.id,
+            street: order.billingAddress.street,
+            ward: order.billingAddress.ward,
+            district: order.billingAddress.district,
+            city: order.billingAddress.city,
+            state: order.billingAddress.state,
+          }
+        : null,
+      user: {
+        id: order.user.id,
+        email: order.user.email,
+        userInfo: order.user.userInfo
+          ? {
+              fullName: order.user.userInfo.fullName,
+            }
+          : null,
+      },
     };
   }
 }

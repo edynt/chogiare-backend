@@ -28,6 +28,10 @@ import { MESSAGES } from '@common/constants/messages.constants';
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
+  // ============================================================
+  // POST ROUTES
+  // ============================================================
+
   @Post('from-cart')
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth('JWT-auth')
@@ -55,6 +59,10 @@ export class OrderController {
     };
   }
 
+  // ============================================================
+  // GET STATIC ROUTES (must come BEFORE dynamic :id routes)
+  // ============================================================
+
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')
@@ -73,31 +81,6 @@ export class OrderController {
   })
   async getOrders(@CurrentUser('id') userId: number, @Query() queryDto: QueryOrderDto) {
     return await this.orderService.getOrders(userId, queryDto);
-  }
-
-  @Get(':id')
-  @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get order by ID' })
-  @ApiParam({ name: 'id', type: Number })
-  async getOrderById(
-    @CurrentUser('id') userId: number,
-    @Param('id', ParseIntPipe) orderId: number,
-  ) {
-    return await this.orderService.getOrderById(userId, orderId);
-  }
-
-  @Patch(':id/cancel')
-  @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Cancel order' })
-  @ApiParam({ name: 'id', type: Number })
-  async cancelOrder(@CurrentUser('id') userId: number, @Param('id', ParseIntPipe) orderId: number) {
-    const order = await this.orderService.cancelOrder(userId, orderId);
-    return {
-      message: MESSAGES.ORDER.CANCELLED,
-      data: order,
-    };
   }
 
   @Get('my')
@@ -121,6 +104,43 @@ export class OrderController {
     return {
       message: MESSAGES.SUCCESS,
       data: result,
+    };
+  }
+
+  @Get('stats')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get order statistics' })
+  async getOrderStats() {
+    const stats = await this.orderService.getOrderStats();
+    return {
+      message: MESSAGES.SUCCESS,
+      data: stats,
+    };
+  }
+
+  @Get('stats/my')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get user order statistics' })
+  async getUserOrderStats(@CurrentUser('id') userId: number) {
+    const stats = await this.orderService.getOrderStats(userId);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: stats,
+    };
+  }
+
+  @Get('stats/store/:storeId')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get store order statistics' })
+  @ApiParam({ name: 'storeId', type: String })
+  async getStoreOrderStats(@Param('storeId', ParseIntPipe) storeId: number) {
+    const stats = await this.orderService.getOrderStats(undefined, storeId);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: stats,
     };
   }
 
@@ -152,19 +172,35 @@ export class OrderController {
     };
   }
 
-  @Put(':id')
+  // ============================================================
+  // GET DYNAMIC ROUTES (must come AFTER static routes)
+  // ============================================================
+
+  @Get(':id')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Update order' })
+  @ApiOperation({ summary: 'Get order by ID' })
   @ApiParam({ name: 'id', type: Number })
-  async updateOrder(
-    @Param('id', ParseIntPipe) orderId: number,
+  async getOrderById(
     @CurrentUser('id') userId: number,
-    @Body() updateOrderDto: UpdateOrderDto,
+    @Param('id', ParseIntPipe) orderId: number,
   ) {
-    const order = await this.orderService.updateOrder(orderId, updateOrderDto, userId);
+    return await this.orderService.getOrderById(userId, orderId);
+  }
+
+  // ============================================================
+  // PATCH ROUTES
+  // ============================================================
+
+  @Patch(':id/cancel')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Cancel order' })
+  @ApiParam({ name: 'id', type: Number })
+  async cancelOrder(@CurrentUser('id') userId: number, @Param('id', ParseIntPipe) orderId: number) {
+    const order = await this.orderService.cancelOrder(userId, orderId);
     return {
-      message: MESSAGES.UPDATED,
+      message: MESSAGES.ORDER.CANCELLED,
       data: order,
     };
   }
@@ -223,40 +259,24 @@ export class OrderController {
     };
   }
 
-  @Get('stats')
-  @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get order statistics' })
-  async getOrderStats() {
-    const stats = await this.orderService.getOrderStats();
-    return {
-      message: MESSAGES.SUCCESS,
-      data: stats,
-    };
-  }
+  // ============================================================
+  // PUT ROUTES
+  // ============================================================
 
-  @Get('stats/my')
+  @Put(':id')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get user order statistics' })
-  async getUserOrderStats(@CurrentUser('id') userId: number) {
-    const stats = await this.orderService.getOrderStats(userId);
+  @ApiOperation({ summary: 'Update order' })
+  @ApiParam({ name: 'id', type: Number })
+  async updateOrder(
+    @Param('id', ParseIntPipe) orderId: number,
+    @CurrentUser('id') userId: number,
+    @Body() updateOrderDto: UpdateOrderDto,
+  ) {
+    const order = await this.orderService.updateOrder(orderId, updateOrderDto, userId);
     return {
-      message: MESSAGES.SUCCESS,
-      data: stats,
-    };
-  }
-
-  @Get('stats/store/:storeId')
-  @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get store order statistics' })
-  @ApiParam({ name: 'storeId', type: String })
-  async getStoreOrderStats(@Param('storeId', ParseIntPipe) storeId: number) {
-    const stats = await this.orderService.getOrderStats(undefined, storeId);
-    return {
-      message: MESSAGES.SUCCESS,
-      data: stats,
+      message: MESSAGES.UPDATED,
+      data: order,
     };
   }
 }

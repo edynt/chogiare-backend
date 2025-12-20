@@ -1,9 +1,11 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { ValidationError } from 'class-validator';
 import { AppModule } from './app.module';
 import { APP_NAME } from '@common/constants/app.constants';
+import { ERROR_CODES } from '@common/constants/error-codes.constants';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -23,6 +25,40 @@ async function bootstrap() {
       transform: true,
       transformOptions: {
         enableImplicitConversion: true,
+      },
+      exceptionFactory: (errors: ValidationError[]) => {
+        const formatErrors = (
+          validationErrors: ValidationError[],
+          parentPath = '',
+        ): Record<string, string[]> => {
+          const result: Record<string, string[]> = {};
+
+          for (const error of validationErrors) {
+            const propertyPath = parentPath ? `${parentPath}.${error.property}` : error.property;
+
+            if (error.constraints) {
+              result[propertyPath] = Object.values(error.constraints);
+            }
+
+            if (error.children && error.children.length > 0) {
+              const childErrors = formatErrors(error.children, propertyPath);
+              Object.assign(result, childErrors);
+            }
+          }
+
+          return result;
+        };
+
+        const fieldErrors = formatErrors(errors);
+        const firstError = Object.values(fieldErrors)[0]?.[0] || 'Validation failed';
+
+        return new BadRequestException({
+          message: firstError,
+          errorCode: ERROR_CODES.VALIDATION_ERROR,
+          details: {
+            fields: fieldErrors,
+          },
+        });
       },
     }),
   );

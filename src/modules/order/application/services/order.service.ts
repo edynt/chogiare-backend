@@ -11,6 +11,7 @@ import { ERROR_CODES } from '@common/constants/error-codes.constants';
 import {
   IOrderRepository,
   ORDER_REPOSITORY,
+  OrderWithRelations,
 } from '@modules/order/domain/repositories/order.repository.interface';
 import {
   ICartRepository,
@@ -308,21 +309,15 @@ export class OrderService {
     const page = queryDto.page || 1;
     const pageSize = queryDto.pageSize || 10;
 
-    const result = await this.orderRepository.findByUserId(userId, {
+    const result = await this.orderRepository.findByUserIdWithRelations(userId, {
       status: queryDto.status,
       paymentStatus: queryDto.paymentStatus,
       page,
       pageSize,
     });
 
-    const orders = await Promise.all(
-      result.items.map(async (order) => {
-        return await this.enrichOrder(order);
-      }),
-    );
-
     return {
-      items: orders,
+      items: result.items.map((order) => this.formatOrder(order)),
       total: result.total,
       page,
       pageSize,
@@ -331,7 +326,7 @@ export class OrderService {
   }
 
   async getOrderById(userId: number, orderId: number) {
-    const order = await this.orderRepository.findById(orderId);
+    const order = await this.orderRepository.findByIdWithRelations(orderId);
     if (!order) {
       throw new NotFoundException({
         message: MESSAGES.ORDER.NOT_FOUND,
@@ -346,7 +341,7 @@ export class OrderService {
       });
     }
 
-    return await this.enrichOrder(order);
+    return this.formatOrder(order);
   }
 
   async cancelOrder(userId: number, orderId: number) {
@@ -391,63 +386,16 @@ export class OrderService {
         });
       }
 
-      const updatedOrder = await this.orderRepository.updateStatus(orderId, OrderStatus.cancelled);
+      await this.orderRepository.updateStatus(orderId, OrderStatus.cancelled);
 
-      return await this.enrichOrder(updatedOrder);
+      const updatedOrder = await this.orderRepository.findByIdWithRelations(orderId);
+      return this.formatOrder(updatedOrder!);
     });
   }
 
-  private async enrichOrder(order: {
-    id: number;
-    userId: number;
-    storeId: number;
-    status: string;
-    paymentStatus: string;
-    paymentMethod: string | null;
-    subtotal: number;
-    tax: number;
-    shipping: number;
-    discount: number;
-    total: number;
-    currency: string;
-    shippingAddressId: number | null;
-    billingAddressId: number | null;
-    notes: string | null;
-    sellerNotes: string | null;
-    orderMetadata: Record<string, unknown>;
-    createdAt: bigint;
-    updatedAt: bigint;
-  }) {
-    const [store, items, shippingAddress, billingAddress] = await Promise.all([
-      this.prisma.store.findUnique({
-        where: { id: order.storeId },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          logo: true,
-          isVerified: true,
-        },
-      }),
-      this.prisma.orderItem.findMany({
-        where: { orderId: order.id },
-      }),
-      order.shippingAddressId
-        ? this.prisma.address.findUnique({
-            where: { id: order.shippingAddressId },
-          })
-        : null,
-      order.billingAddressId
-        ? this.prisma.address.findUnique({
-            where: { id: order.billingAddressId },
-          })
-        : null,
-    ]);
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: order.userId },
-      include: { userInfo: true },
-    });
+  private formatOrder(order: OrderWithRelations) {
+    const shippingAddress = order.shippingAddress;
+    const billingAddress = order.billingAddress;
 
     return {
       id: order.id.toString(),
@@ -469,11 +417,11 @@ export class OrderService {
         ? `${billingAddress.street}, ${billingAddress.ward || ''}, ${billingAddress.district || ''}, ${billingAddress.city}, ${billingAddress.state}`
         : '',
       notes: order.notes || undefined,
-      storeName: store?.name,
-      storeLogo: store?.logo || undefined,
-      userEmail: user?.email,
-      userName: user?.userInfo?.fullName || undefined,
-      items: items.map((item) => ({
+      storeName: order.store?.name,
+      storeLogo: order.store?.logo || undefined,
+      userEmail: order.user?.email,
+      userName: order.user?.userInfo?.fullName || undefined,
+      items: order.items.map((item) => ({
         id: item.id.toString(),
         orderId: order.id.toString(),
         productId: item.productId.toString(),
@@ -494,21 +442,15 @@ export class OrderService {
     const page = queryDto.page || 1;
     const pageSize = queryDto.pageSize || 10;
 
-    const result = await this.orderRepository.findByStoreId(storeId, {
+    const result = await this.orderRepository.findByStoreIdWithRelations(storeId, {
       status: queryDto.status,
       paymentStatus: queryDto.paymentStatus,
       page,
       pageSize,
     });
 
-    const orders = await Promise.all(
-      result.items.map(async (order) => {
-        return await this.enrichOrder(order);
-      }),
-    );
-
     return {
-      items: orders,
+      items: result.items.map((order) => this.formatOrder(order)),
       total: result.total,
       page,
       pageSize,
@@ -549,8 +491,9 @@ export class OrderService {
       });
     }
 
-    const updatedOrder = await this.orderRepository.updateStatus(orderId, status);
-    return await this.enrichOrder(updatedOrder);
+    await this.orderRepository.updateStatus(orderId, status);
+    const updatedOrder = await this.orderRepository.findByIdWithRelations(orderId);
+    return this.formatOrder(updatedOrder!);
   }
 
   async confirmOrder(orderId: number, sellerNotes: string | undefined, userId: number) {
@@ -580,12 +523,13 @@ export class OrderService {
       });
     }
 
-    const updatedOrder = await this.orderRepository.update(orderId, {
+    await this.orderRepository.update(orderId, {
       status: OrderStatus.confirmed,
       sellerNotes: sellerNotes || null,
     });
 
-    return await this.enrichOrder(updatedOrder);
+    const updatedOrder = await this.orderRepository.findByIdWithRelations(orderId);
+    return this.formatOrder(updatedOrder!);
   }
 
   async updatePaymentStatus(orderId: number, paymentStatus: string, userId: number) {
@@ -621,8 +565,9 @@ export class OrderService {
       });
     }
 
-    const updatedOrder = await this.orderRepository.updatePaymentStatus(orderId, paymentStatus);
-    return await this.enrichOrder(updatedOrder);
+    await this.orderRepository.updatePaymentStatus(orderId, paymentStatus);
+    const updatedOrder = await this.orderRepository.findByIdWithRelations(orderId);
+    return this.formatOrder(updatedOrder!);
   }
 
   async updateOrder(orderId: number, updateOrderDto: UpdateOrderDto, userId: number) {
@@ -641,7 +586,7 @@ export class OrderService {
       });
     }
 
-    const updatedOrder = await this.orderRepository.update(orderId, {
+    await this.orderRepository.update(orderId, {
       status: updateOrderDto.status,
       paymentStatus: updateOrderDto.paymentStatus,
       paymentMethod: updateOrderDto.paymentMethod,
@@ -650,7 +595,8 @@ export class OrderService {
       notes: updateOrderDto.notes,
     });
 
-    return await this.enrichOrder(updatedOrder);
+    const updatedOrder = await this.orderRepository.findByIdWithRelations(orderId);
+    return this.formatOrder(updatedOrder!);
   }
 
   async getOrderStats(userId?: number, storeId?: number) {
