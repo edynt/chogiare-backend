@@ -56,10 +56,7 @@ export class AdminProductService {
 
     const result = await this.productRepository.findAll(options);
 
-    return {
-      message: MESSAGES.ADMIN.PRODUCTS_RETRIEVED,
-      data: result,
-    };
+    return result;
   }
 
   async approveProduct(adminId: number, productId: number) {
@@ -91,10 +88,7 @@ export class AdminProductService {
       updatedAt: BigInt(Date.now()),
     });
 
-    return {
-      message: MESSAGES.ADMIN.PRODUCT_APPROVED,
-      data: updated,
-    };
+    return updated;
   }
 
   async suspendProduct(adminId: number, productId: number) {
@@ -119,10 +113,7 @@ export class AdminProductService {
       updatedAt: BigInt(Date.now()),
     });
 
-    return {
-      message: MESSAGES.ADMIN.PRODUCT_SUSPENDED,
-      data: updated,
-    };
+    return updated;
   }
 
   async activateProduct(adminId: number, productId: number) {
@@ -154,10 +145,7 @@ export class AdminProductService {
       updatedAt: BigInt(Date.now()),
     });
 
-    return {
-      message: MESSAGES.ADMIN.PRODUCT_ACTIVATED,
-      data: updated,
-    };
+    return updated;
   }
 
   async bulkApproveProducts(adminId: number, productIds: number[]) {
@@ -177,12 +165,9 @@ export class AdminProductService {
     const failed = results.filter((r) => r.status === 'rejected').length;
 
     return {
-      message: `Bulk approve completed: ${success} succeeded, ${failed} failed`,
-      data: {
-        success,
-        failed,
-        total: productIds.length,
-      },
+      success,
+      failed,
+      total: productIds.length,
     };
   }
 }

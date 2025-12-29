@@ -86,29 +86,26 @@ export class AdminOrderService {
     ]);
 
     return {
-      message: MESSAGES.ADMIN.ORDERS_RETRIEVED,
-      data: {
-        items: orders.map((order) => ({
-          ...order,
-          subtotal: Number(order.subtotal),
-          tax: Number(order.tax),
-          shipping: Number(order.shipping),
-          discount: Number(order.discount),
-          total: Number(order.total),
-          createdAt: order.createdAt.toString(),
-          updatedAt: order.updatedAt.toString(),
-          items: order.items.map((item) => ({
-            ...item,
-            price: Number(item.price),
-            subtotal: Number(item.subtotal),
-            createdAt: item.createdAt.toString(),
-            updatedAt: item.updatedAt.toString(),
-          })),
+      items: orders.map((order) => ({
+        ...order,
+        subtotal: Number(order.subtotal),
+        tax: Number(order.tax),
+        shipping: Number(order.shipping),
+        discount: Number(order.discount),
+        total: Number(order.total),
+        createdAt: order.createdAt.toString(),
+        updatedAt: order.updatedAt.toString(),
+        items: order.items.map((item) => ({
+          ...item,
+          price: Number(item.price),
+          subtotal: Number(item.subtotal),
+          createdAt: item.createdAt.toString(),
+          updatedAt: item.updatedAt.toString(),
         })),
-        total,
-        page,
-        pageSize,
-      },
+      })),
+      total,
+      page,
+      pageSize,
     };
   }
 
@@ -150,24 +147,21 @@ export class AdminOrderService {
     }
 
     return {
-      message: MESSAGES.ADMIN.ORDER_RETRIEVED,
-      data: {
-        ...order,
-        subtotal: Number(order.subtotal),
-        tax: Number(order.tax),
-        shipping: Number(order.shipping),
-        discount: Number(order.discount),
-        total: Number(order.total),
-        createdAt: order.createdAt.toString(),
-        updatedAt: order.updatedAt.toString(),
-        items: order.items.map((item) => ({
-          ...item,
-          price: Number(item.price),
-          subtotal: Number(item.subtotal),
-          createdAt: item.createdAt.toString(),
-          updatedAt: item.updatedAt.toString(),
-        })),
-      },
+      ...order,
+      subtotal: Number(order.subtotal),
+      tax: Number(order.tax),
+      shipping: Number(order.shipping),
+      discount: Number(order.discount),
+      total: Number(order.total),
+      createdAt: order.createdAt.toString(),
+      updatedAt: order.updatedAt.toString(),
+      items: order.items.map((item) => ({
+        ...item,
+        price: Number(item.price),
+        subtotal: Number(item.subtotal),
+        createdAt: item.createdAt.toString(),
+        updatedAt: item.updatedAt.toString(),
+      })),
     };
   }
 
@@ -225,17 +219,14 @@ export class AdminOrderService {
     });
 
     return {
-      message: MESSAGES.ADMIN.ORDER_STATUS_UPDATED,
-      data: {
-        ...updated,
-        subtotal: Number(updated.subtotal),
-        tax: Number(updated.tax),
-        shipping: Number(updated.shipping),
-        discount: Number(updated.discount),
-        total: Number(updated.total),
-        createdAt: updated.createdAt.toString(),
-        updatedAt: updated.updatedAt.toString(),
-      },
+      ...updated,
+      subtotal: Number(updated.subtotal),
+      tax: Number(updated.tax),
+      shipping: Number(updated.shipping),
+      discount: Number(updated.discount),
+      total: Number(updated.total),
+      createdAt: updated.createdAt.toString(),
+      updatedAt: updated.updatedAt.toString(),
     };
   }
 
@@ -285,16 +276,13 @@ export class AdminOrderService {
     ]);
 
     return {
-      message: MESSAGES.ADMIN.ORDER_STATISTICS_RETRIEVED,
-      data: {
-        totalOrders,
-        pendingOrders,
-        completedOrders,
-        cancelledOrders,
-        totalRevenue: totalRevenue._sum.total ? Number(totalRevenue._sum.total) : 0,
-        todayOrders,
-        todayRevenue: todayRevenue._sum.total ? Number(todayRevenue._sum.total) : 0,
-      },
+      totalOrders,
+      pendingOrders,
+      completedOrders,
+      cancelledOrders,
+      totalRevenue: totalRevenue._sum.total ? Number(totalRevenue._sum.total) : 0,
+      todayOrders,
+      todayRevenue: todayRevenue._sum.total ? Number(todayRevenue._sum.total) : 0,
     };
   }
 }

@@ -63,11 +63,7 @@ export class CategoryController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Create a new category (Admin only)' })
   async create(@Body() createCategoryDto: CreateCategoryDto) {
-    const category = await this.categoryService.create(createCategoryDto);
-    return {
-      message: MESSAGES.CREATED,
-      data: category,
-    };
+    return await this.categoryService.create(createCategoryDto);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -81,11 +77,7 @@ export class CategoryController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updateCategoryDto: UpdateCategoryDto,
   ) {
-    const category = await this.categoryService.update(id, updateCategoryDto);
-    return {
-      message: MESSAGES.UPDATED,
-      data: category,
-    };
+    return await this.categoryService.update(id, updateCategoryDto);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -96,10 +88,7 @@ export class CategoryController {
   @ApiOperation({ summary: 'Delete category (Admin only)' })
   @ApiParam({ name: 'id', type: Number })
   async remove(@Param('id', ParseIntPipe) id: number) {
-    await this.categoryService.remove(id);
-    return {
-      message: MESSAGES.DELETED,
-    };
+    return await this.categoryService.remove(id);
   }
 
   @Public()
@@ -108,10 +97,7 @@ export class CategoryController {
   @ApiParam({ name: 'id', type: Number })
   async getSubCategories(@Param('id', ParseIntPipe) id: number) {
     const result = await this.categoryService.findAll({ parentId: id, page: 1, pageSize: 1000 });
-    return {
-      message: MESSAGES.SUCCESS,
-      data: result.items,
-    };
+    return result.items;
   }
 
   @Public()
@@ -119,11 +105,7 @@ export class CategoryController {
   @ApiOperation({ summary: 'Get category statistics' })
   @ApiParam({ name: 'id', type: Number })
   async getCategoryStats(@Param('id', ParseIntPipe) id: number) {
-    const stats = await this.categoryService.getStats(id);
-    return {
-      message: MESSAGES.SUCCESS,
-      data: stats,
-    };
+    return await this.categoryService.getStats(id);
   }
 
   @Public()
@@ -138,13 +120,9 @@ export class CategoryController {
     @Param('id', ParseIntPipe) id: number,
     @Query() queryDto: QueryCategoryDto,
   ) {
-    const result = await this.categoryService.getProductsByCategory(id, {
+    return await this.categoryService.getProductsByCategory(id, {
       page: queryDto.page,
       pageSize: queryDto.pageSize,
     });
-    return {
-      message: MESSAGES.SUCCESS,
-      data: result,
-    };
   }
 }

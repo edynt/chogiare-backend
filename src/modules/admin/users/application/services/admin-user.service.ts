@@ -93,38 +93,35 @@ export class AdminUserService {
     const totalPages = Math.ceil(total / pageSize);
 
     return {
-      message: MESSAGES.ADMIN.USERS_RETRIEVED || 'Users retrieved successfully',
-      data: {
-        items: users.map((user) => {
-          const userRole =
-            user.userRoles.find((ur) => ur.role.name !== 'admin')?.role || user.userRoles[0]?.role;
-          const roleName = userRole?.name || 'buyer';
+      items: users.map((user) => {
+        const userRole =
+          user.userRoles.find((ur) => ur.role.name !== 'admin')?.role || user.userRoles[0]?.role;
+        const roleName = userRole?.name || 'buyer';
 
-          const totalOrders = user._count.orders;
-          const totalRevenue = user.orders.reduce((sum, o) => sum + Number(o.total), 0);
+        const totalOrders = user._count.orders;
+        const totalRevenue = user.orders.reduce((sum, o) => sum + Number(o.total), 0);
 
-          return {
-            id: user.id.toString(),
-            name: user.userInfo?.fullName || user.email.split('@')[0],
-            email: user.email,
-            phone: user.userInfo?.phoneNumber || null,
-            role: roleName,
-            status: user.status ? 'active' : 'inactive',
-            verified: user.isVerified,
-            joinDate: new Date(Number(user.createdAt)).toISOString(),
-            lastActive: new Date(Number(user.updatedAt)).toISOString(),
-            totalOrders,
-            totalRevenue,
-            rating: 0,
-            location: user.userInfo?.address || null,
-            avatar: user.userInfo?.avatarUrl || null,
-          };
-        }),
-        total,
-        page,
-        pageSize,
-        totalPages,
-      },
+        return {
+          id: user.id.toString(),
+          name: user.userInfo?.fullName || user.email.split('@')[0],
+          email: user.email,
+          phone: user.userInfo?.phoneNumber || null,
+          role: roleName,
+          status: user.status ? 'active' : 'inactive',
+          verified: user.isVerified,
+          joinDate: new Date(Number(user.createdAt)).toISOString(),
+          lastActive: new Date(Number(user.updatedAt)).toISOString(),
+          totalOrders,
+          totalRevenue,
+          rating: 0,
+          location: user.userInfo?.address || null,
+          avatar: user.userInfo?.avatarUrl || null,
+        };
+      }),
+      total,
+      page,
+      pageSize,
+      totalPages,
     };
   }
 
@@ -173,23 +170,20 @@ export class AdminUserService {
       .reduce((sum, o) => sum + Number(o.total), 0);
 
     return {
-      message: MESSAGES.ADMIN.USER_RETRIEVED || 'User retrieved successfully',
-      data: {
-        id: user.id.toString(),
-        name: user.userInfo?.fullName || user.email.split('@')[0],
-        email: user.email,
-        phone: user.userInfo?.phoneNumber || null,
-        role: roleName,
-        status: user.status ? 'active' : 'inactive',
-        verified: user.isVerified,
-        joinDate: new Date(Number(user.createdAt)).toISOString(),
-        lastActive: new Date(Number(user.updatedAt)).toISOString(),
-        totalOrders,
-        totalRevenue,
-        rating: 0,
-        location: user.userInfo?.address || null,
-        avatar: user.userInfo?.avatarUrl || null,
-      },
+      id: user.id.toString(),
+      name: user.userInfo?.fullName || user.email.split('@')[0],
+      email: user.email,
+      phone: user.userInfo?.phoneNumber || null,
+      role: roleName,
+      status: user.status ? 'active' : 'inactive',
+      verified: user.isVerified,
+      joinDate: new Date(Number(user.createdAt)).toISOString(),
+      lastActive: new Date(Number(user.updatedAt)).toISOString(),
+      totalOrders,
+      totalRevenue,
+      rating: 0,
+      location: user.userInfo?.address || null,
+      avatar: user.userInfo?.avatarUrl || null,
     };
   }
 
@@ -202,8 +196,7 @@ export class AdminUserService {
       });
     }
 
-    const [totalUsers, activeUsers, inactiveUsers, verifiedUsers, sellers] = await Promise.all([
-      this.prisma.user.count(),
+    const [activeUsers, inactiveUsers, verifiedUsers, sellers] = await Promise.all([
       this.prisma.user.count({ where: { status: true } }),
       this.prisma.user.count({ where: { status: false } }),
       this.prisma.user.count({ where: { isVerified: true } }),
@@ -221,14 +214,11 @@ export class AdminUserService {
     ]);
 
     return {
-      message: MESSAGES.ADMIN.USER_STATISTICS_RETRIEVED || 'User statistics retrieved successfully',
-      data: {
-        active: activeUsers,
-        pending: inactiveUsers,
-        suspended: inactiveUsers,
-        sellers,
-        verified: verifiedUsers,
-      },
+      active: activeUsers,
+      pending: inactiveUsers,
+      suspended: inactiveUsers,
+      sellers,
+      verified: verifiedUsers,
     };
   }
 
@@ -282,23 +272,20 @@ export class AdminUserService {
     const roleName = userRole?.name || 'buyer';
 
     return {
-      message: MESSAGES.ADMIN.USER_APPROVED || 'User approved successfully',
-      data: {
-        id: updated.id.toString(),
-        name: updated.userInfo?.fullName || updated.email.split('@')[0],
-        email: updated.email,
-        phone: updated.userInfo?.phoneNumber || null,
-        role: roleName,
-        status: updated.status ? 'active' : 'inactive',
-        verified: updated.isVerified,
-        joinDate: new Date(Number(updated.createdAt)).toISOString(),
-        lastActive: new Date(Number(updated.updatedAt)).toISOString(),
-        totalOrders: 0,
-        totalRevenue: 0,
-        rating: 0,
-        location: updated.userInfo?.address || null,
-        avatar: updated.userInfo?.avatarUrl || null,
-      },
+      id: updated.id.toString(),
+      name: updated.userInfo?.fullName || updated.email.split('@')[0],
+      email: updated.email,
+      phone: updated.userInfo?.phoneNumber || null,
+      role: roleName,
+      status: updated.status ? 'active' : 'inactive',
+      verified: updated.isVerified,
+      joinDate: new Date(Number(updated.createdAt)).toISOString(),
+      lastActive: new Date(Number(updated.updatedAt)).toISOString(),
+      totalOrders: 0,
+      totalRevenue: 0,
+      rating: 0,
+      location: updated.userInfo?.address || null,
+      avatar: updated.userInfo?.avatarUrl || null,
     };
   }
 
@@ -343,23 +330,20 @@ export class AdminUserService {
     const roleName = userRole?.name || 'buyer';
 
     return {
-      message: MESSAGES.ADMIN.USER_SUSPENDED || 'User suspended successfully',
-      data: {
-        id: updated.id.toString(),
-        name: updated.userInfo?.fullName || updated.email.split('@')[0],
-        email: updated.email,
-        phone: updated.userInfo?.phoneNumber || null,
-        role: roleName,
-        status: updated.status ? 'active' : 'inactive',
-        verified: updated.isVerified,
-        joinDate: new Date(Number(updated.createdAt)).toISOString(),
-        lastActive: new Date(Number(updated.updatedAt)).toISOString(),
-        totalOrders: 0,
-        totalRevenue: 0,
-        rating: 0,
-        location: updated.userInfo?.address || null,
-        avatar: updated.userInfo?.avatarUrl || null,
-      },
+      id: updated.id.toString(),
+      name: updated.userInfo?.fullName || updated.email.split('@')[0],
+      email: updated.email,
+      phone: updated.userInfo?.phoneNumber || null,
+      role: roleName,
+      status: updated.status ? 'active' : 'inactive',
+      verified: updated.isVerified,
+      joinDate: new Date(Number(updated.createdAt)).toISOString(),
+      lastActive: new Date(Number(updated.updatedAt)).toISOString(),
+      totalOrders: 0,
+      totalRevenue: 0,
+      rating: 0,
+      location: updated.userInfo?.address || null,
+      avatar: updated.userInfo?.avatarUrl || null,
     };
   }
 
@@ -404,23 +388,20 @@ export class AdminUserService {
     const roleName = userRole?.name || 'buyer';
 
     return {
-      message: MESSAGES.ADMIN.USER_ACTIVATED || 'User activated successfully',
-      data: {
-        id: updated.id.toString(),
-        name: updated.userInfo?.fullName || updated.email.split('@')[0],
-        email: updated.email,
-        phone: updated.userInfo?.phoneNumber || null,
-        role: roleName,
-        status: updated.status ? 'active' : 'inactive',
-        verified: updated.isVerified,
-        joinDate: new Date(Number(updated.createdAt)).toISOString(),
-        lastActive: new Date(Number(updated.updatedAt)).toISOString(),
-        totalOrders: 0,
-        totalRevenue: 0,
-        rating: 0,
-        location: updated.userInfo?.address || null,
-        avatar: updated.userInfo?.avatarUrl || null,
-      },
+      id: updated.id.toString(),
+      name: updated.userInfo?.fullName || updated.email.split('@')[0],
+      email: updated.email,
+      phone: updated.userInfo?.phoneNumber || null,
+      role: roleName,
+      status: updated.status ? 'active' : 'inactive',
+      verified: updated.isVerified,
+      joinDate: new Date(Number(updated.createdAt)).toISOString(),
+      lastActive: new Date(Number(updated.updatedAt)).toISOString(),
+      totalOrders: 0,
+      totalRevenue: 0,
+      rating: 0,
+      location: updated.userInfo?.address || null,
+      avatar: updated.userInfo?.avatarUrl || null,
     };
   }
 
@@ -447,10 +428,7 @@ export class AdminUserService {
     });
 
     return {
-      message: MESSAGES.ADMIN.USERS_APPROVED || 'Users approved successfully',
-      data: {
-        count: result.count,
-      },
+      count: result.count,
     };
   }
 
@@ -476,10 +454,7 @@ export class AdminUserService {
     });
 
     return {
-      message: MESSAGES.ADMIN.USERS_SUSPENDED || 'Users suspended successfully',
-      data: {
-        count: result.count,
-      },
+      count: result.count,
     };
   }
 }
