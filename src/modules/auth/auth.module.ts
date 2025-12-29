@@ -8,6 +8,7 @@ import { RolePermissionService } from './application/services/role-permission.se
 import { UserRepository } from './infrastructure/repositories/user.repository';
 import { USER_REPOSITORY } from './domain/repositories/user.repository.interface';
 import { JwtStrategy } from './infrastructure/strategies/jwt.strategy';
+import { JwtAdminStrategy } from './infrastructure/strategies/jwt-admin.strategy';
 import { DatabaseModule } from '@common/database/database.module';
 import { EmailService } from '@common/services/email.service';
 
@@ -31,6 +32,7 @@ import { EmailService } from '@common/services/email.service';
     AuthService,
     RolePermissionService,
     JwtStrategy,
+    JwtAdminStrategy,
     EmailService,
     {
       provide: USER_REPOSITORY,

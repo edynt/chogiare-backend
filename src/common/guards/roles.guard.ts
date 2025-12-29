@@ -32,12 +32,20 @@ export class RolesGuard implements CanActivate {
       });
     }
 
-    const userRoles = await this.prisma.userRole.findMany({
-      where: { userId: user.id },
-      include: { role: true },
-    });
+    // First, check if roles are available in the token (for performance)
+    let userRoleNames: string[] = [];
 
-    const userRoleNames = userRoles.map((ur) => ur.role.name);
+    if (user.roles && Array.isArray(user.roles) && user.roles.length > 0) {
+      // Roles are in the token, use them directly
+      userRoleNames = user.roles;
+    } else {
+      // Roles not in token, fall back to database query (backward compatibility)
+      const userRoles = await this.prisma.userRole.findMany({
+        where: { userId: user.id },
+        include: { role: true },
+      });
+      userRoleNames = userRoles.map((ur) => ur.role.name);
+    }
 
     const hasRole = requiredRoles.some((role) => userRoleNames.includes(role));
 

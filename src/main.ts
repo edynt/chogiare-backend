@@ -3,12 +3,16 @@ import { ValidationPipe, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationError } from 'class-validator';
+import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { APP_NAME } from '@common/constants/app.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Enable cookie parsing
+  app.use(cookieParser());
 
   const configService = app.get(ConfigService);
   const logger = new Logger('Bootstrap');

@@ -9,7 +9,10 @@ import {
   Put,
   Query,
   UnauthorizedException,
+  Res,
+  Req,
 } from '@nestjs/common';
+import { Response, Request } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { AuthService } from '@modules/auth/application/services/auth.service';
 import { LoginDto } from '@modules/auth/application/dto/login.dto';
@@ -23,6 +26,7 @@ import { ChangePasswordDto } from '@modules/auth/application/dto/change-password
 import { UpdateProfileDto } from '@modules/auth/application/dto/update-profile.dto';
 import { ResendVerificationDto } from '@modules/auth/application/dto/resend-verification.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { JwtAdminAuthGuard } from '@common/guards/jwt-admin-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '@common/decorators/current-user.decorator';
 import { Public } from '@common/decorators/public.decorator';
 import { SkipHeaderValidation } from '@common/decorators/skip-header-validation.decorator';
@@ -73,8 +77,36 @@ export class AuthController {
       },
     },
   })
-  async login(@Body() loginDto: LoginDto) {
-    return await this.authService.login(loginDto);
+  async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.login(loginDto);
+
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // Set HttpOnly cookies for user tokens
+    res.cookie('accessToken', result.tokens.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      maxAge: result.tokens.expiresIn * 1000,
+      path: '/',
+    });
+
+    res.cookie('refreshToken', result.tokens.refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+    });
+
+    // Return user info WITH tokens in body for frontend compatibility
+    // Cookies are also set for additional security
+    return {
+      user: result.user,
+      tokens: result.tokens,
+      roles: result.roles,
+      permissions: result.permissions,
+    };
   }
 
   @Public()
@@ -94,8 +126,39 @@ export class AuthController {
       },
     },
   })
-  async adminLogin(@Body() adminLoginDto: AdminLoginDto) {
-    return await this.authService.adminLogin(adminLoginDto);
+  async adminLogin(
+    @Body() adminLoginDto: AdminLoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.adminLogin(adminLoginDto);
+
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // Set HttpOnly cookies for admin tokens with admin prefix
+    res.cookie('adminAccessToken', result.tokens.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      maxAge: result.tokens.expiresIn * 1000,
+      path: '/',
+    });
+
+    res.cookie('adminRefreshToken', result.tokens.refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+    });
+
+    // Return user info WITH tokens in body for frontend compatibility
+    // Cookies are also set for additional security
+    return {
+      user: result.user,
+      tokens: result.tokens,
+      roles: result.roles,
+      permissions: result.permissions,
+    };
   }
 
   @Public()
@@ -212,42 +275,58 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('logout')
+  @Get('logout')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Logout user and invalidate tokens' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        refreshToken: {
-          type: 'string',
-          description: 'Optional refresh token to invalidate',
-          example:
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoidXNlckBleGFtcGxlLmNvbSIsImlhdCI6MTYzODM2ODAwMCwiZXhwIjoxNjM4NDU0NDAwfQ.example',
-        },
-      },
-    },
-    required: false,
-    examples: {
-      example1: {
-        summary: 'Logout without refresh token',
-        value: {},
-      },
-      example2: {
-        summary: 'Logout with refresh token',
-        value: {
-          refreshToken:
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoidXNlckBleGFtcGxlLmNvbSIsImlhdCI6MTYzODM2ODAwMCwiZXhwIjoxNjM4NDU0NDAwfQ.example',
-        },
-      },
-    },
-  })
   async logout(
     @CurrentUser() user: CurrentUserPayload,
-    @Body('refreshToken') refreshToken?: string,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
   ) {
+    // Extract refresh token from cookies for GET request
+    const refreshToken = req.cookies?.['refreshToken'];
+
     await this.authService.logout(user.id, refreshToken);
+
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: 'lax' as const,
+      path: '/',
+    };
+
+    // Force clear cookies by setting them to empty string with immediate expiration
+    // This is more reliable than clearCookie in some scenarios
+    res.cookie('accessToken', '', { ...cookieOptions, maxAge: 0 });
+    res.cookie('refreshToken', '', { ...cookieOptions, maxAge: 0 });
+
+    return {
+      message: MESSAGES.AUTH.LOGOUT_SUCCESS,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('admin/logout') // Changed from POST to GET
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Admin logout and invalidate tokens' })
+  async adminLogout(
+    @CurrentUser() user: CurrentUserPayload,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.authService.logout(user.id);
+
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: 'lax' as const,
+      path: '/',
+      secure: true, // User requested strict secure=true
+    };
+
+    // Force clear cookies by setting them to empty string with immediate expiration
+    res.cookie('adminAccessToken', '', { ...cookieOptions, maxAge: 0 });
+    res.cookie('adminRefreshToken', '', { ...cookieOptions, maxAge: 0 });
+
     return {
       message: MESSAGES.AUTH.LOGOUT_SUCCESS,
     };
@@ -281,6 +360,14 @@ export class AuthController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get current user profile with roles' })
   async getProfile(@CurrentUser() user: CurrentUserPayload) {
+    return await this.authService.getProfile(user.id);
+  }
+
+  @UseGuards(JwtAdminAuthGuard)
+  @Get('admin/profile')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get current admin profile with roles' })
+  async getAdminProfile(@CurrentUser() user: CurrentUserPayload) {
     return await this.authService.getProfile(user.id);
   }
 

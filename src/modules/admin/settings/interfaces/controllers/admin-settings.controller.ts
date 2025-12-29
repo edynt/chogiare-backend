@@ -1,6 +1,6 @@
 import { Controller, Get, Put, Patch, Param, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { JwtAdminAuthGuard } from '@common/guards/jwt-admin-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
@@ -9,7 +9,7 @@ import { UpdateSettingsCategoryDto } from '../../application/dto/system-settings
 
 @ApiTags('Admin - Settings')
 @Controller('admin/settings')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAdminAuthGuard, RolesGuard)
 @Roles('admin')
 @ApiBearerAuth()
 export class AdminSettingsController {

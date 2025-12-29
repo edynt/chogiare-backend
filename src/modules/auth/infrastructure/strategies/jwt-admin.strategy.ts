@@ -1,4 +1,10 @@
-import { Injectable, UnauthorizedException, Inject, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  Inject,
+  Logger,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
@@ -8,8 +14,9 @@ import {
   USER_REPOSITORY,
 } from '@modules/auth/domain/repositories/user.repository.interface';
 import { MESSAGES } from '@common/constants/messages.constants';
+import { ERROR_CODES } from '@common/constants/error-codes.constants';
 
-export interface JwtPayload {
+export interface JwtAdminPayload {
   sub: number | string;
   email: string;
   roles?: string[];
@@ -18,40 +25,56 @@ export interface JwtPayload {
   exp?: number;
 }
 
-// Custom extractor to get token from cookie or Authorization header
-const cookieOrBearerExtractor = (req: Request): string | null => {
-  // First try to get from cookie
-  if (req && req.cookies && req.cookies.accessToken) {
-    return req.cookies.accessToken;
+// Custom extractor to get admin token from cookie or Authorization header
+const adminCookieOrBearerExtractor = (req: Request): string | null => {
+  // First try to get from admin cookie
+  if (req && req.cookies && req.cookies.adminAccessToken) {
+    return req.cookies.adminAccessToken;
   }
   // Fall back to Authorization header
   return ExtractJwt.fromAuthHeaderAsBearerToken()(req);
 };
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
-  private readonly logger = new Logger(JwtStrategy.name);
+export class JwtAdminStrategy extends PassportStrategy(Strategy, 'jwt-admin') {
+  private readonly logger = new Logger(JwtAdminStrategy.name);
 
   constructor(
     private readonly configService: ConfigService,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
   ) {
-    const secret = configService.get<string>('jwt.secret');
-    if (!secret) {
-      throw new Error('JWT_SECRET is not configured');
+    const adminSecret = configService.get<string>('jwt.adminSecret');
+    if (!adminSecret) {
+      throw new Error('JWT_ADMIN_SECRET is not configured');
     }
     super({
-      jwtFromRequest: cookieOrBearerExtractor,
+      jwtFromRequest: adminCookieOrBearerExtractor,
       ignoreExpiration: false,
-      secretOrKey: secret,
+      secretOrKey: adminSecret,
     });
   }
 
-  async validate(payload: JwtPayload) {
+  async validate(payload: JwtAdminPayload) {
     try {
       if (!payload || !payload.sub) {
         throw new UnauthorizedException(MESSAGES.TOKEN.INVALID_OR_EXPIRED);
+      }
+
+      // Verify this is an admin token
+      if (payload.tokenType !== 'admin') {
+        throw new ForbiddenException({
+          message: MESSAGES.USER.INSUFFICIENT_PERMISSIONS,
+          errorCode: ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS,
+        });
+      }
+
+      // Verify roles include admin
+      if (!payload.roles || !payload.roles.includes('admin')) {
+        throw new ForbiddenException({
+          message: MESSAGES.USER.INSUFFICIENT_PERMISSIONS,
+          errorCode: ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS,
+        });
       }
 
       const userId = typeof payload.sub === 'string' ? parseInt(payload.sub, 10) : payload.sub;
@@ -77,11 +100,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         tokenType: payload.tokenType,
       };
     } catch (error) {
-      if (error instanceof UnauthorizedException) {
+      if (error instanceof UnauthorizedException || error instanceof ForbiddenException) {
         throw error;
       }
       this.logger.error(
-        'Error validating JWT token',
+        'Error validating admin JWT token',
         error instanceof Error ? error.stack : undefined,
         JSON.stringify({ payload }),
       );

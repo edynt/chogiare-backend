@@ -6,6 +6,7 @@ export interface CurrentUserPayload {
   isVerified: boolean;
   status: boolean;
   language: string;
+  roles?: string[];
 }
 
 export const CurrentUser = createParamDecorator(

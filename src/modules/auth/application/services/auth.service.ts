@@ -157,7 +157,27 @@ export class AuthService {
       });
     }
 
-    const tokens = await this.generateTokens(user.id, user.email);
+    // Fetch user roles to include in token
+    const userRoles = await this.prisma.userRole.findMany({
+      where: { userId: user.id },
+      include: { role: true },
+    });
+
+    // Reject admin users from regular login - they must use admin login
+    const isAdmin = userRoles.some((ur) => ur.role.name === 'admin');
+    if (isAdmin) {
+      throw new UnauthorizedException({
+        message: 'Admin users must use the admin login page',
+        errorCode: 'AUTH_USE_ADMIN_LOGIN',
+      });
+    }
+
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email,
+      userRoles.map((ur) => ur.role.name),
+      'user',
+    );
 
     await this.saveRefreshToken(user.id, tokens.refreshToken);
 
@@ -210,7 +230,11 @@ export class AuthService {
       });
     }
 
-    const tokens = await this.generateTokens(user.id, user.email);
+    const tokens = await this.generateAdminTokens(
+      user.id,
+      user.email,
+      userRoles.map((ur) => ur.role.name),
+    );
 
     await this.saveRefreshToken(user.id, tokens.refreshToken);
 
@@ -326,8 +350,23 @@ export class AuthService {
     }
   }
 
-  private async generateTokens(userId: number, email: string): Promise<AuthTokens> {
-    const payload = { sub: userId, email };
+  private async generateTokens(
+    userId: number,
+    email: string,
+    roles?: string[],
+    tokenType: string = 'user',
+  ): Promise<AuthTokens> {
+    const payload: { sub: number; email: string; roles?: string[]; tokenType: string } = {
+      sub: userId,
+      email,
+      tokenType,
+    };
+
+    // Include roles in payload if provided
+    if (roles && roles.length > 0) {
+      payload.roles = roles;
+    }
+
     const expiresIn = this.configService.get<string>('jwt.expiresIn') || '1h';
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -337,6 +376,40 @@ export class AuthService {
       }),
       this.jwtService.signAsync(payload, {
         secret: this.configService.get<string>('jwt.refreshSecret'),
+        expiresIn: this.configService.get<string>('jwt.refreshExpiresIn') || '7d',
+      }),
+    ]);
+
+    const expiresInSeconds = this.parseExpiresIn(expiresIn);
+
+    return {
+      accessToken,
+      refreshToken,
+      expiresIn: expiresInSeconds,
+    };
+  }
+
+  private async generateAdminTokens(
+    userId: number,
+    email: string,
+    roles: string[],
+  ): Promise<AuthTokens> {
+    const payload = {
+      sub: userId,
+      email,
+      roles,
+      tokenType: 'admin',
+    };
+
+    const expiresIn = this.configService.get<string>('jwt.expiresIn') || '1h';
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        secret: this.configService.get<string>('jwt.adminSecret'),
+        expiresIn,
+      }),
+      this.jwtService.signAsync(payload, {
+        secret: this.configService.get<string>('jwt.adminRefreshSecret'),
         expiresIn: this.configService.get<string>('jwt.refreshExpiresIn') || '7d',
       }),
     ]);

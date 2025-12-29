@@ -19,5 +19,3 @@ import { DatabaseModule } from '@common/database/database.module';
   exports: [NotificationService, NOTIFICATION_REPOSITORY],
 })
 export class NotificationModule {}
-
-

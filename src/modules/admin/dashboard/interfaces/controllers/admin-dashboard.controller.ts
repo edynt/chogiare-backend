@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Query, Param, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { JwtAdminAuthGuard } from '@common/guards/jwt-admin-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
@@ -8,7 +8,7 @@ import { AdminDashboardService } from '../../application/services/admin-dashboar
 
 @ApiTags('Admin - Dashboard')
 @Controller('admin/dashboard')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAdminAuthGuard, RolesGuard)
 @Roles('admin')
 @ApiBearerAuth()
 export class AdminDashboardController {
