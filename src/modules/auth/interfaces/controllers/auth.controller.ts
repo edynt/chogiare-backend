@@ -450,7 +450,7 @@ export class AuthController {
     },
   })
   async googleAuth(@Body() body: { accessToken: string; providerId?: string }) {
-    return await this.authService.oauthLogin('google', body.accessToken, body.providerId);
+    return await this.authService.oauthLogin('google', body.accessToken);
   }
 
   @Public()
@@ -477,6 +477,6 @@ export class AuthController {
     },
   })
   async facebookAuth(@Body() body: { accessToken: string; providerId?: string }) {
-    return await this.authService.oauthLogin('facebook', body.accessToken, body.providerId);
+    return await this.authService.oauthLogin('facebook', body.accessToken);
   }
 }
