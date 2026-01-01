@@ -27,7 +27,6 @@ import { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import { ResetPasswordDto } from '../dto/reset-password.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
-import { ResendVerificationDto } from '../dto/resend-verification.dto';
 
 export interface AuthTokens {
   accessToken: string;
@@ -1006,11 +1005,7 @@ export class AuthService {
     };
   }
 
-  async oauthLogin(
-    provider: 'google' | 'facebook',
-    accessToken: string,
-    providerId?: string,
-  ): Promise<AuthResponse> {
+  async oauthLogin(provider: 'google' | 'facebook', accessToken: string): Promise<AuthResponse> {
     try {
       let userInfo: {
         email: string;

@@ -3,6 +3,7 @@ import {
   Get,
   Put,
   Post,
+  Delete,
   Param,
   Query,
   Body,
@@ -74,5 +75,11 @@ export class AdminUserController {
   @ApiOperation({ summary: 'Bulk suspend users (Admin only)' })
   async bulkSuspendUsers(@CurrentUser('id') adminId: number, @Body() body: { userIds: number[] }) {
     return this.adminUserService.bulkSuspendUsers(adminId, body.userIds);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete user (Admin only)' })
+  async deleteUser(@CurrentUser('id') adminId: number, @Param('id', ParseIntPipe) userId: number) {
+    return this.adminUserService.deleteUser(adminId, userId);
   }
 }

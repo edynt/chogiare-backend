@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
@@ -456,5 +456,89 @@ export class AdminUserService {
     return {
       count: result.count,
     };
+  }
+
+  async deleteUser(adminId: number, userId: number) {
+    const admin = await isAdmin(adminId, this.prisma);
+    if (!admin) {
+      throw new ForbiddenException({
+        message: MESSAGES.USER.INSUFFICIENT_PERMISSIONS,
+        errorCode: ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS,
+      });
+    }
+
+    // Prevent self-deletion
+    if (adminId === userId) {
+      throw new BadRequestException({
+        message: 'Cannot delete your own account',
+        errorCode: 'CANNOT_DELETE_SELF',
+      });
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        userRoles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException({
+        message: MESSAGES.ADMIN.USER_NOT_FOUND || 'User not found',
+        errorCode: ERROR_CODES.ADMIN_USER_NOT_FOUND || 'USER_NOT_FOUND',
+      });
+    }
+
+    // Prevent deleting other admins
+    const isTargetAdmin = user.userRoles.some((ur) => ur.role.name === 'admin');
+    if (isTargetAdmin) {
+      throw new BadRequestException({
+        message: 'Cannot delete admin users',
+        errorCode: 'CANNOT_DELETE_ADMIN',
+      });
+    }
+
+    // Delete user and related data in transaction
+    await this.prisma.$transaction(async (tx) => {
+      // Delete auth-related data
+      await tx.session.deleteMany({ where: { userId } });
+      await tx.emailVerification.deleteMany({ where: { userId } });
+      await tx.passwordReset.deleteMany({ where: { userId } });
+
+      // Delete user roles
+      await tx.userRole.deleteMany({ where: { userId } });
+
+      // Delete user info
+      await tx.userInfo.deleteMany({ where: { userId } });
+
+      // Delete cart and items
+      const cart = await tx.cart.findUnique({ where: { userId } });
+      if (cart) {
+        await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+        await tx.cart.delete({ where: { userId } });
+      }
+
+      // Delete addresses
+      await tx.address.deleteMany({ where: { userId } });
+
+      // Delete reviews and helpful votes
+      await tx.reviewHelpful.deleteMany({ where: { userId } });
+      await tx.review.deleteMany({ where: { userId } });
+
+      // Delete notifications
+      await tx.notification.deleteMany({ where: { userId } });
+
+      // Delete stock alerts
+      await tx.stockAlert.deleteMany({ where: { userId } });
+
+      // Delete the user
+      await tx.user.delete({ where: { id: userId } });
+    });
+
+    return { success: true };
   }
 }
