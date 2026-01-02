@@ -28,6 +28,12 @@ export class AdminOrderController {
     return this.adminOrderService.getOrderStatistics(adminId);
   }
 
+  @Get('stats')
+  @ApiOperation({ summary: 'Get order stats (Admin only)' })
+  async getOrderStats(@CurrentUser('id') adminId: number) {
+    return this.adminOrderService.getOrderStatistics(adminId);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get order by ID (Admin only)' })
   async getOrderById(
