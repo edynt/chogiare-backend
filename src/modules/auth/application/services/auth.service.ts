@@ -18,6 +18,7 @@ import { PrismaService } from '@common/database/prisma.service';
 import { EmailService } from '@common/services/email.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
+import { ROLE_IDS } from '@common/constants/roles.constants';
 import { Prisma } from '@prisma/client';
 import { LoginDto } from '../dto/login.dto';
 import { AdminLoginDto } from '../dto/admin-login.dto';
@@ -44,6 +45,7 @@ export interface AuthResponse {
   };
   tokens: AuthTokens;
   roles?: string[];
+  roleIds?: number[];  // Numeric role IDs: 1=admin, 2=user
   permissions?: string[];
 }
 
@@ -163,7 +165,7 @@ export class AuthService {
     });
 
     // Reject admin users from regular login - they must use admin login
-    const isAdmin = userRoles.some((ur) => ur.role.name === 'admin');
+    const isAdmin = userRoles.some((ur) => ur.roleId === ROLE_IDS.ADMIN);
     if (isAdmin) {
       throw new UnauthorizedException({
         message: 'Admin users must use the admin login page',
@@ -174,8 +176,7 @@ export class AuthService {
     const tokens = await this.generateTokens(
       user.id,
       user.email,
-      userRoles.map((ur) => ur.role.name),
-      'user',
+      userRoles.map((ur) => ur.roleId),
     );
 
     await this.saveRefreshToken(user.id, tokens.refreshToken);
@@ -189,6 +190,8 @@ export class AuthService {
         language: user.language,
       },
       tokens,
+      roles: userRoles.map((ur) => ur.role.name),
+      roleIds: userRoles.map((ur) => ur.roleId),
     };
   }
 
@@ -213,7 +216,8 @@ export class AuthService {
       include: { role: true },
     });
 
-    const isAdmin = userRoles.some((ur) => ur.role.name === 'admin');
+    // Require admin role, reject user role
+    const isAdmin = userRoles.some((ur) => ur.roleId === ROLE_IDS.ADMIN);
     if (!isAdmin) {
       throw new UnauthorizedException({
         message: MESSAGES.USER.INSUFFICIENT_PERMISSIONS,
@@ -229,10 +233,11 @@ export class AuthService {
       });
     }
 
-    const tokens = await this.generateAdminTokens(
+    // Use unified token generation with roleIds
+    const tokens = await this.generateTokens(
       user.id,
       user.email,
-      userRoles.map((ur) => ur.role.name),
+      userRoles.map((ur) => ur.roleId),
     );
 
     await this.saveRefreshToken(user.id, tokens.refreshToken);
@@ -249,6 +254,7 @@ export class AuthService {
       },
       tokens,
       roles: userRoles.map((ur) => ur.role.name),
+      roleIds: userRoles.map((ur) => ur.roleId),
       permissions,
     };
   }
@@ -352,18 +358,16 @@ export class AuthService {
   private async generateTokens(
     userId: number,
     email: string,
-    roles?: string[],
-    tokenType: string = 'user',
+    roleIds?: number[],
   ): Promise<AuthTokens> {
-    const payload: { sub: number; email: string; roles?: string[]; tokenType: string } = {
+    const payload: { sub: number; email: string; roleIds?: number[] } = {
       sub: userId,
       email,
-      tokenType,
     };
 
-    // Include roles in payload if provided
-    if (roles && roles.length > 0) {
-      payload.roles = roles;
+    // Include roleIds in payload if provided (1=admin, 2=user)
+    if (roleIds && roleIds.length > 0) {
+      payload.roleIds = roleIds;
     }
 
     const expiresIn = this.configService.get<string>('jwt.expiresIn') || '1h';
@@ -375,40 +379,6 @@ export class AuthService {
       }),
       this.jwtService.signAsync(payload, {
         secret: this.configService.get<string>('jwt.refreshSecret'),
-        expiresIn: this.configService.get<string>('jwt.refreshExpiresIn') || '7d',
-      }),
-    ]);
-
-    const expiresInSeconds = this.parseExpiresIn(expiresIn);
-
-    return {
-      accessToken,
-      refreshToken,
-      expiresIn: expiresInSeconds,
-    };
-  }
-
-  private async generateAdminTokens(
-    userId: number,
-    email: string,
-    roles: string[],
-  ): Promise<AuthTokens> {
-    const payload = {
-      sub: userId,
-      email,
-      roles,
-      tokenType: 'admin',
-    };
-
-    const expiresIn = this.configService.get<string>('jwt.expiresIn') || '1h';
-
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('jwt.adminSecret'),
-        expiresIn,
-      }),
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('jwt.adminRefreshSecret'),
         expiresIn: this.configService.get<string>('jwt.refreshExpiresIn') || '7d',
       }),
     ]);
@@ -1085,10 +1055,11 @@ export class AuthService {
           },
         });
 
+        // Assign default user role to OAuth users
         await this.prisma.userRole.create({
           data: {
             userId: user.id,
-            roleId: 2,
+            roleId: ROLE_IDS.USER,
           },
         });
       } else {

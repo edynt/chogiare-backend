@@ -13,7 +13,8 @@ export class RolesGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
+    // Accepts numeric roleIds (1=admin, 2=user, 3=seller) - converted from strings by decorator
+    const requiredRoles = this.reflector.getAllAndOverride<(number | string)[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
@@ -32,22 +33,25 @@ export class RolesGuard implements CanActivate {
       });
     }
 
-    // First, check if roles are available in the token (for performance)
-    let userRoleNames: string[] = [];
+    // Get user roleIds - prefer from token, fallback to DB
+    let userRoleIds: number[] = [];
 
-    if (user.roles && Array.isArray(user.roles) && user.roles.length > 0) {
-      // Roles are in the token, use them directly
-      userRoleNames = user.roles;
+    if (user.roleIds && Array.isArray(user.roleIds) && user.roleIds.length > 0) {
+      // RoleIds are in the token, use them directly
+      userRoleIds = user.roleIds;
     } else {
-      // Roles not in token, fall back to database query (backward compatibility)
+      // RoleIds not in token, fall back to database query (backward compatibility)
       const userRoles = await this.prisma.userRole.findMany({
         where: { userId: user.id },
-        include: { role: true },
       });
-      userRoleNames = userRoles.map((ur) => ur.role.name);
+      userRoleIds = userRoles.map((ur) => ur.roleId);
     }
 
-    const hasRole = requiredRoles.some((role) => userRoleNames.includes(role));
+    // Check if user has any of the required roles (all should be numbers now after decorator conversion)
+    const hasRole = requiredRoles.some((role) => {
+      const roleId = typeof role === 'number' ? role : parseInt(role, 10);
+      return !isNaN(roleId) && userRoleIds.includes(roleId);
+    });
 
     if (!hasRole) {
       throw new ForbiddenException({

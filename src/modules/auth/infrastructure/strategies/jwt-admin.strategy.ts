@@ -15,21 +15,21 @@ import {
 } from '@modules/auth/domain/repositories/user.repository.interface';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
+import { ROLE_IDS } from '@common/constants/roles.constants';
 
 export interface JwtAdminPayload {
   sub: number | string;
   email: string;
-  roles?: string[];
-  tokenType?: string;
+  roleIds?: number[];
   iat?: number;
   exp?: number;
 }
 
-// Custom extractor to get admin token from cookie or Authorization header
-const adminCookieOrBearerExtractor = (req: Request): string | null => {
-  // First try to get from admin cookie
-  if (req && req.cookies && req.cookies.adminAccessToken) {
-    return req.cookies.adminAccessToken;
+// Custom extractor to get token from unified cookie or Authorization header
+const cookieOrBearerExtractor = (req: Request): string | null => {
+  // First try to get from unified accessToken cookie
+  if (req && req.cookies && req.cookies.accessToken) {
+    return req.cookies.accessToken;
   }
   // Fall back to Authorization header
   return ExtractJwt.fromAuthHeaderAsBearerToken()(req);
@@ -44,14 +44,15 @@ export class JwtAdminStrategy extends PassportStrategy(Strategy, 'jwt-admin') {
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
   ) {
-    const adminSecret = configService.get<string>('jwt.adminSecret');
-    if (!adminSecret) {
-      throw new Error('JWT_ADMIN_SECRET is not configured');
+    // Use unified jwt.secret instead of separate adminSecret
+    const secret = configService.get<string>('jwt.secret');
+    if (!secret) {
+      throw new Error('JWT_SECRET is not configured');
     }
     super({
-      jwtFromRequest: adminCookieOrBearerExtractor,
+      jwtFromRequest: cookieOrBearerExtractor,
       ignoreExpiration: false,
-      secretOrKey: adminSecret,
+      secretOrKey: secret,
     });
   }
 
@@ -61,16 +62,8 @@ export class JwtAdminStrategy extends PassportStrategy(Strategy, 'jwt-admin') {
         throw new UnauthorizedException(MESSAGES.TOKEN.INVALID_OR_EXPIRED);
       }
 
-      // Verify this is an admin token
-      if (payload.tokenType !== 'admin') {
-        throw new ForbiddenException({
-          message: MESSAGES.USER.INSUFFICIENT_PERMISSIONS,
-          errorCode: ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS,
-        });
-      }
-
-      // Verify roles include admin
-      if (!payload.roles || !payload.roles.includes('admin')) {
+      // Verify roleIds includes admin role
+      if (!payload.roleIds || !payload.roleIds.includes(ROLE_IDS.ADMIN)) {
         throw new ForbiddenException({
           message: MESSAGES.USER.INSUFFICIENT_PERMISSIONS,
           errorCode: ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS,
@@ -96,8 +89,7 @@ export class JwtAdminStrategy extends PassportStrategy(Strategy, 'jwt-admin') {
         isVerified: user.isVerified,
         status: user.status,
         language: user.language,
-        roles: payload.roles,
-        tokenType: payload.tokenType,
+        roleIds: payload.roleIds,
       };
     } catch (error) {
       if (error instanceof UnauthorizedException || error instanceof ForbiddenException) {
@@ -106,7 +98,6 @@ export class JwtAdminStrategy extends PassportStrategy(Strategy, 'jwt-admin') {
       this.logger.error(
         'Error validating admin JWT token',
         error instanceof Error ? error.stack : undefined,
-        JSON.stringify({ payload }),
       );
       throw new UnauthorizedException(MESSAGES.TOKEN.INVALID_OR_EXPIRED);
     }

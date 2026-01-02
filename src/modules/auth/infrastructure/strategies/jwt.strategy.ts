@@ -12,8 +12,7 @@ import { MESSAGES } from '@common/constants/messages.constants';
 export interface JwtPayload {
   sub: number | string;
   email: string;
-  roles?: string[];
-  tokenType?: string;
+  roleIds?: number[];
   iat?: number;
   exp?: number;
 }
@@ -73,8 +72,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         isVerified: user.isVerified,
         status: user.status,
         language: user.language,
-        roles: payload.roles,
-        tokenType: payload.tokenType,
+        roleIds: payload.roleIds,
       };
     } catch (error) {
       if (error instanceof UnauthorizedException) {

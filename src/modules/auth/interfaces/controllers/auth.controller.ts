@@ -134,8 +134,8 @@ export class AuthController {
 
     const isProduction = process.env.NODE_ENV === 'production';
 
-    // Set HttpOnly cookies for admin tokens with admin prefix
-    res.cookie('adminAccessToken', result.tokens.accessToken, {
+    // Set HttpOnly cookies for admin tokens - using unified cookie names
+    res.cookie('accessToken', result.tokens.accessToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: 'lax',
@@ -143,7 +143,7 @@ export class AuthController {
       path: '/',
     });
 
-    res.cookie('adminRefreshToken', result.tokens.refreshToken, {
+    res.cookie('refreshToken', result.tokens.refreshToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: 'lax',
@@ -312,20 +312,24 @@ export class AuthController {
   @ApiOperation({ summary: 'Admin logout and invalidate tokens' })
   async adminLogout(
     @CurrentUser() user: CurrentUserPayload,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    await this.authService.logout(user.id);
+    // Extract refresh token from cookies for GET request
+    const refreshToken = req.cookies?.['refreshToken'];
+
+    await this.authService.logout(user.id, refreshToken);
 
     const cookieOptions = {
       httpOnly: true,
       sameSite: 'lax' as const,
       path: '/',
-      secure: true, // User requested strict secure=true
     };
 
     // Force clear cookies by setting them to empty string with immediate expiration
-    res.cookie('adminAccessToken', '', { ...cookieOptions, maxAge: 0 });
-    res.cookie('adminRefreshToken', '', { ...cookieOptions, maxAge: 0 });
+    // Using unified cookie names
+    res.cookie('accessToken', '', { ...cookieOptions, maxAge: 0 });
+    res.cookie('refreshToken', '', { ...cookieOptions, maxAge: 0 });
 
     return {
       message: MESSAGES.AUTH.LOGOUT_SUCCESS,

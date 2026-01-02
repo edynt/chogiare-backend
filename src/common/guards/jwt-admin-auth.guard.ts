@@ -31,6 +31,14 @@ export class JwtAdminAuthGuard extends AuthGuard('jwt-admin') {
     user: TUser | false,
     info: unknown,
   ): TUser {
+    // Debug logging
+    this.logger.debug('[JwtAdminAuthGuard.handleRequest] Called with:', {
+      err: err ? err.message : null,
+      user: user ? 'present' : 'false',
+      userValue: user,
+      info: info instanceof Error ? info.message : String(info),
+    });
+
     if (err) {
       if (!(err instanceof UnauthorizedException)) {
         this.logger.error(
@@ -48,9 +56,11 @@ export class JwtAdminAuthGuard extends AuthGuard('jwt-admin') {
     }
 
     if (!user) {
+      this.logger.error('[JwtAdminAuthGuard.handleRequest] User is false/null, throwing UnauthorizedException');
       throw new UnauthorizedException(MESSAGES.TOKEN.INVALID_OR_EXPIRED);
     }
 
+    this.logger.debug('[JwtAdminAuthGuard.handleRequest] Success, returning user');
     return user as TUser;
   }
 }
