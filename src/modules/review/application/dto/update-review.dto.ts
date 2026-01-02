@@ -31,12 +31,6 @@ export class UpdateReviewDto {
   @IsString()
   comment?: string;
 
-  @ApiPropertyOptional({ description: 'Review images', type: [String] })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  images?: string[];
-
   @ApiPropertyOptional({ description: 'Is verified purchase' })
   @Type(() => Boolean)
   @IsOptional()

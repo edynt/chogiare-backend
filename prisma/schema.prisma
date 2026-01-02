@@ -74,13 +74,6 @@ enum TransactionType {
   boost
 }
 
-enum ShippingStatus {
-  pending
-  picked_up
-  in_transit
-  out_for_delivery
-  delivered
-}
 
 enum BoostType {
   payPerView
@@ -136,7 +129,6 @@ model User {
   orders             Order[]
   addresses          Address[]
   reviews            Review[]
-  reviewHelpful      ReviewHelpful[]
   conversations      ConversationParticipant[]
   messages           ChatMessage[]
   transactions       Transaction[]
@@ -458,7 +450,6 @@ model Order {
   billingAddress  Address?        @relation("BillingAddress", fields: [billingAddressId], references: [id], onDelete: SetNull)
   items           OrderItem[]
   transactions    Transaction[]
-  shippingInfo    Shipping?
 
   @@index([userId])
   @@index([storeId])
@@ -525,15 +516,12 @@ model Review {
   title       String? @db.VarChar(255)
   comment     String? @db.Text
   isVerified  Boolean @default(false) @map("is_verified")
-  helpfulCount Int    @default(0) @map("helpful_count")
   reviewMetadata Json  @default("{}") @map("review_metadata")
   createdAt   BigInt  @map("created_at")
   updatedAt   BigInt  @map("updated_at")
 
   product      Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
   user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reviewImages ReviewImage[]
-  reviewHelpful ReviewHelpful[]
 
   @@unique([productId, userId, orderId])
   @@index([productId])
@@ -543,33 +531,6 @@ model Review {
   @@index([isVerified])
   @@index([createdAt])
   @@map("reviews")
-}
-
-model ReviewImage {
-  id        Int    @id @default(autoincrement())
-  reviewId  Int    @map("review_id")
-  imageUrl  String @map("image_url") @db.VarChar(500)
-  createdAt BigInt @map("created_at")
-
-  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-
-  @@index([reviewId])
-  @@map("review_images")
-}
-
-model ReviewHelpful {
-  id        Int    @id @default(autoincrement())
-  reviewId  Int    @map("review_id")
-  userId    Int    @map("user_id")
-  createdAt BigInt @map("created_at")
-
-  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([reviewId, userId])
-  @@index([reviewId])
-  @@index([userId])
-  @@map("review_helpful")
 }
 
 model Conversation {
@@ -666,43 +627,6 @@ model UserBalance {
 
   @@index([userId])
   @@map("user_balances")
-}
-
-model Shipping {
-  id                Int           @id @default(autoincrement())
-  orderId           Int           @unique @map("order_id")
-  trackingNumber    String?       @unique @map("tracking_number") @db.VarChar(100)
-  carrier           String?       @db.VarChar(100)
-  status            ShippingStatus @default(pending)
-  currentLocation   String?       @map("current_location") @db.VarChar(255)
-  estimatedDelivery BigInt?       @map("estimated_delivery")
-  shippingMetadata  Json          @default("{}") @map("shipping_metadata")
-  createdAt         BigInt        @map("created_at")
-  updatedAt         BigInt        @map("updated_at")
-
-  order   Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  history ShippingHistory[]
-
-  @@index([orderId])
-  @@index([trackingNumber])
-  @@index([status])
-  @@map("shipping")
-}
-
-model ShippingHistory {
-  id          Int    @id @default(autoincrement())
-  shippingId Int    @map("shipping_id")
-  status      String @db.VarChar(50)
-  location    String? @db.VarChar(255)
-  description String? @db.Text
-  timestamp   BigInt
-  metadata    Json   @default("{}")
-
-  shipping Shipping @relation(fields: [shippingId], references: [id], onDelete: Cascade)
-
-  @@index([shippingId])
-  @@index([timestamp])
-  @@map("shipping_history")
 }
 
 model BoostPackage {

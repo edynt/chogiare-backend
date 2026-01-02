@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
@@ -525,8 +530,7 @@ export class AdminUserService {
       // Delete addresses
       await tx.address.deleteMany({ where: { userId } });
 
-      // Delete reviews and helpful votes
-      await tx.reviewHelpful.deleteMany({ where: { userId } });
+      // Delete reviews
       await tx.review.deleteMany({ where: { userId } });
 
       // Delete notifications

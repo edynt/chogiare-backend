@@ -45,7 +45,7 @@ export interface AuthResponse {
   };
   tokens: AuthTokens;
   roles?: string[];
-  roleIds?: number[];  // Numeric role IDs: 1=admin, 2=user
+  roleIds?: number[]; // Numeric role IDs: 1=admin, 2=user
   permissions?: string[];
 }
 
@@ -467,15 +467,34 @@ export class AuthService {
       });
     }
 
-    await this.prisma.$transaction([
-      this.prisma.user.update({
+    await this.prisma.$transaction(async (tx) => {
+      // Mark user as verified
+      await tx.user.update({
         where: { id: verification.userId },
         data: { isVerified: true },
-      }),
-      this.prisma.emailVerification.deleteMany({
+      });
+
+      // Delete verification code
+      await tx.emailVerification.deleteMany({
         where: { userId: verification.userId },
-      }),
-    ]);
+      });
+
+      // Add user to user_roles with role_id = 2 (USER role)
+      // Use upsert to make it idempotent (safe to run multiple times)
+      await tx.userRole.upsert({
+        where: {
+          userId_roleId: {
+            userId: verification.userId,
+            roleId: ROLE_IDS.USER, // 2 = USER role
+          },
+        },
+        create: {
+          userId: verification.userId,
+          roleId: ROLE_IDS.USER,
+        },
+        update: {}, // No-op if already exists
+      });
+    });
 
     const updatedUser = await this.userRepository.findById(verification.userId);
     if (!updatedUser) {
@@ -485,7 +504,17 @@ export class AuthService {
       });
     }
 
-    const tokens = await this.generateTokens(updatedUser.id, updatedUser.email);
+    // Fetch user roles to include in token
+    const userRoles = await this.prisma.userRole.findMany({
+      where: { userId: updatedUser.id },
+      include: { role: true },
+    });
+
+    const tokens = await this.generateTokens(
+      updatedUser.id,
+      updatedUser.email,
+      userRoles.map((ur) => ur.roleId),
+    );
     await this.saveRefreshToken(updatedUser.id, tokens.refreshToken);
 
     return {
@@ -497,6 +526,8 @@ export class AuthService {
         language: updatedUser.language,
       },
       tokens,
+      roles: userRoles.map((ur) => ur.role.name),
+      roleIds: userRoles.map((ur) => ur.roleId),
     };
   }
 

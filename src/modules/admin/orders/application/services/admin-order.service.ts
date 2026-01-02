@@ -135,7 +135,6 @@ export class AdminOrderService {
         shippingAddress: true,
         billingAddress: true,
         transactions: true,
-        shippingInfo: true,
       },
     });
 

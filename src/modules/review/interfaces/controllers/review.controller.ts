@@ -232,40 +232,4 @@ export class ReviewController {
       message: MESSAGES.DELETED,
     };
   }
-
-  // ============================================================
-  // HELPFUL ROUTES
-  // ============================================================
-
-  @UseGuards(JwtAuthGuard)
-  @Post(':id/helpful')
-  @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Mark review as helpful' })
-  @ApiParam({ name: 'id', type: String })
-  async markHelpful(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
-    await this.reviewService.markHelpful(id, user.id);
-    return {
-      message: MESSAGES.SUCCESS,
-    };
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Delete(':id/helpful')
-  @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Unmark review as helpful' })
-  @ApiParam({ name: 'id', type: String })
-  async unmarkHelpful(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
-    await this.reviewService.unmarkHelpful(id, user.id);
-    return {
-      message: MESSAGES.SUCCESS,
-    };
-  }
 }

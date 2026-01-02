@@ -51,7 +51,7 @@ export const ROLE_ID_TO_NAME: Record<number, string> = {
 };
 
 // Type-safe role ID type
-export type RoleId = typeof ROLE_IDS[keyof typeof ROLE_IDS];
+export type RoleId = (typeof ROLE_IDS)[keyof typeof ROLE_IDS];
 
 // Type-safe role name type
-export type RoleName = typeof ROLE_NAMES[keyof typeof ROLE_NAMES];
+export type RoleName = (typeof ROLE_NAMES)[keyof typeof ROLE_NAMES];

@@ -56,7 +56,9 @@ export class JwtAdminAuthGuard extends AuthGuard('jwt-admin') {
     }
 
     if (!user) {
-      this.logger.error('[JwtAdminAuthGuard.handleRequest] User is false/null, throwing UnauthorizedException');
+      this.logger.error(
+        '[JwtAdminAuthGuard.handleRequest] User is false/null, throwing UnauthorizedException',
+      );
       throw new UnauthorizedException(MESSAGES.TOKEN.INVALID_OR_EXPIRED);
     }
 

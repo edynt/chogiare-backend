@@ -102,7 +102,6 @@ export class ReviewService {
       title: createReviewDto.title,
       comment: createReviewDto.comment,
       isVerified: createReviewDto.isVerified,
-      images: createReviewDto.images,
     });
 
     await this.updateProductRating(createReviewDto.productId);
@@ -164,15 +163,6 @@ export class ReviewService {
       });
     }
 
-    if (updateReviewDto.images !== undefined) {
-      await this.reviewRepository.removeImages(id);
-      if (updateReviewDto.images.length > 0) {
-        await Promise.all(
-          updateReviewDto.images.map((imageUrl) => this.reviewRepository.addImage(id, imageUrl)),
-        );
-      }
-    }
-
     const updatedReview = await this.reviewRepository.update(id, {
       rating: updateReviewDto.rating,
       title: updateReviewDto.title,
@@ -205,30 +195,6 @@ export class ReviewService {
 
     await this.reviewRepository.delete(id);
     await this.updateProductRating(review.productId);
-  }
-
-  async markHelpful(id: number, userId: number) {
-    const review = await this.reviewRepository.findById(id);
-    if (!review) {
-      throw new NotFoundException({
-        message: 'Review not found',
-        errorCode: ERROR_CODES.NOT_FOUND,
-      });
-    }
-
-    await this.reviewRepository.markHelpful(id, userId);
-  }
-
-  async unmarkHelpful(id: number, userId: number) {
-    const review = await this.reviewRepository.findById(id);
-    if (!review) {
-      throw new NotFoundException({
-        message: 'Review not found',
-        errorCode: ERROR_CODES.NOT_FOUND,
-      });
-    }
-
-    await this.reviewRepository.unmarkHelpful(id, userId);
   }
 
   async getStats(productId?: number, storeId?: number, userId?: number) {
@@ -301,11 +267,10 @@ export class ReviewService {
     title?: string;
     comment?: string;
     isVerified: boolean;
-    helpfulCount: number;
     createdAt: bigint;
     updatedAt: bigint;
   }) {
-    const [user, product, images] = await Promise.all([
+    const [user, product] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: review.userId },
         include: { userInfo: true },
@@ -318,7 +283,6 @@ export class ReviewService {
           images: true,
         },
       }),
-      this.reviewRepository.getImages(review.id),
     ]);
 
     return {
@@ -329,9 +293,7 @@ export class ReviewService {
       rating: review.rating,
       title: review.title,
       comment: review.comment,
-      images,
       isVerified: review.isVerified,
-      helpful: review.helpfulCount,
       userName: user?.userInfo?.fullName || undefined,
       userEmail: user?.email || undefined,
       userAvatar: user?.userInfo?.avatarUrl || undefined,
