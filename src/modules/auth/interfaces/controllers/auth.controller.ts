@@ -257,21 +257,40 @@ export class AuthController {
   @SkipHeaderValidation()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Refresh access token using refresh token' })
-  @ApiBody({
-    type: RefreshTokenDto,
-    examples: {
-      example1: {
-        summary: 'Refresh token example',
-        value: {
-          refreshToken:
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoidXNlckBleGFtcGxlLmNvbSIsImlhdCI6MTYzODM2ODAwMCwiZXhwIjoxNjM4NDU0NDAwfQ.example',
-        },
-      },
-    },
-  })
-  async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
-    return await this.authService.refreshToken(refreshTokenDto);
+  @ApiOperation({ summary: 'Refresh access token using refresh token from cookies' })
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    // Extract refresh token from HttpOnly cookie
+    const refreshToken = req.cookies?.['refreshToken'];
+
+    if (!refreshToken) {
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.INVALID_REFRESH_TOKEN,
+        errorCode: ERROR_CODES.AUTH_INVALID_REFRESH_TOKEN,
+      });
+    }
+
+    const result = await this.authService.refreshToken({ refreshToken });
+
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // Set new tokens as HttpOnly cookies
+    res.cookie('accessToken', result.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      maxAge: result.expiresIn * 1000,
+      path: '/',
+    });
+
+    res.cookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+    });
+
+    return result;
   }
 
   @UseGuards(JwtAuthGuard)
