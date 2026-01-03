@@ -317,7 +317,16 @@ export class AuthService {
         });
       }
 
-      const tokens = await this.generateTokens(user.id, user.email);
+      // Fetch user roles to include in new access token
+      const userRoles = await this.prisma.userRole.findMany({
+        where: { userId: user.id },
+      });
+
+      const tokens = await this.generateTokens(
+        user.id,
+        user.email,
+        userRoles.map((ur) => ur.roleId),
+      );
 
       await this.prisma.session.update({
         where: { id: session.id },
@@ -1127,13 +1136,18 @@ export class AuthService {
         }
       }
 
-      const tokens = await this.generateTokens(user.id, user.email);
-      await this.saveRefreshToken(user.id, tokens.refreshToken);
-
+      // Fetch user roles to include in access token
       const userRoles = await this.prisma.userRole.findMany({
         where: { userId: user.id },
         include: { role: true },
       });
+
+      const tokens = await this.generateTokens(
+        user.id,
+        user.email,
+        userRoles.map((ur) => ur.roleId),
+      );
+      await this.saveRefreshToken(user.id, tokens.refreshToken);
 
       const roles = userRoles.map((ur) => ur.role.name);
 
