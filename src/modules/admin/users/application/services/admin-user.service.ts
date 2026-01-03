@@ -28,7 +28,7 @@ export class AdminUserService {
 
     const where: Prisma.UserWhereInput = {};
 
-    if (queryDto.status) {
+    if (queryDto.status && !queryDto.role) {
       if (queryDto.status === 'active') {
         where.status = true;
       } else if (queryDto.status === 'inactive') {
@@ -36,28 +36,72 @@ export class AdminUserService {
       }
     }
 
+    // Role filter with admin exclusion (shows both active and inactive users)
     if (queryDto.role) {
-      where.userRoles = {
-        some: {
-          role: {
-            name: queryDto.role,
+      where.AND = [
+        {
+          userRoles: {
+            some: {
+              role: {
+                name: queryDto.role,
+              },
+            },
+          },
+        },
+        {
+          // Exclude admins
+          NOT: {
+            userRoles: {
+              some: {
+                role: {
+                  name: 'admin',
+                },
+              },
+            },
+          },
+        },
+      ];
+    } else {
+      // No role filter - exclude admins by default
+      where.NOT = {
+        userRoles: {
+          some: {
+            role: {
+              name: 'admin',
+            },
           },
         },
       };
     }
 
+    // Search filter
     if (queryDto.search) {
-      where.OR = [
-        { email: { contains: queryDto.search, mode: 'insensitive' } },
-        {
-          userInfo: {
-            OR: [
-              { fullName: { contains: queryDto.search, mode: 'insensitive' } },
-              { phoneNumber: { contains: queryDto.search, mode: 'insensitive' } },
-            ],
+      const searchCondition: Prisma.UserWhereInput = {
+        OR: [
+          { email: { contains: queryDto.search, mode: 'insensitive' as const } },
+          {
+            userInfo: {
+              OR: [
+                { fullName: { contains: queryDto.search, mode: 'insensitive' as const } },
+                { phoneNumber: { contains: queryDto.search, mode: 'insensitive' as const } },
+              ],
+            },
           },
-        },
-      ];
+        ],
+      };
+
+      // Merge with existing where conditions
+      if (where.OR || where.AND) {
+        const existingAND = Array.isArray(where.AND) ? where.AND : [];
+        if (where.OR) {
+          existingAND.push({ OR: where.OR });
+          delete where.OR;
+        }
+        existingAND.push(searchCondition);
+        where.AND = existingAND;
+      } else {
+        where.AND = [searchCondition];
+      }
     }
 
     const page = queryDto.page || 1;
@@ -101,8 +145,8 @@ export class AdminUserService {
 
     return {
       items: users.map((user) => {
-        const userRole =
-          user.userRoles.find((ur) => ur.role.name !== 'admin')?.role || user.userRoles[0]?.role;
+        // Simplified - admins already excluded at DB level
+        const userRole = user.userRoles[0]?.role;
         const roleName = userRole?.name || 'buyer';
 
         const totalOrders = user._count.orders;
@@ -508,39 +552,119 @@ export class AdminUserService {
       });
     }
 
-    // Delete user and related data in transaction
+    // Check for blocking constraints (Restrict policies)
+    const [orderCount, transactionCount, productBoostCount] = await Promise.all([
+      this.prisma.order.count({ where: { userId } }),
+      this.prisma.transaction.count({ where: { userId } }),
+      this.prisma.productBoost.count({ where: { userId } }),
+    ]);
+
+    if (orderCount > 0) {
+      throw new BadRequestException({
+        message: `Cannot delete user with ${orderCount} order(s). Consider suspending the account instead.`,
+        errorCode: 'USER_HAS_ORDERS',
+      });
+    }
+
+    if (transactionCount > 0) {
+      throw new BadRequestException({
+        message: `Cannot delete user with ${transactionCount} transaction(s).`,
+        errorCode: 'USER_HAS_TRANSACTIONS',
+      });
+    }
+
+    if (productBoostCount > 0) {
+      throw new BadRequestException({
+        message: `Cannot delete user with ${productBoostCount} active product boost(s).`,
+        errorCode: 'USER_HAS_BOOSTS',
+      });
+    }
+
+    // Delete user and ALL related data in transaction
     await this.prisma.$transaction(async (tx) => {
-      // Delete auth-related data
+      // 1. Delete stores and their products
+      const stores = await tx.store.findMany({
+        where: { userId },
+        select: { id: true },
+      });
+
+      for (const store of stores) {
+        // Delete product images first
+        const products = await tx.product.findMany({
+          where: { storeId: store.id },
+          select: { id: true },
+        });
+
+        for (const product of products) {
+          await tx.productImage.deleteMany({ where: { productId: product.id } });
+        }
+
+        // Delete products in the store
+        await tx.product.deleteMany({ where: { storeId: store.id } });
+      }
+
+      // Delete stores
+      await tx.store.deleteMany({ where: { userId } });
+
+      // 2. Delete products without stores (sellerId reference)
+      const sellerProducts = await tx.product.findMany({
+        where: { sellerId: userId },
+        select: { id: true },
+      });
+
+      for (const product of sellerProducts) {
+        await tx.productImage.deleteMany({ where: { productId: product.id } });
+      }
+
+      await tx.product.deleteMany({ where: { sellerId: userId } });
+
+      // 3. Delete chat/conversation data
+      await tx.chatMessage.deleteMany({ where: { senderId: userId } });
+      await tx.conversationParticipant.deleteMany({ where: { userId } });
+
+      // 4. Delete support tickets and replies
+      await tx.ticketReply.deleteMany({ where: { userId } });
+      await tx.supportTicket.deleteMany({ where: { userId } });
+      // Clear assignedTo references (SetNull)
+      await tx.supportTicket.updateMany({
+        where: { assignedTo: userId },
+        data: { assignedTo: null },
+      });
+
+      // 5. Delete user balance
+      await tx.userBalance.deleteMany({ where: { userId } });
+
+      // 6. Delete auth-related data
       await tx.session.deleteMany({ where: { userId } });
       await tx.emailVerification.deleteMany({ where: { userId } });
       await tx.passwordReset.deleteMany({ where: { userId } });
 
-      // Delete user roles
+      // 7. Delete user roles
       await tx.userRole.deleteMany({ where: { userId } });
 
-      // Delete user info
+      // 8. Delete user info
       await tx.userInfo.deleteMany({ where: { userId } });
 
-      // Delete cart and items
+      // 9. Delete cart and items
       const cart = await tx.cart.findUnique({ where: { userId } });
       if (cart) {
         await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
         await tx.cart.delete({ where: { userId } });
       }
 
-      // Delete addresses
+      // 10. Delete addresses
       await tx.address.deleteMany({ where: { userId } });
 
-      // Delete reviews
+      // 11. Delete reviews
       await tx.review.deleteMany({ where: { userId } });
 
-      // Delete notifications
+      // 12. Delete notifications
       await tx.notification.deleteMany({ where: { userId } });
 
-      // Delete stock alerts
+      // 13. Delete stock alerts
       await tx.stockAlert.deleteMany({ where: { userId } });
 
-      // Delete the user
+      // 14. Delete the user (final step)
       await tx.user.delete({ where: { id: userId } });
     });
 
