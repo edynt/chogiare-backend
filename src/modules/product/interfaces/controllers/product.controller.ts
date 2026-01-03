@@ -108,12 +108,11 @@ export class ProductController {
   // POST ROUTES
   // ============================================================
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
+  @UseGuards(JwtAuthGuard)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Create a new product (Seller/Admin only)' })
+  @ApiOperation({ summary: 'Create a new product' })
   async create(
     @CurrentUser() user: CurrentUserPayload,
     @Body() createProductDto: CreateProductDto,
@@ -159,8 +158,7 @@ export class ProductController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
+  @UseGuards(JwtAuthGuard)
   @Patch(':id/status')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')
@@ -183,8 +181,7 @@ export class ProductController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
+  @UseGuards(JwtAuthGuard)
   @Patch(':id/stock')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')
@@ -203,8 +200,7 @@ export class ProductController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
+  @UseGuards(JwtAuthGuard)
   @Patch('bulk')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')

@@ -18,7 +18,6 @@ import { AuthService } from '@modules/auth/application/services/auth.service';
 import { LoginDto } from '@modules/auth/application/dto/login.dto';
 import { AdminLoginDto } from '@modules/auth/application/dto/admin-login.dto';
 import { RegisterDto } from '@modules/auth/application/dto/register.dto';
-import { RefreshTokenDto } from '@modules/auth/application/dto/refresh-token.dto';
 import { VerifyEmailDto } from '@modules/auth/application/dto/verify-email.dto';
 import { ForgotPasswordDto } from '@modules/auth/application/dto/forgot-password.dto';
 import { ResetPasswordDto } from '@modules/auth/application/dto/reset-password.dto';

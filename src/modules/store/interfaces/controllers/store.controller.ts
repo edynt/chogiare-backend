@@ -91,8 +91,7 @@ export class StoreController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('seller', 'admin')
+  @UseGuards(JwtAuthGuard)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth('JWT-auth')

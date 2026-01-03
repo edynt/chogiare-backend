@@ -3,15 +3,12 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { BoostService } from '@modules/boost/application/services/boost.service';
 import { CreateBoostDto } from '@modules/boost/application/dto/create-boost.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
-import { RolesGuard } from '@common/guards/roles.guard';
-import { Roles } from '@common/decorators/roles.decorator';
 import { CurrentUser, CurrentUserPayload } from '@common/decorators/current-user.decorator';
 import { MESSAGES } from '@common/constants/messages.constants';
 
 @ApiTags('Boost')
 @Controller('boost')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('seller', 'admin')
+@UseGuards(JwtAuthGuard)
 export class BoostController {
   constructor(private readonly boostService: BoostService) {}
 

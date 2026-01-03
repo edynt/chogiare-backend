@@ -10,8 +10,7 @@ import { MESSAGES } from '@common/constants/messages.constants';
 
 @ApiTags('Seller - Products')
 @Controller('seller/products')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('seller', 'admin')
+@UseGuards(JwtAuthGuard)
 export class SellerProductController {
   constructor(private readonly productService: ProductService) {}
 
