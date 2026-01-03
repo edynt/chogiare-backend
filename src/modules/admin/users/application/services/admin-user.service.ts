@@ -31,7 +31,7 @@ export class AdminUserService {
     if (queryDto.status) {
       if (queryDto.status === 'active') {
         where.status = true;
-      } else if (queryDto.status === 'inactive' || queryDto.status === 'suspended') {
+      } else if (queryDto.status === 'inactive') {
         where.status = false;
       }
     }
@@ -222,8 +222,7 @@ export class AdminUserService {
 
     return {
       active: activeUsers,
-      pending: inactiveUsers,
-      suspended: inactiveUsers,
+      inactive: inactiveUsers,
       sellers,
       verified: verifiedUsers,
     };

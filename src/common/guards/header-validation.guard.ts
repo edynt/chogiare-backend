@@ -30,9 +30,16 @@ export class HeaderValidationGuard implements CanActivate {
     }
 
     if (['POST', 'PUT', 'PATCH'].includes(request.method)) {
-      const contentType = headers['content-type'];
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new BadRequestException(MESSAGES.HEADER.INVALID_CONTENT_TYPE);
+      // Check if request has body using Content-Length header
+      const contentLength = headers['content-length'];
+      const hasBody = contentLength && parseInt(contentLength, 10) > 0;
+
+      // Only validate Content-Type when body actually present
+      if (hasBody) {
+        const contentType = headers['content-type'];
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new BadRequestException(MESSAGES.HEADER.INVALID_CONTENT_TYPE);
+        }
       }
     }
 
