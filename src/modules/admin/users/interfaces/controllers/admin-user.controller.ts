@@ -17,6 +17,8 @@ import { Roles } from '@common/decorators/roles.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { AdminUserService } from '../../application/services/admin-user.service';
 import { QueryAdminUserDto } from '../../application/dto/query-admin-user.dto';
+import { UpdateUserDto } from '../../application/dto/update-user.dto';
+import { UpdateUserRolesDto } from '../../application/dto/update-user-roles.dto';
 
 @ApiTags('Admin - Users')
 @Controller('admin/users')
@@ -42,6 +44,26 @@ export class AdminUserController {
   @ApiOperation({ summary: 'Get user by ID (Admin only)' })
   async getUserById(@CurrentUser('id') adminId: number, @Param('id', ParseIntPipe) userId: number) {
     return this.adminUserService.getUserById(adminId, userId);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Update user information (Admin only)' })
+  async updateUser(
+    @CurrentUser('id') adminId: number,
+    @Param('id', ParseIntPipe) userId: number,
+    @Body() updateDto: UpdateUserDto,
+  ) {
+    return this.adminUserService.updateUser(adminId, userId, updateDto);
+  }
+
+  @Put(':id/roles')
+  @ApiOperation({ summary: 'Update user roles (Admin only)' })
+  async updateUserRoles(
+    @CurrentUser('id') adminId: number,
+    @Param('id', ParseIntPipe) userId: number,
+    @Body() updateDto: UpdateUserRolesDto,
+  ) {
+    return this.adminUserService.updateUserRoles(adminId, userId, updateDto);
   }
 
   @Put(':id/approve')

@@ -9,6 +9,8 @@ import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
 import { isAdmin } from '@common/utils/admin.utils';
 import { QueryAdminUserDto } from '../dto/query-admin-user.dto';
+import { UpdateUserDto } from '../dto/update-user.dto';
+import { UpdateUserRolesDto } from '../dto/update-user-roles.dto';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
@@ -544,5 +546,167 @@ export class AdminUserService {
     });
 
     return { success: true };
+  }
+
+  async updateUser(adminId: number, userId: number, updateDto: UpdateUserDto) {
+    // Check if the requester is an admin
+    const admin = await isAdmin(adminId, this.prisma);
+    if (!admin) {
+      throw new ForbiddenException({
+        message: MESSAGES.USER.INSUFFICIENT_PERMISSIONS,
+        errorCode: ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS,
+      });
+    }
+
+    // Check if the user exists
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        userInfo: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException({
+        message: MESSAGES.ADMIN.USER_NOT_FOUND || 'User not found',
+        errorCode: ERROR_CODES.ADMIN_USER_NOT_FOUND || 'USER_NOT_FOUND',
+      });
+    }
+
+    // Prepare update data - only include provided fields
+    const updateData: any = {};
+    if (updateDto.fullName !== undefined) updateData.fullName = updateDto.fullName;
+    if (updateDto.phoneNumber !== undefined) updateData.phoneNumber = updateDto.phoneNumber;
+    if (updateDto.address !== undefined) updateData.address = updateDto.address;
+    if (updateDto.gender !== undefined) updateData.gender = updateDto.gender;
+    if (updateDto.dateOfBirth !== undefined) updateData.dateOfBirth = updateDto.dateOfBirth;
+    if (updateDto.country !== undefined) updateData.country = updateDto.country;
+
+    // Update or create userInfo
+    if (Object.keys(updateData).length > 0) {
+      if (user.userInfo) {
+        // Update existing userInfo
+        await this.prisma.userInfo.update({
+          where: { userId },
+          data: {
+            ...updateData,
+            updatedAt: BigInt(Date.now()),
+          },
+        });
+      } else {
+        // Create new userInfo
+        await this.prisma.userInfo.create({
+          data: {
+            userId,
+            ...updateData,
+            createdAt: BigInt(Date.now()),
+            updatedAt: BigInt(Date.now()),
+          },
+        });
+      }
+    }
+
+    // Update user's updatedAt timestamp
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        updatedAt: BigInt(Date.now()),
+      },
+    });
+
+    // Return updated user data
+    return this.getUserById(adminId, userId);
+  }
+
+  async updateUserRoles(adminId: number, userId: number, updateDto: UpdateUserRolesDto) {
+    // Check if the requester is an admin
+    const admin = await isAdmin(adminId, this.prisma);
+    if (!admin) {
+      throw new ForbiddenException({
+        message: MESSAGES.USER.INSUFFICIENT_PERMISSIONS,
+        errorCode: ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS,
+      });
+    }
+
+    // Check if the user exists
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        userRoles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException({
+        message: MESSAGES.ADMIN.USER_NOT_FOUND || 'User not found',
+        errorCode: ERROR_CODES.ADMIN_USER_NOT_FOUND || 'USER_NOT_FOUND',
+      });
+    }
+
+    // Prevent admin from modifying their own roles
+    if (user.id === adminId) {
+      throw new BadRequestException({
+        message: 'Cannot modify your own roles',
+        errorCode: 'CANNOT_MODIFY_OWN_ROLES',
+      });
+    }
+
+    // Verify all role IDs exist
+    const roles = await this.prisma.role.findMany({
+      where: {
+        id: {
+          in: updateDto.roleIds,
+        },
+      },
+    });
+
+    if (roles.length !== updateDto.roleIds.length) {
+      throw new BadRequestException({
+        message: 'One or more role IDs are invalid',
+        errorCode: 'INVALID_ROLE_IDS',
+      });
+    }
+
+    // Check if trying to assign admin role to another user
+    const hasAdminRole = roles.some((role) => role.name === 'admin');
+    if (hasAdminRole && user.id !== adminId) {
+      throw new BadRequestException({
+        message: 'Cannot assign admin role to other users',
+        errorCode: 'CANNOT_ASSIGN_ADMIN_ROLE',
+      });
+    }
+
+    // Delete existing user roles and create new ones
+    await this.prisma.$transaction(async (tx) => {
+      // Delete existing roles
+      await tx.userRole.deleteMany({
+        where: { userId },
+      });
+
+      // Create new roles
+      await tx.userRole.createMany({
+        data: updateDto.roleIds.map((roleId) => ({
+          userId,
+          roleId,
+          createdAt: BigInt(Date.now()),
+          updatedAt: BigInt(Date.now()),
+        })),
+      });
+
+      // Update user's updatedAt timestamp
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          updatedAt: BigInt(Date.now()),
+        },
+      });
+    });
+
+    // Return updated user data
+    return this.getUserById(adminId, userId);
   }
 }
