@@ -28,6 +28,25 @@ import { QueryPackageDto } from '../../application/dto/query-package.dto';
 export class AdminPackagesController {
   constructor(private readonly packagesService: AdminPackagesService) {}
 
+  @Get('stats')
+  @ApiOperation({ summary: 'Get package statistics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Package statistics retrieved successfully',
+    schema: {
+      example: {
+        totalPackages: 10,
+        activePackages: 8,
+        totalSubscribers: 150,
+        monthlyRevenue: 12500.50,
+        popularPackage: 'Premium Boost',
+      },
+    },
+  })
+  async getPackageStats(@CurrentUser('id') adminId: number) {
+    return this.packagesService.getPackageStats(adminId);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all service packages with pagination' })
   @ApiResponse({

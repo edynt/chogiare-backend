@@ -3,7 +3,7 @@ import { PrismaService } from '@common/database/prisma.service';
 import { CreatePackageDto } from '../dto/create-package.dto';
 import { UpdatePackageDto } from '../dto/update-package.dto';
 import { QueryPackageDto } from '../dto/query-package.dto';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class AdminPackagesService {
@@ -76,7 +76,7 @@ export class AdminPackagesService {
    * Create new package
    */
   async createPackage(adminId: number, dto: CreatePackageDto) {
-    const id = uuidv4().substring(0, 10); // Short UUID for consistency with existing packages
+    const id = randomUUID().substring(0, 10); // Short UUID for consistency with existing packages
     const now = Date.now();
 
     const pkg = await this.prisma.boostPackage.create({
@@ -182,5 +182,72 @@ export class AdminPackagesService {
     });
 
     return updated;
+  }
+
+  /**
+   * Get package statistics
+   */
+  async getPackageStats(adminId: number) {
+    // Total packages
+    const totalPackages = await this.prisma.boostPackage.count();
+
+    // Active packages
+    const activePackages = await this.prisma.boostPackage.count({
+      where: { isActive: true },
+    });
+
+    // Total subscribers (distinct users with active boosts)
+    const activeBoosts = await this.prisma.productBoost.groupBy({
+      by: ['userId'],
+      where: {
+        status: 'active',
+        endDate: { gt: Date.now() },
+      },
+    });
+    const totalSubscribers = activeBoosts.length;
+
+    // Monthly revenue (sum of all package prices for boosts created this month)
+    const now = Date.now();
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+    const monthStartTimestamp = monthStart.getTime();
+
+    const monthlyBoosts = await this.prisma.productBoost.findMany({
+      where: {
+        createdAt: { gte: monthStartTimestamp },
+      },
+      include: { boostPackage: true },
+    });
+
+    const monthlyRevenue = monthlyBoosts.reduce(
+      (sum, boost) => sum + Number(boost.boostPackage.price),
+      0
+    );
+
+    // Most popular package (by usage count)
+    const packageUsage = await this.prisma.productBoost.groupBy({
+      by: ['boostPackageId'],
+      _count: { id: true },
+      orderBy: { _count: { id: 'desc' } },
+      take: 1,
+    });
+
+    let popularPackage: string | null = null;
+    if (packageUsage.length > 0) {
+      const topPackage = await this.prisma.boostPackage.findUnique({
+        where: { id: packageUsage[0].boostPackageId },
+        select: { name: true },
+      });
+      popularPackage = topPackage?.name || null;
+    }
+
+    return {
+      totalPackages,
+      activePackages,
+      totalSubscribers,
+      monthlyRevenue,
+      popularPackage,
+    };
   }
 }
