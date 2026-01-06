@@ -2,14 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
 import { IInventoryRepository } from '@modules/inventory/domain/repositories/inventory.repository.interface';
 import { StockInRecord } from '@modules/inventory/domain/entities/stock-in-record.entity';
-import { StockAlert } from '@modules/inventory/domain/entities/stock-alert.entity';
 import {
   StockMovement,
   StockMovementType,
 } from '@modules/inventory/domain/entities/stock-movement.entity';
 import {
   StockInRecord as PrismaStockInRecord,
-  StockAlert as PrismaStockAlert,
   Prisma,
 } from '@prisma/client';
 
@@ -77,76 +75,6 @@ export class InventoryRepository implements IInventoryRepository {
       where: { id },
     });
     return record ? this.toStockInRecordDomain(record) : null;
-  }
-
-  async createStockAlert(alert: Partial<StockAlert>): Promise<StockAlert> {
-    const created = await this.prisma.stockAlert.create({
-      data: {
-        productId: alert.productId!,
-        userId: alert.userId!,
-        alertType: alert.alertType!,
-        message: alert.message!,
-        isRead: alert.isRead ?? false,
-        metadata: (alert.metadata as object) || {},
-        createdAt: alert.createdAt!,
-      },
-    });
-    return this.toStockAlertDomain(created);
-  }
-
-  async getStockAlerts(options?: {
-    productId?: number;
-    userId?: number;
-    isRead?: boolean;
-    page?: number;
-    pageSize?: number;
-  }): Promise<{ items: StockAlert[]; total: number }> {
-    const where: Prisma.StockAlertWhereInput = {};
-
-    if (options?.productId) {
-      where.productId = options.productId;
-    }
-
-    if (options?.userId) {
-      where.userId = options.userId;
-    }
-
-    if (options?.isRead !== undefined) {
-      where.isRead = options.isRead;
-    }
-
-    const page = options?.page || 1;
-    const pageSize = options?.pageSize || 10;
-    const skip = (page - 1) * pageSize;
-
-    const [alerts, total] = await Promise.all([
-      this.prisma.stockAlert.findMany({
-        where,
-        skip,
-        take: pageSize,
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.stockAlert.count({ where }),
-    ]);
-
-    return {
-      items: alerts.map((a) => this.toStockAlertDomain(a)),
-      total,
-    };
-  }
-
-  async markAlertAsRead(id: number): Promise<void> {
-    await this.prisma.stockAlert.update({
-      where: { id },
-      data: { isRead: true },
-    });
-  }
-
-  async markAllAlertsAsRead(userId: number): Promise<void> {
-    await this.prisma.stockAlert.updateMany({
-      where: { userId, isRead: false },
-      data: { isRead: true },
-    });
   }
 
   async createStockMovement(movement: Partial<StockMovement>): Promise<StockMovement> {
@@ -316,19 +244,6 @@ export class InventoryRepository implements IInventoryRepository {
       createdBy: prismaRecord.createdBy,
       recordMetadata: prismaRecord.recordMetadata as Record<string, unknown>,
       createdAt: prismaRecord.createdAt,
-    };
-  }
-
-  private toStockAlertDomain(prismaAlert: PrismaStockAlert): StockAlert {
-    return {
-      id: prismaAlert.id,
-      productId: prismaAlert.productId,
-      userId: prismaAlert.userId,
-      alertType: prismaAlert.alertType,
-      message: prismaAlert.message,
-      isRead: prismaAlert.isRead,
-      metadata: prismaAlert.metadata as Record<string, unknown>,
-      createdAt: prismaAlert.createdAt,
     };
   }
 }

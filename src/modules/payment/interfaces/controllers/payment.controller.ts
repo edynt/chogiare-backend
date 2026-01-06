@@ -53,7 +53,7 @@ export class PaymentController {
   @ApiQuery({
     name: 'type',
     required: false,
-    enum: ['deposit', 'sale', 'refund', 'commission', 'bonus', 'boost'],
+    enum: ['deposit', 'sale', 'refund', 'commission', 'bonus'],
   })
   @ApiQuery({
     name: 'status',

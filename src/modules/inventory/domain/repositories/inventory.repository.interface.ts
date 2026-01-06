@@ -1,5 +1,4 @@
 import { StockInRecord } from '../entities/stock-in-record.entity';
-import { StockAlert } from '../entities/stock-alert.entity';
 import { StockMovement, StockMovementType } from '../entities/stock-movement.entity';
 
 export const INVENTORY_REPOSITORY = Symbol('INVENTORY_REPOSITORY');
@@ -13,16 +12,6 @@ export interface IInventoryRepository {
     pageSize?: number;
   }): Promise<{ items: StockInRecord[]; total: number }>;
   getStockInRecordById(id: number): Promise<StockInRecord | null>;
-  createStockAlert(alert: Partial<StockAlert>): Promise<StockAlert>;
-  getStockAlerts(options?: {
-    productId?: number;
-    userId?: number;
-    isRead?: boolean;
-    page?: number;
-    pageSize?: number;
-  }): Promise<{ items: StockAlert[]; total: number }>;
-  markAlertAsRead(id: number): Promise<void>;
-  markAllAlertsAsRead(userId: number): Promise<void>;
   createStockMovement(movement: Partial<StockMovement>): Promise<StockMovement>;
   getStockMovements(options?: {
     productId?: number;

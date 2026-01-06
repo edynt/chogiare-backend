@@ -62,13 +62,8 @@ export class AdminPaymentService {
         take: pageSize,
         orderBy: { createdAt: 'desc' },
         include: {
-          user: {
-            include: {
-              userInfo: true,
-            },
-          },
+          user: true,
           order: true,
-          boost: true,
         },
       }),
       this.prisma.transaction.count({ where }),
@@ -102,13 +97,8 @@ export class AdminPaymentService {
     const transaction = await this.prisma.transaction.findUnique({
       where: { id: transactionId },
       include: {
-        user: {
-          include: {
-            userInfo: true,
-          },
-        },
+        user: true,
         order: true,
-        boost: true,
       },
     });
 
@@ -192,7 +182,6 @@ export class AdminPaymentService {
           reference: `REFUND-${transactionId}`,
           description: reason || `Refund for transaction ${transactionId}`,
           orderId: transaction.orderId,
-          boostId: transaction.boostId,
           transactionMetadata: {
             originalTransactionId: transactionId,
             refundedBy: adminId,

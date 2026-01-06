@@ -23,7 +23,7 @@ import {
 import { StockInDto } from '../dto/stock-in.dto';
 import { StockOutDto } from '../dto/stock-out.dto';
 import { StockAdjustmentDto } from '../dto/stock-adjustment.dto';
-import { QueryStockInDto, QueryStockAlertDto, QueryStockMovementDto } from '../dto/query-stock.dto';
+import { QueryStockInDto, QueryStockMovementDto } from '../dto/query-stock.dto';
 import { StockMovementType } from '@modules/inventory/domain/entities/stock-movement.entity';
 
 @Injectable()
@@ -108,8 +108,6 @@ export class InventoryService {
       });
     });
 
-    await this.checkAndCreateLowStockAlert(stockInDto.productId, newStock, product.minStock);
-
     return {
       message: MESSAGES.INVENTORY.STOCK_IN_SUCCESS,
       data: {
@@ -178,8 +176,6 @@ export class InventoryService {
         createdAt: now,
       });
     });
-
-    await this.checkAndCreateLowStockAlert(stockOutDto.productId, newStock, product.minStock);
 
     return {
       message: MESSAGES.INVENTORY.STOCK_OUT_SUCCESS,
@@ -258,12 +254,6 @@ export class InventoryService {
       });
     });
 
-    await this.checkAndCreateLowStockAlert(
-      adjustmentDto.productId,
-      adjustmentDto.newStock,
-      product.minStock,
-    );
-
     return {
       message: MESSAGES.INVENTORY.STOCK_ADJUSTMENT_SUCCESS,
       data: {
@@ -301,53 +291,6 @@ export class InventoryService {
     return {
       message: MESSAGES.INVENTORY.STOCK_IN_RECORDS_RETRIEVED,
       data: result,
-    };
-  }
-
-  async getStockAlerts(userId: number, queryDto: QueryStockAlertDto) {
-    const result = await this.inventoryRepository.getStockAlerts({
-      productId: queryDto.productId,
-      userId,
-      isRead: queryDto.isRead,
-      page: queryDto.page,
-      pageSize: queryDto.pageSize,
-    });
-
-    return {
-      message: MESSAGES.INVENTORY.STOCK_ALERTS_RETRIEVED,
-      data: result,
-    };
-  }
-
-  async markAlertAsRead(userId: number, alertId: number) {
-    const alert = await this.inventoryRepository.getStockAlerts({
-      userId,
-      page: 1,
-      pageSize: 1,
-    });
-
-    const foundAlert = alert.items.find((a) => a.id === alertId);
-    if (!foundAlert) {
-      throw new NotFoundException({
-        message: MESSAGES.INVENTORY.ALERT_NOT_FOUND,
-        errorCode: ERROR_CODES.INVENTORY_ALERT_NOT_FOUND,
-      });
-    }
-
-    await this.inventoryRepository.markAlertAsRead(alertId);
-
-    return {
-      message: MESSAGES.INVENTORY.ALERT_MARKED_AS_READ,
-      data: { alertId },
-    };
-  }
-
-  async markAllAlertsAsRead(userId: number) {
-    await this.inventoryRepository.markAllAlertsAsRead(userId);
-
-    return {
-      message: MESSAGES.INVENTORY.ALL_ALERTS_MARKED_AS_READ,
-      data: { userId },
     };
   }
 
@@ -518,43 +461,5 @@ export class InventoryService {
         stockMovements: type === 'stock_movement' ? stockMovements.items : [],
       },
     };
-  }
-
-  private async checkAndCreateLowStockAlert(
-    productId: number,
-    currentStock: number,
-    minStock: number,
-  ): Promise<void> {
-    if (currentStock <= minStock) {
-      const product = await this.productRepository.findById(productId);
-      if (!product) return;
-
-      const existingAlerts = await this.inventoryRepository.getStockAlerts({
-        productId,
-        userId: product.sellerId,
-        isRead: false,
-        page: 1,
-        pageSize: 1,
-      });
-
-      const hasUnreadAlert = existingAlerts.items.some(
-        (alert) => alert.alertType === 'low_stock' && !alert.isRead,
-      );
-
-      if (!hasUnreadAlert) {
-        await this.inventoryRepository.createStockAlert({
-          productId,
-          userId: product.sellerId,
-          alertType: 'low_stock',
-          message: `Product "${product.title}" is running low on stock. Current stock: ${currentStock}, Minimum stock: ${minStock}`,
-          isRead: false,
-          metadata: {
-            currentStock,
-            minStock,
-          },
-          createdAt: BigInt(Date.now()),
-        });
-      }
-    }
   }
 }

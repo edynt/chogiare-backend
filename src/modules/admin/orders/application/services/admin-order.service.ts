@@ -66,11 +66,7 @@ export class AdminOrderService {
         take: pageSize,
         orderBy: { createdAt: 'desc' },
         include: {
-          user: {
-            include: {
-              userInfo: true,
-            },
-          },
+          user: true,
           store: true,
           items: {
             include: {
@@ -121,11 +117,7 @@ export class AdminOrderService {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        user: {
-          include: {
-            userInfo: true,
-          },
-        },
+        user: true,
         store: true,
         items: {
           include: {

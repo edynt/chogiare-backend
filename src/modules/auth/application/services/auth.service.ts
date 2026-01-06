@@ -88,20 +88,12 @@ export class AuthService {
       isVerified: false,
       status: true,
       language: 'vi',
-    });
-
-    const now = BigInt(Date.now());
-    await this.prisma.userInfo.create({
-      data: {
-        userId: user.id,
-        fullName: registerDto.fullName,
-        createdAt: now,
-        updatedAt: now,
-      },
+      fullName: registerDto.fullName,
     });
 
     const verificationCode = this.generateVerificationCode();
     const expiresAt = BigInt(Date.now() + 24 * 60 * 60 * 1000);
+    const now = BigInt(Date.now());
 
     await this.prisma.emailVerification.create({
       data: {
@@ -572,14 +564,10 @@ export class AuthService {
       }),
     ]);
 
-    const userInfo = await this.prisma.userInfo.findUnique({
-      where: { userId: user.id },
-    });
-
     try {
       await this.emailService.sendPasswordResetEmail(
         user.email,
-        userInfo?.fullName || 'Người dùng',
+        user.fullName || 'Người dùng',
         resetToken,
       );
     } catch (error) {
@@ -809,14 +797,10 @@ export class AuthService {
       }),
     ]);
 
-    const userInfo = await this.prisma.userInfo.findUnique({
-      where: { userId: user.id },
-    });
-
     try {
       await this.emailService.sendOTPEmail(
         user.email,
-        userInfo?.fullName || 'Người dùng',
+        user.fullName || 'Người dùng',
         verificationCode,
       );
     } catch (error) {
@@ -880,11 +864,7 @@ export class AuthService {
       updateData.country = updateProfileDto.country;
     }
 
-    const userInfo = await this.prisma.userInfo.findUnique({
-      where: { userId },
-    });
-
-    const currentMetadata = (userInfo?.metadata as Record<string, unknown>) || {};
+    const currentMetadata = (user.profileMetadata as Record<string, unknown>) || {};
     const metadataUpdate: Record<string, unknown> = {};
     if (updateProfileDto.showEmail !== undefined) {
       metadataUpdate.showEmail = updateProfileDto.showEmail;
@@ -901,7 +881,7 @@ export class AuthService {
       dateOfBirth?: string;
       address?: string;
       country?: string;
-      metadata?: Prisma.InputJsonValue;
+      profileMetadata?: Prisma.InputJsonValue;
       updatedAt: bigint;
     } = {
       updatedAt: now,
@@ -930,23 +910,13 @@ export class AuthService {
     }
 
     if (Object.keys(metadataUpdate).length > 0) {
-      prismaData.metadata = { ...currentMetadata, ...metadataUpdate } as Prisma.InputJsonValue;
+      prismaData.profileMetadata = { ...currentMetadata, ...metadataUpdate } as Prisma.InputJsonValue;
     }
 
-    if (userInfo) {
-      await this.prisma.userInfo.update({
-        where: { userId },
-        data: prismaData,
-      });
-    } else {
-      await this.prisma.userInfo.create({
-        data: {
-          userId,
-          ...prismaData,
-          createdAt: now,
-        },
-      });
-    }
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: prismaData,
+    });
 
     if (updateProfileDto.language !== undefined) {
       await this.userRepository.update(userId, { language: updateProfileDto.language });
@@ -959,17 +929,15 @@ export class AuthService {
     isVerified: boolean;
     status: boolean;
     language: string;
-    userInfo: {
-      fullName: string | null;
-      avatarUrl: string | null;
-      gender: string | null;
-      dateOfBirth: string | null;
-      phoneNumber: string | null;
-      address: string | null;
-      country: string | null;
-      showEmail: boolean;
-      showPhone: boolean;
-    } | null;
+    fullName: string | null;
+    avatarUrl: string | null;
+    gender: string | null;
+    dateOfBirth: string | null;
+    phoneNumber: string | null;
+    address: string | null;
+    country: string | null;
+    showEmail: boolean;
+    showPhone: boolean;
     roles: string[];
   }> {
     const user = await this.userRepository.findById(userId);
@@ -980,10 +948,6 @@ export class AuthService {
       });
     }
 
-    const userInfo = await this.prisma.userInfo.findUnique({
-      where: { userId },
-    });
-
     const userRoles = await this.prisma.userRole.findMany({
       where: { userId },
       include: { role: true },
@@ -991,26 +955,22 @@ export class AuthService {
 
     const roles = userRoles.map((ur) => ur.role.name);
 
-    const metadata = (userInfo?.metadata as Record<string, unknown>) || {};
+    const metadata = (user.profileMetadata as Record<string, unknown>) || {};
     return {
       id: user.id,
       email: user.email,
       isVerified: user.isVerified,
       status: user.status,
       language: user.language,
-      userInfo: userInfo
-        ? {
-            fullName: userInfo.fullName,
-            avatarUrl: userInfo.avatarUrl,
-            gender: userInfo.gender,
-            dateOfBirth: userInfo.dateOfBirth,
-            phoneNumber: userInfo.phoneNumber,
-            address: userInfo.address,
-            country: userInfo.country,
-            showEmail: (metadata.showEmail as boolean) || false,
-            showPhone: (metadata.showPhone as boolean) || false,
-          }
-        : null,
+      fullName: user.fullName,
+      avatarUrl: user.avatarUrl,
+      gender: user.gender,
+      dateOfBirth: user.dateOfBirth,
+      phoneNumber: user.phoneNumber,
+      address: user.address,
+      country: user.country,
+      showEmail: (metadata.showEmail as boolean) || false,
+      showPhone: (metadata.showPhone as boolean) || false,
       roles,
     };
   }
@@ -1082,17 +1042,8 @@ export class AuthService {
           isVerified: true,
           status: true,
           language: 'vi',
-        });
-
-        const now = BigInt(Date.now());
-        await this.prisma.userInfo.create({
-          data: {
-            userId: user.id,
-            fullName: userInfo.name || null,
-            avatarUrl: userInfo.picture || null,
-            createdAt: now,
-            updatedAt: now,
-          },
+          fullName: userInfo.name || null,
+          avatarUrl: userInfo.picture || null,
         });
 
         // Assign default user role to OAuth users
@@ -1110,24 +1061,9 @@ export class AuthService {
           });
         }
 
-        const userInfoRecord = await this.prisma.userInfo.findUnique({
-          where: { userId: user.id },
-        });
-
-        if (!userInfoRecord) {
-          const now = BigInt(Date.now());
-          await this.prisma.userInfo.create({
-            data: {
-              userId: user.id,
-              fullName: userInfo.name || null,
-              avatarUrl: userInfo.picture || null,
-              createdAt: now,
-              updatedAt: now,
-            },
-          });
-        } else if (userInfo.picture && !userInfoRecord.avatarUrl) {
-          await this.prisma.userInfo.update({
-            where: { userId: user.id },
+        if (userInfo.picture && !user.avatarUrl) {
+          await this.prisma.user.update({
+            where: { id: user.id },
             data: {
               avatarUrl: userInfo.picture,
               updatedAt: BigInt(Date.now()),

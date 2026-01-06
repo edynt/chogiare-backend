@@ -103,12 +103,11 @@ export class ChatService {
       participants.map(async (p) => {
         const user = await this.prisma.user.findUnique({
           where: { id: p.userId },
-          include: { userInfo: true },
         });
         return {
           userId: p.userId,
-          fullName: user?.userInfo?.fullName || null,
-          avatarUrl: user?.userInfo?.avatarUrl || null,
+          fullName: user?.fullName || null,
+          avatarUrl: user?.avatarUrl || null,
         };
       }),
     );
@@ -145,12 +144,11 @@ export class ChatService {
         if (otherParticipant) {
           const user = await this.prisma.user.findUnique({
             where: { id: otherParticipant.userId },
-            include: { userInfo: true },
-          });
+            });
           otherUserInfo = {
             userId: otherParticipant.userId,
-            fullName: user?.userInfo?.fullName || null,
-            avatarUrl: user?.userInfo?.avatarUrl || null,
+            fullName: user?.fullName || null,
+            avatarUrl: user?.avatarUrl || null,
           };
         }
 
@@ -208,12 +206,11 @@ export class ChatService {
       participants.map(async (p) => {
         const user = await this.prisma.user.findUnique({
           where: { id: p.userId },
-          include: { userInfo: true },
         });
         return {
           userId: p.userId,
-          fullName: user?.userInfo?.fullName || null,
-          avatarUrl: user?.userInfo?.avatarUrl || null,
+          fullName: user?.fullName || null,
+          avatarUrl: user?.avatarUrl || null,
         };
       }),
     );
@@ -265,7 +262,6 @@ export class ChatService {
 
     const sender = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { userInfo: true },
     });
 
     return {
@@ -274,8 +270,8 @@ export class ChatService {
       updatedAt: message.updatedAt.toString(),
       sender: {
         userId: sender?.id,
-        fullName: sender?.userInfo?.fullName || null,
-        avatarUrl: sender?.userInfo?.avatarUrl || null,
+        fullName: sender?.fullName || null,
+        avatarUrl: sender?.avatarUrl || null,
       },
     };
   }
@@ -315,7 +311,6 @@ export class ChatService {
       result.items.map(async (message) => {
         const sender = await this.prisma.user.findUnique({
           where: { id: message.senderId },
-          include: { userInfo: true },
         });
         return {
           ...message,
@@ -323,8 +318,8 @@ export class ChatService {
           updatedAt: message.updatedAt.toString(),
           sender: {
             userId: sender?.id,
-            fullName: sender?.userInfo?.fullName || null,
-            avatarUrl: sender?.userInfo?.avatarUrl || null,
+            fullName: sender?.fullName || null,
+            avatarUrl: sender?.avatarUrl || null,
           },
         };
       }),
@@ -390,7 +385,6 @@ export class ChatService {
 
     const sender = await this.prisma.user.findUnique({
       where: { id: message.senderId },
-      include: { userInfo: true },
     });
 
     return {
@@ -399,8 +393,8 @@ export class ChatService {
       updatedAt: message.updatedAt.toString(),
       sender: {
         userId: sender?.id,
-        fullName: sender?.userInfo?.fullName || null,
-        avatarUrl: sender?.userInfo?.avatarUrl || null,
+        fullName: sender?.fullName || null,
+        avatarUrl: sender?.avatarUrl || null,
       },
     };
   }

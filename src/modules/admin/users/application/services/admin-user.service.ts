@@ -79,14 +79,8 @@ export class AdminUserService {
       const searchCondition: Prisma.UserWhereInput = {
         OR: [
           { email: { contains: queryDto.search, mode: 'insensitive' as const } },
-          {
-            userInfo: {
-              OR: [
-                { fullName: { contains: queryDto.search, mode: 'insensitive' as const } },
-                { phoneNumber: { contains: queryDto.search, mode: 'insensitive' as const } },
-              ],
-            },
-          },
+          { fullName: { contains: queryDto.search, mode: 'insensitive' as const } },
+          { phoneNumber: { contains: queryDto.search, mode: 'insensitive' as const } },
         ],
       };
 
@@ -115,7 +109,6 @@ export class AdminUserService {
         take: pageSize,
         orderBy: { createdAt: 'desc' },
         include: {
-          userInfo: true,
           userRoles: {
             include: {
               role: true,
@@ -147,16 +140,16 @@ export class AdminUserService {
       items: users.map((user) => {
         // Simplified - admins already excluded at DB level
         const userRole = user.userRoles[0]?.role;
-        const roleName = userRole?.name || 'buyer';
+        const roleName = userRole?.name || 'user';
 
         const totalOrders = user._count.orders;
         const totalRevenue = user.orders.reduce((sum, o) => sum + Number(o.total), 0);
 
         return {
           id: user.id.toString(),
-          name: user.userInfo?.fullName || user.email.split('@')[0],
+          name: user.fullName || user.email.split('@')[0],
           email: user.email,
-          phone: user.userInfo?.phoneNumber || null,
+          phone: user.phoneNumber || null,
           role: roleName,
           status: user.status ? 'active' : 'inactive',
           verified: user.isVerified,
@@ -165,8 +158,8 @@ export class AdminUserService {
           totalOrders,
           totalRevenue,
           rating: 0,
-          location: user.userInfo?.address || null,
-          avatar: user.userInfo?.avatarUrl || null,
+          location: user.address || null,
+          avatar: user.avatarUrl || null,
         };
       }),
       total,
@@ -188,7 +181,6 @@ export class AdminUserService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        userInfo: true,
         userRoles: {
           include: {
             role: true,
@@ -213,7 +205,7 @@ export class AdminUserService {
 
     const userRole =
       user.userRoles.find((ur) => ur.role.name !== 'admin')?.role || user.userRoles[0]?.role;
-    const roleName = userRole?.name || 'buyer';
+    const roleName = userRole?.name || 'user';
 
     const totalOrders = user.orders.length;
     const totalRevenue = user.orders
@@ -222,9 +214,9 @@ export class AdminUserService {
 
     return {
       id: user.id.toString(),
-      name: user.userInfo?.fullName || user.email.split('@')[0],
+      name: user.fullName || user.email.split('@')[0],
       email: user.email,
-      phone: user.userInfo?.phoneNumber || null,
+      phone: user.phoneNumber || null,
       role: roleName,
       status: user.status ? 'active' : 'inactive',
       verified: user.isVerified,
@@ -233,8 +225,8 @@ export class AdminUserService {
       totalOrders,
       totalRevenue,
       rating: 0,
-      location: user.userInfo?.address || null,
-      avatar: user.userInfo?.avatarUrl || null,
+      location: user.address || null,
+      avatar: user.avatarUrl || null,
     };
   }
 
@@ -247,27 +239,15 @@ export class AdminUserService {
       });
     }
 
-    const [activeUsers, inactiveUsers, verifiedUsers, sellers] = await Promise.all([
+    const [activeUsers, inactiveUsers, verifiedUsers] = await Promise.all([
       this.prisma.user.count({ where: { status: true } }),
       this.prisma.user.count({ where: { status: false } }),
       this.prisma.user.count({ where: { isVerified: true } }),
-      this.prisma.user.count({
-        where: {
-          userRoles: {
-            some: {
-              role: {
-                name: 'seller',
-              },
-            },
-          },
-        },
-      }),
     ]);
 
     return {
       active: activeUsers,
       inactive: inactiveUsers,
-      sellers,
       verified: verifiedUsers,
     };
   }
@@ -284,7 +264,6 @@ export class AdminUserService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        userInfo: true,
         userRoles: {
           include: {
             role: true,
@@ -308,7 +287,6 @@ export class AdminUserService {
         updatedAt: BigInt(Date.now()),
       },
       include: {
-        userInfo: true,
         userRoles: {
           include: {
             role: true,
@@ -319,13 +297,13 @@ export class AdminUserService {
 
     const userRole =
       updated.userRoles.find((ur) => ur.role.name !== 'admin')?.role || updated.userRoles[0]?.role;
-    const roleName = userRole?.name || 'buyer';
+    const roleName = userRole?.name || 'user';
 
     return {
       id: updated.id.toString(),
-      name: updated.userInfo?.fullName || updated.email.split('@')[0],
+      name: updated.fullName || updated.email.split('@')[0],
       email: updated.email,
-      phone: updated.userInfo?.phoneNumber || null,
+      phone: updated.phoneNumber || null,
       role: roleName,
       status: updated.status ? 'active' : 'inactive',
       verified: updated.isVerified,
@@ -334,8 +312,8 @@ export class AdminUserService {
       totalOrders: 0,
       totalRevenue: 0,
       rating: 0,
-      location: updated.userInfo?.address || null,
-      avatar: updated.userInfo?.avatarUrl || null,
+      location: updated.address || null,
+      avatar: updated.avatarUrl || null,
     };
   }
 
@@ -366,7 +344,6 @@ export class AdminUserService {
         updatedAt: BigInt(Date.now()),
       },
       include: {
-        userInfo: true,
         userRoles: {
           include: {
             role: true,
@@ -377,13 +354,13 @@ export class AdminUserService {
 
     const userRole =
       updated.userRoles.find((ur) => ur.role.name !== 'admin')?.role || updated.userRoles[0]?.role;
-    const roleName = userRole?.name || 'buyer';
+    const roleName = userRole?.name || 'user';
 
     return {
       id: updated.id.toString(),
-      name: updated.userInfo?.fullName || updated.email.split('@')[0],
+      name: updated.fullName || updated.email.split('@')[0],
       email: updated.email,
-      phone: updated.userInfo?.phoneNumber || null,
+      phone: updated.phoneNumber || null,
       role: roleName,
       status: updated.status ? 'active' : 'inactive',
       verified: updated.isVerified,
@@ -392,8 +369,8 @@ export class AdminUserService {
       totalOrders: 0,
       totalRevenue: 0,
       rating: 0,
-      location: updated.userInfo?.address || null,
-      avatar: updated.userInfo?.avatarUrl || null,
+      location: updated.address || null,
+      avatar: updated.avatarUrl || null,
     };
   }
 
@@ -424,7 +401,6 @@ export class AdminUserService {
         updatedAt: BigInt(Date.now()),
       },
       include: {
-        userInfo: true,
         userRoles: {
           include: {
             role: true,
@@ -435,13 +411,13 @@ export class AdminUserService {
 
     const userRole =
       updated.userRoles.find((ur) => ur.role.name !== 'admin')?.role || updated.userRoles[0]?.role;
-    const roleName = userRole?.name || 'buyer';
+    const roleName = userRole?.name || 'user';
 
     return {
       id: updated.id.toString(),
-      name: updated.userInfo?.fullName || updated.email.split('@')[0],
+      name: updated.fullName || updated.email.split('@')[0],
       email: updated.email,
-      phone: updated.userInfo?.phoneNumber || null,
+      phone: updated.phoneNumber || null,
       role: roleName,
       status: updated.status ? 'active' : 'inactive',
       verified: updated.isVerified,
@@ -450,8 +426,8 @@ export class AdminUserService {
       totalOrders: 0,
       totalRevenue: 0,
       rating: 0,
-      location: updated.userInfo?.address || null,
-      avatar: updated.userInfo?.avatarUrl || null,
+      location: updated.address || null,
+      avatar: updated.avatarUrl || null,
     };
   }
 
@@ -553,10 +529,9 @@ export class AdminUserService {
     }
 
     // Check for blocking constraints (Restrict policies)
-    const [orderCount, transactionCount, productBoostCount] = await Promise.all([
+    const [orderCount, transactionCount] = await Promise.all([
       this.prisma.order.count({ where: { userId } }),
       this.prisma.transaction.count({ where: { userId } }),
-      this.prisma.productBoost.count({ where: { userId } }),
     ]);
 
     if (orderCount > 0) {
@@ -570,13 +545,6 @@ export class AdminUserService {
       throw new BadRequestException({
         message: `Cannot delete user with ${transactionCount} transaction(s).`,
         errorCode: 'USER_HAS_TRANSACTIONS',
-      });
-    }
-
-    if (productBoostCount > 0) {
-      throw new BadRequestException({
-        message: `Cannot delete user with ${productBoostCount} active product boost(s).`,
-        errorCode: 'USER_HAS_BOOSTS',
       });
     }
 
@@ -642,10 +610,7 @@ export class AdminUserService {
       // 7. Delete user roles
       await tx.userRole.deleteMany({ where: { userId } });
 
-      // 8. Delete user info
-      await tx.userInfo.deleteMany({ where: { userId } });
-
-      // 9. Delete cart and items
+      // 8. Delete cart and items
       const cart = await tx.cart.findUnique({ where: { userId } });
       if (cart) {
         await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
@@ -661,10 +626,7 @@ export class AdminUserService {
       // 12. Delete notifications
       await tx.notification.deleteMany({ where: { userId } });
 
-      // 13. Delete stock alerts
-      await tx.stockAlert.deleteMany({ where: { userId } });
-
-      // 14. Delete the user (final step)
+      // 13. Delete the user (final step)
       await tx.user.delete({ where: { id: userId } });
     });
 
@@ -685,7 +647,6 @@ export class AdminUserService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        userInfo: true,
       },
     });
 
@@ -697,7 +658,9 @@ export class AdminUserService {
     }
 
     // Prepare update data - only include provided fields
-    const updateData: any = {};
+    const updateData: any = {
+      updatedAt: BigInt(Date.now()),
+    };
     if (updateDto.fullName !== undefined) updateData.fullName = updateDto.fullName;
     if (updateDto.phoneNumber !== undefined) updateData.phoneNumber = updateDto.phoneNumber;
     if (updateDto.address !== undefined) updateData.address = updateDto.address;
@@ -705,37 +668,13 @@ export class AdminUserService {
     if (updateDto.dateOfBirth !== undefined) updateData.dateOfBirth = updateDto.dateOfBirth;
     if (updateDto.country !== undefined) updateData.country = updateDto.country;
 
-    // Update or create userInfo
-    if (Object.keys(updateData).length > 0) {
-      if (user.userInfo) {
-        // Update existing userInfo
-        await this.prisma.userInfo.update({
-          where: { userId },
-          data: {
-            ...updateData,
-            updatedAt: BigInt(Date.now()),
-          },
-        });
-      } else {
-        // Create new userInfo
-        await this.prisma.userInfo.create({
-          data: {
-            userId,
-            ...updateData,
-            createdAt: BigInt(Date.now()),
-            updatedAt: BigInt(Date.now()),
-          },
-        });
-      }
+    // Update user with profile fields
+    if (Object.keys(updateData).length > 1) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+      });
     }
-
-    // Update user's updatedAt timestamp
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        updatedAt: BigInt(Date.now()),
-      },
-    });
 
     // Return updated user data
     return this.getUserById(adminId, userId);

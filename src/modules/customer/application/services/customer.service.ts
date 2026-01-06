@@ -207,8 +207,7 @@ export class CustomerService {
       lockedCustomers,
       verifiedCustomers,
       unverifiedCustomers,
-      buyers,
-      sellers,
+      users,
       admins,
       newCustomersThisMonth,
     ] = await Promise.all([
@@ -218,10 +217,7 @@ export class CustomerService {
       this.prisma.user.count({ where: { isVerified: true } }),
       this.prisma.user.count({ where: { isVerified: false } }),
       this.prisma.userRole.count({
-        where: { role: { name: 'buyer' } },
-      }),
-      this.prisma.userRole.count({
-        where: { role: { name: 'seller' } },
+        where: { role: { name: 'user' } },
       }),
       this.prisma.userRole.count({
         where: { role: { name: 'admin' } },
@@ -241,8 +237,7 @@ export class CustomerService {
       lockedCustomers,
       verifiedCustomers,
       unverifiedCustomers,
-      buyers,
-      sellers,
+      users,
       admins,
       newCustomersThisMonth,
     };

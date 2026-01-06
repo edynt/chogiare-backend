@@ -9,7 +9,6 @@ export class Transaction {
   reference: string | null;
   description: string | null;
   orderId: number | null;
-  boostId: number | null;
   transactionMetadata: Record<string, unknown>;
   createdAt: bigint;
   updatedAt: bigint;

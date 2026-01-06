@@ -31,11 +31,11 @@ export class QueryTransactionDto {
   @ApiProperty({
     description: 'Filter by transaction type',
     example: 'deposit',
-    enum: ['deposit', 'sale', 'refund', 'commission', 'bonus', 'boost'],
+    enum: ['deposit', 'sale', 'refund', 'commission', 'bonus'],
     required: false,
   })
   @IsOptional()
-  @IsEnum(['deposit', 'sale', 'refund', 'commission', 'bonus', 'boost'], {
+  @IsEnum(['deposit', 'sale', 'refund', 'commission', 'bonus'], {
     message: VALIDATION_MESSAGES.IS_ENUM,
   })
   type?: string;

@@ -13,7 +13,6 @@ import { ProductModule } from '@modules/product/product.module';
 import { UploadModule } from '@modules/upload/upload.module';
 import { CustomerModule } from '@modules/customer/customer.module';
 import { PaymentModule } from '@modules/payment/payment.module';
-import { BoostModule } from '@modules/boost/boost.module';
 import { InventoryModule } from '@modules/inventory/inventory.module';
 import { ProductImportExportModule } from '@modules/product-import-export/product-import-export.module';
 import { AdminModule } from '@modules/admin/admin.module';
@@ -37,7 +36,6 @@ import { NotificationModule } from '@modules/notification/notification.module';
     UploadModule,
     CustomerModule,
     PaymentModule,
-    BoostModule,
     InventoryModule,
     ProductImportExportModule,
     AdminModule,

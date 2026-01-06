@@ -7,8 +7,7 @@ datasource db {
 }
 
 enum UserRoleEnum {
-  buyer
-  seller
+  user
   admin
 }
 
@@ -58,10 +57,6 @@ enum PaymentStatus {
 }
 
 enum PaymentMethod {
-  momo
-  zalopay
-  stripe
-  paypal
   bank_transfer
 }
 
@@ -71,21 +66,6 @@ enum TransactionType {
   refund
   commission
   bonus
-  boost
-}
-
-
-enum BoostType {
-  payPerView
-  payPerDay
-  featuredSlot
-  boostToCategory
-}
-
-enum BoostStatus {
-  active
-  expired
-  cancelled
 }
 
 enum ConversationType {
@@ -115,14 +95,24 @@ model User {
   isVerified     Boolean @default(false) @map("is_verified")
   status         Boolean @default(true)
   language       String  @default("vi") @db.VarChar(10)
-  createdAt      BigInt  @map("created_at")
-  updatedAt      BigInt  @map("updated_at")
+
+  // Profile fields (merged from UserInfo)
+  fullName        String? @map("full_name") @db.VarChar(255)
+  avatarUrl       String? @map("avatar_url") @db.VarChar(500)
+  gender          String? @db.VarChar(20)
+  dateOfBirth     String? @map("date_of_birth") @db.VarChar(10)
+  phoneNumber     String? @map("phone_number") @db.VarChar(20)
+  address         String? @db.VarChar(500)
+  country         String? @db.VarChar(100)
+  profileMetadata Json?   @default("{}") @map("profile_metadata")
+
+  createdAt BigInt @map("created_at")
+  updatedAt BigInt @map("updated_at")
 
   sessions           Session[]
   emailVerifications EmailVerification[]
   passwordResets     PasswordReset[]
   userRoles          UserRole[]
-  userInfo           UserInfo?
   stores             Store[]
   products           Product[]
   cart               Cart?
@@ -133,15 +123,11 @@ model User {
   messages           ChatMessage[]
   transactions       Transaction[]
   userBalance        UserBalance?
-  productBoosts      ProductBoost[]
   notifications      Notification[]
   stockInRecords     StockInRecord[]
-  stockAlerts        StockAlert[]
-  ticketsCreated     SupportTicket[]   @relation("TicketUser")
-  ticketsAssigned    SupportTicket[]   @relation("TicketAssignee")
+  ticketsCreated     SupportTicket[]           @relation("TicketUser")
+  ticketsAssigned    SupportTicket[]           @relation("TicketAssignee")
   ticketReplies      TicketReply[]
-  promotionsCreated  Promotion[]
-  contentsCreated    Content[]
 
   @@index([email])
   @@index([status])
@@ -240,49 +226,29 @@ model UserRole {
   @@map("user_roles")
 }
 
-model UserInfo {
-  id          Int     @id @default(autoincrement())
-  userId      Int     @unique @map("user_id")
-  fullName    String? @map("full_name") @db.VarChar(255)
-  avatarUrl   String? @map("avatar_url") @db.VarChar(500)
-  gender      String? @db.VarChar(20)
-  dateOfBirth String? @map("date_of_birth") @db.VarChar(10)
-  phoneNumber String? @map("phone_number") @db.VarChar(20)
-  address     String? @db.VarChar(500)
-  country     String? @db.VarChar(100)
-  metadata    Json?   @default("{}")
-  createdAt   BigInt  @map("created_at")
-  updatedAt   BigInt  @map("updated_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("user_info")
-}
-
 model Store {
-  id                Int      @id @default(autoincrement())
-  userId            Int      @map("user_id")
-  name              String   @db.VarChar(255)
-  slug              String   @unique @db.VarChar(255)
-  description       String?  @db.Text
-  shortDescription  String?  @map("short_description") @db.VarChar(500)
-  logo              String?  @db.VarChar(500)
-  banner            String?  @db.VarChar(500)
-  rating            Decimal  @default(0) @db.Decimal(3, 2)
-  reviewCount       Int      @default(0) @map("review_count")
-  productCount      Int      @default(0) @map("product_count")
-  followerCount     Int      @default(0) @map("follower_count")
-  isVerified        Boolean  @default(false) @map("is_verified")
-  isActive          Boolean  @default(true) @map("is_active")
-  contactInfo       Json     @default("{}") @map("contact_info")
-  addressInfo       Json     @default("{}") @map("address_info")
-  businessInfo      Json     @default("{}") @map("business_info")
-  businessHours     Json     @default("{}") @map("business_hours")
-  policies          Json     @default("{}")
-  metadata          Json     @default("{}")
-  createdAt         BigInt   @map("created_at")
-  updatedAt         BigInt   @map("updated_at")
+  id               Int     @id @default(autoincrement())
+  userId           Int     @map("user_id")
+  name             String  @db.VarChar(255)
+  slug             String  @unique @db.VarChar(255)
+  description      String? @db.Text
+  shortDescription String? @map("short_description") @db.VarChar(500)
+  logo             String? @db.VarChar(500)
+  banner           String? @db.VarChar(500)
+  rating           Decimal @default(0) @db.Decimal(3, 2)
+  reviewCount      Int     @default(0) @map("review_count")
+  productCount     Int     @default(0) @map("product_count")
+  followerCount    Int     @default(0) @map("follower_count")
+  isVerified       Boolean @default(false) @map("is_verified")
+  isActive         Boolean @default(true) @map("is_active")
+  contactInfo      Json    @default("{}") @map("contact_info")
+  addressInfo      Json    @default("{}") @map("address_info")
+  businessInfo     Json    @default("{}") @map("business_info")
+  businessHours    Json    @default("{}") @map("business_hours")
+  policies         Json    @default("{}")
+  metadata         Json    @default("{}")
+  createdAt        BigInt  @map("created_at")
+  updatedAt        BigInt  @map("updated_at")
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   products Product[]
@@ -296,18 +262,18 @@ model Store {
 }
 
 model Category {
-  id          Int        @id @default(autoincrement())
-  name        String     @db.VarChar(255)
-  slug        String     @unique @db.VarChar(255)
-  description String?    @db.Text
-  image       String?    @db.VarChar(500)
-  parentId    Int?       @map("parent_id")
-  productCount Int       @default(0) @map("product_count")
-  isActive    Boolean    @default(true) @map("is_active")
-  displayOrder Int       @default(0) @map("display_order")
-  metadata    Json       @default("{}")
-  createdAt   BigInt     @map("created_at")
-  updatedAt   BigInt     @map("updated_at")
+  id           Int     @id @default(autoincrement())
+  name         String  @db.VarChar(255)
+  slug         String  @unique @db.VarChar(255)
+  description  String? @db.Text
+  image        String? @db.VarChar(500)
+  parentId     Int?    @map("parent_id")
+  productCount Int     @default(0) @map("product_count")
+  isActive     Boolean @default(true) @map("is_active")
+  displayOrder Int     @default(0) @map("display_order")
+  metadata     Json    @default("{}")
+  createdAt    BigInt  @map("created_at")
+  updatedAt    BigInt  @map("updated_at")
 
   parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
   children Category[] @relation("CategoryTree")
@@ -321,51 +287,49 @@ model Category {
 }
 
 model Product {
-  id              Int             @id @default(autoincrement())
-  sellerId        Int             @map("seller_id")
-  storeId         Int?            @map("store_id")
-  categoryId      Int             @map("category_id")
-  title           String          @db.VarChar(500)
-  description     String?         @db.Text
-  price           Decimal         @db.Decimal(15, 2)
-  originalPrice   Decimal?        @map("original_price") @db.Decimal(15, 2)
-  condition       ProductCondition
-  location        String?         @db.VarChar(255)
-  stock           Int             @default(0)
-  minStock        Int             @default(0) @map("min_stock")
-  maxStock        Int?            @map("max_stock")
-  reservedStock   Int             @default(0) @map("reserved_stock")
-  availableStock  Int             @default(0) @map("available_stock")
-  costPrice       Decimal?        @map("cost_price") @db.Decimal(15, 2)
-  sellingPrice    Decimal?        @map("selling_price") @db.Decimal(15, 2)
-  profit          Decimal?         @db.Decimal(15, 2)
-  profitMargin    Decimal?         @map("profit_margin") @db.Decimal(5, 2)
-  sku             String?         @unique @db.VarChar(100)
-  barcode         String?         @db.VarChar(100)
-  status          ProductStatus    @default(draft)
-  rating          Decimal         @default(0) @db.Decimal(3, 2)
-  reviewCount     Int             @default(0) @map("review_count")
-  viewCount       Int             @default(0) @map("view_count")
-  salesCount      Int             @default(0) @map("sales_count")
-  isFeatured      Boolean         @default(false) @map("is_featured")
-  isPromoted      Boolean         @default(false) @map("is_promoted")
-  tags            String[]        @default([])
-  badges          ProductBadge[] @default([])
-  inventoryInfo   Json            @default("{}") @map("inventory_info")
-  metadata        Json            @default("{}")
-  createdAt       BigInt          @map("created_at")
-  updatedAt       BigInt          @map("updated_at")
+  id             Int              @id @default(autoincrement())
+  sellerId       Int              @map("seller_id")
+  storeId        Int?             @map("store_id")
+  categoryId     Int              @map("category_id")
+  title          String           @db.VarChar(500)
+  description    String?          @db.Text
+  price          Decimal          @db.Decimal(15, 2)
+  originalPrice  Decimal?         @map("original_price") @db.Decimal(15, 2)
+  condition      ProductCondition
+  location       String?          @db.VarChar(255)
+  stock          Int              @default(0)
+  minStock       Int              @default(0) @map("min_stock")
+  maxStock       Int?             @map("max_stock")
+  reservedStock  Int              @default(0) @map("reserved_stock")
+  availableStock Int              @default(0) @map("available_stock")
+  costPrice      Decimal?         @map("cost_price") @db.Decimal(15, 2)
+  sellingPrice   Decimal?         @map("selling_price") @db.Decimal(15, 2)
+  profit         Decimal?         @db.Decimal(15, 2)
+  profitMargin   Decimal?         @map("profit_margin") @db.Decimal(5, 2)
+  sku            String?          @unique @db.VarChar(100)
+  barcode        String?          @db.VarChar(100)
+  status         ProductStatus    @default(draft)
+  rating         Decimal          @default(0) @db.Decimal(3, 2)
+  reviewCount    Int              @default(0) @map("review_count")
+  viewCount      Int              @default(0) @map("view_count")
+  salesCount     Int              @default(0) @map("sales_count")
+  isFeatured     Boolean          @default(false) @map("is_featured")
+  isPromoted     Boolean          @default(false) @map("is_promoted")
+  tags           String[]         @default([])
+  badges         ProductBadge[]   @default([])
+  inventoryInfo  Json             @default("{}") @map("inventory_info")
+  metadata       Json             @default("{}")
+  createdAt      BigInt           @map("created_at")
+  updatedAt      BigInt           @map("updated_at")
 
-  seller       User            @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  store        Store?          @relation(fields: [storeId], references: [id], onDelete: SetNull)
-  category     Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  images       ProductImage[]
-  cartItems    CartItem[]
-  orderItems   OrderItem[]
-  reviews      Review[]
-  productBoosts ProductBoost[]
+  seller         User            @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  store          Store?          @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  category       Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  images         ProductImage[]
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
+  reviews        Review[]
   stockInRecords StockInRecord[]
-  stockAlerts  StockAlert[]
 
   @@index([sellerId])
   @@index([storeId])
@@ -393,10 +357,10 @@ model ProductImage {
 }
 
 model Cart {
-  id        Int       @id @default(autoincrement())
-  userId    Int       @unique @map("user_id")
-  createdAt BigInt    @map("created_at")
-  updatedAt BigInt    @map("updated_at")
+  id        Int    @id @default(autoincrement())
+  userId    Int    @unique @map("user_id")
+  createdAt BigInt @map("created_at")
+  updatedAt BigInt @map("updated_at")
 
   user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   items CartItem[]
@@ -424,30 +388,30 @@ model CartItem {
 }
 
 model Order {
-  id               Int          @id @default(autoincrement())
-  userId            Int          @map("user_id")
-  storeId           Int          @map("store_id")
-  status            OrderStatus  @default(pending)
-  paymentStatus     PaymentStatus @default(pending) @map("payment_status")
+  id                Int            @id @default(autoincrement())
+  userId            Int            @map("user_id")
+  storeId           Int            @map("store_id")
+  status            OrderStatus    @default(pending)
+  paymentStatus     PaymentStatus  @default(pending) @map("payment_status")
   paymentMethod     PaymentMethod? @map("payment_method")
-  subtotal          Decimal      @db.Decimal(15, 2)
-  tax               Decimal      @default(0) @db.Decimal(15, 2)
-  shipping          Decimal      @default(0) @db.Decimal(15, 2)
-  discount          Decimal      @default(0) @db.Decimal(15, 2)
-  total             Decimal      @db.Decimal(15, 2)
-  currency          String       @default("VND") @db.VarChar(10)
-  shippingAddressId Int?         @map("shipping_address_id")
-  billingAddressId  Int?         @map("billing_address_id")
-  notes             String?      @db.Text
-  sellerNotes       String?      @map("seller_notes") @db.Text
-  orderMetadata     Json         @default("{}") @map("order_metadata")
-  createdAt         BigInt       @map("created_at")
-  updatedAt         BigInt       @map("updated_at")
+  subtotal          Decimal        @db.Decimal(15, 2)
+  tax               Decimal        @default(0) @db.Decimal(15, 2)
+  shipping          Decimal        @default(0) @db.Decimal(15, 2)
+  discount          Decimal        @default(0) @db.Decimal(15, 2)
+  total             Decimal        @db.Decimal(15, 2)
+  currency          String         @default("VND") @db.VarChar(10)
+  shippingAddressId Int?           @map("shipping_address_id")
+  billingAddressId  Int?           @map("billing_address_id")
+  notes             String?        @db.Text
+  sellerNotes       String?        @map("seller_notes") @db.Text
+  orderMetadata     Json           @default("{}") @map("order_metadata")
+  createdAt         BigInt         @map("created_at")
+  updatedAt         BigInt         @map("updated_at")
 
-  user            User            @relation(fields: [userId], references: [id], onDelete: Restrict)
-  store           Store           @relation(fields: [storeId], references: [id], onDelete: Restrict)
-  shippingAddress Address?        @relation("ShippingAddress", fields: [shippingAddressId], references: [id], onDelete: SetNull)
-  billingAddress  Address?        @relation("BillingAddress", fields: [billingAddressId], references: [id], onDelete: SetNull)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  store           Store         @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  shippingAddress Address?      @relation("ShippingAddress", fields: [shippingAddressId], references: [id], onDelete: SetNull)
+  billingAddress  Address?      @relation("BillingAddress", fields: [billingAddressId], references: [id], onDelete: SetNull)
   items           OrderItem[]
   transactions    Transaction[]
 
@@ -461,17 +425,17 @@ model Order {
 }
 
 model OrderItem {
-  id          Int     @id @default(autoincrement())
-  orderId     Int     @map("order_id")
-  productId   Int     @map("product_id")
-  productName String  @map("product_name") @db.VarChar(500)
+  id           Int     @id @default(autoincrement())
+  orderId      Int     @map("order_id")
+  productId    Int     @map("product_id")
+  productName  String  @map("product_name") @db.VarChar(500)
   productImage String? @map("product_image") @db.VarChar(500)
-  price       Decimal @db.Decimal(15, 2)
-  quantity    Int
-  subtotal    Decimal @db.Decimal(15, 2)
-  itemMetadata Json   @default("{}") @map("item_metadata")
-  createdAt   BigInt  @map("created_at")
-  updatedAt   BigInt  @map("updated_at")
+  price        Decimal @db.Decimal(15, 2)
+  quantity     Int
+  subtotal     Decimal @db.Decimal(15, 2)
+  itemMetadata Json    @default("{}") @map("item_metadata")
+  createdAt    BigInt  @map("created_at")
+  updatedAt    BigInt  @map("updated_at")
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
@@ -482,25 +446,25 @@ model OrderItem {
 }
 
 model Address {
-  id            Int     @id @default(autoincrement())
-  userId        Int     @map("user_id")
-  recipientName String  @map("recipient_name") @db.VarChar(255)
-  recipientPhone String @map("recipient_phone") @db.VarChar(20)
-  street        String  @db.VarChar(500)
-  city          String  @db.VarChar(100)
-  state         String  @db.VarChar(100)
-  district      String? @db.VarChar(100)
-  ward          String? @db.VarChar(100)
-  zipCode       String  @map("zip_code") @db.VarChar(20)
-  country       String  @default("Vietnam") @db.VarChar(100)
-  isDefault     Boolean @default(false) @map("is_default")
+  id              Int     @id @default(autoincrement())
+  userId          Int     @map("user_id")
+  recipientName   String  @map("recipient_name") @db.VarChar(255)
+  recipientPhone  String  @map("recipient_phone") @db.VarChar(20)
+  street          String  @db.VarChar(500)
+  city            String  @db.VarChar(100)
+  state           String  @db.VarChar(100)
+  district        String? @db.VarChar(100)
+  ward            String? @db.VarChar(100)
+  zipCode         String  @map("zip_code") @db.VarChar(20)
+  country         String  @default("Vietnam") @db.VarChar(100)
+  isDefault       Boolean @default(false) @map("is_default")
   addressMetadata Json    @default("{}") @map("address_metadata")
-  createdAt     BigInt  @map("created_at")
-  updatedAt     BigInt  @map("updated_at")
+  createdAt       BigInt  @map("created_at")
+  updatedAt       BigInt  @map("updated_at")
 
-  user              User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  shippingOrders    Order[] @relation("ShippingAddress")
-  billingOrders     Order[] @relation("BillingAddress")
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shippingOrders Order[] @relation("ShippingAddress")
+  billingOrders  Order[] @relation("BillingAddress")
 
   @@index([userId])
   @@index([userId, isDefault])
@@ -508,20 +472,20 @@ model Address {
 }
 
 model Review {
-  id          Int     @id @default(autoincrement())
-  productId   Int     @map("product_id")
-  userId      Int     @map("user_id")
-  orderId     Int?    @map("order_id")
-  rating      Int
-  title       String? @db.VarChar(255)
-  comment     String? @db.Text
-  isVerified  Boolean @default(false) @map("is_verified")
-  reviewMetadata Json  @default("{}") @map("review_metadata")
-  createdAt   BigInt  @map("created_at")
-  updatedAt   BigInt  @map("updated_at")
+  id             Int     @id @default(autoincrement())
+  productId      Int     @map("product_id")
+  userId         Int     @map("user_id")
+  orderId        Int?    @map("order_id")
+  rating         Int
+  title          String? @db.VarChar(255)
+  comment        String? @db.Text
+  isVerified     Boolean @default(false) @map("is_verified")
+  reviewMetadata Json    @default("{}") @map("review_metadata")
+  createdAt      BigInt  @map("created_at")
+  updatedAt      BigInt  @map("updated_at")
 
-  product      Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([productId, userId, orderId])
   @@index([productId])
@@ -534,15 +498,15 @@ model Review {
 }
 
 model Conversation {
-  id        Int       @id @default(autoincrement())
+  id        Int              @id @default(autoincrement())
   type      ConversationType @default(direct)
-  title     String?   @db.VarChar(255)
-  metadata  Json       @default("{}")
-  createdAt BigInt     @map("created_at")
-  updatedAt BigInt     @map("updated_at")
+  title     String?          @db.VarChar(255)
+  metadata  Json             @default("{}")
+  createdAt BigInt           @map("created_at")
+  updatedAt BigInt           @map("updated_at")
 
   participants ConversationParticipant[]
-  messages      ChatMessage[]
+  messages     ChatMessage[]
 
   @@index([type])
   @@index([updatedAt])
@@ -550,16 +514,16 @@ model Conversation {
 }
 
 model ConversationParticipant {
-  id             Int    @id @default(autoincrement())
-  conversationId Int    @map("conversation_id")
-  userId          Int    @map("user_id")
-  role            String? @db.VarChar(50)
-  joinedAt        BigInt  @map("joined_at")
-  lastReadAt      BigInt? @map("last_read_at")
-  metadata        Json    @default("{}")
+  id             Int     @id @default(autoincrement())
+  conversationId Int     @map("conversation_id")
+  userId         Int     @map("user_id")
+  role           String? @db.VarChar(50)
+  joinedAt       BigInt  @map("joined_at")
+  lastReadAt     BigInt? @map("last_read_at")
+  metadata       Json    @default("{}")
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, userId])
   @@index([conversationId])
@@ -568,15 +532,15 @@ model ConversationParticipant {
 }
 
 model ChatMessage {
-  id             Int        @id @default(autoincrement())
-  conversationId Int        @map("conversation_id")
-  senderId       Int        @map("sender_id")
-  messageType    MessageType @default(text) @map("message_type")
-  content        String     @db.Text
-  isRead         Boolean    @default(false) @map("is_read")
-  messageMetadata Json       @default("{}") @map("message_metadata")
-  createdAt      BigInt     @map("created_at")
-  updatedAt      BigInt     @map("updated_at")
+  id              Int         @id @default(autoincrement())
+  conversationId  Int         @map("conversation_id")
+  senderId        Int         @map("sender_id")
+  messageType     MessageType @default(text) @map("message_type")
+  content         String      @db.Text
+  isRead          Boolean     @default(false) @map("is_read")
+  messageMetadata Json        @default("{}") @map("message_metadata")
+  createdAt       BigInt      @map("created_at")
+  updatedAt       BigInt      @map("updated_at")
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
@@ -589,30 +553,27 @@ model ChatMessage {
 }
 
 model Transaction {
-  id            Int             @id @default(autoincrement())
-  userId        Int             @map("user_id")
-  type          TransactionType
-  amount        Decimal         @db.Decimal(15, 2)
-  currency      String          @default("VND") @db.VarChar(10)
-  status        String          @default("pending") @db.VarChar(50)
-  paymentMethod PaymentMethod?  @map("payment_method")
-  reference     String?         @db.VarChar(255)
-  description   String?         @db.Text
-  orderId       Int?            @map("order_id")
-  boostId       Int?            @map("boost_id")
-  transactionMetadata Json      @default("{}") @map("transaction_metadata")
-  createdAt     BigInt          @map("created_at")
-  updatedAt     BigInt          @map("updated_at")
+  id                  Int             @id @default(autoincrement())
+  userId              Int             @map("user_id")
+  type                TransactionType
+  amount              Decimal         @db.Decimal(15, 2)
+  currency            String          @default("VND") @db.VarChar(10)
+  status              String          @default("pending") @db.VarChar(50)
+  paymentMethod       PaymentMethod?  @map("payment_method")
+  reference           String?         @db.VarChar(255)
+  description         String?         @db.Text
+  orderId             Int?            @map("order_id")
+  transactionMetadata Json            @default("{}") @map("transaction_metadata")
+  createdAt           BigInt          @map("created_at")
+  updatedAt           BigInt          @map("updated_at")
 
-  user  User         @relation(fields: [userId], references: [id], onDelete: Restrict)
-  order Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  boost ProductBoost? @relation(fields: [boostId], references: [id], onDelete: SetNull)
+  user  User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  order Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([type])
   @@index([status])
   @@index([orderId])
-  @@index([boostId])
   @@index([createdAt])
   @@map("transactions")
 }
@@ -629,64 +590,16 @@ model UserBalance {
   @@map("user_balances")
 }
 
-model BoostPackage {
-  id          String   @id
-  name        String   @db.VarChar(255)
-  type        BoostType
-  price       Decimal  @db.Decimal(15, 2)
-  description String?  @db.Text
-  config      Json     @default("{}")
-  isActive    Boolean  @default(true) @map("is_active")
-  metadata    Json     @default("{}")
-  createdAt   BigInt   @map("created_at")
-  updatedAt   BigInt   @map("updated_at")
-
-  productBoosts ProductBoost[]
-
-  @@index([type])
-  @@index([isActive])
-  @@map("boost_packages")
-}
-
-model ProductBoost {
-  id            Int        @id @default(autoincrement())
-  productId     Int        @map("product_id")
-  boostPackageId String    @map("boost_package_id")
-  userId        Int        @map("user_id")
-  status        BoostStatus @default(active)
-  viewsTarget   Int?       @map("views_target")
-  viewsActual   Int         @default(0) @map("views_actual")
-  days          Int?
-  startDate     BigInt     @map("start_date")
-  endDate       BigInt?    @map("end_date")
-  totalCost     Decimal    @map("total_cost") @db.Decimal(15, 2)
-  boostMetadata Json       @default("{}") @map("boost_metadata")
-  createdAt     BigInt     @map("created_at")
-  updatedAt     BigInt     @map("updated_at")
-
-  product      Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
-  boostPackage BoostPackage @relation(fields: [boostPackageId], references: [id], onDelete: Restrict)
-  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
-  transactions Transaction[]
-
-  @@index([productId])
-  @@index([userId])
-  @@index([status])
-  @@index([startDate, endDate])
-  @@index([status, endDate])
-  @@map("product_boosts")
-}
-
 model StockInRecord {
-  id        Int     @id @default(autoincrement())
-  productId Int     @map("product_id")
-  quantity  Int
-  costPrice Decimal? @map("cost_price") @db.Decimal(15, 2)
-  supplier  String? @db.VarChar(255)
-  notes     String? @db.Text
-  createdBy Int     @map("created_by")
-  recordMetadata Json @default("{}") @map("record_metadata")
-  createdAt BigInt  @map("created_at")
+  id             Int      @id @default(autoincrement())
+  productId      Int      @map("product_id")
+  quantity       Int
+  costPrice      Decimal? @map("cost_price") @db.Decimal(15, 2)
+  supplier       String?  @db.VarChar(255)
+  notes          String?  @db.Text
+  createdBy      Int      @map("created_by")
+  recordMetadata Json     @default("{}") @map("record_metadata")
+  createdAt      BigInt   @map("created_at")
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   creator User    @relation(fields: [createdBy], references: [id], onDelete: Restrict)
@@ -697,36 +610,16 @@ model StockInRecord {
   @@map("stock_in_records")
 }
 
-model StockAlert {
-  id        Int    @id @default(autoincrement())
-  productId Int    @map("product_id")
-  userId    Int    @map("user_id")
-  alertType String @map("alert_type") @db.VarChar(50)
-  message   String @db.Text
-  isRead    Boolean @default(false) @map("is_read")
-  metadata  Json   @default("{}")
-  createdAt BigInt @map("created_at")
-
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([productId])
-  @@index([userId])
-  @@index([isRead])
-  @@index([alertType])
-  @@map("stock_alerts")
-}
-
 model Notification {
-  id        Int             @id @default(autoincrement())
-  userId    Int             @map("user_id")
-  type      NotificationType
-  title     String          @db.VarChar(255)
-  message   String          @db.Text
-  actionUrl String?         @map("action_url") @db.VarChar(500)
-  isRead    Boolean         @default(false) @map("is_read")
-  notificationMetadata Json  @default("{}") @map("notification_metadata")
-  createdAt BigInt          @map("created_at")
+  id                   Int              @id @default(autoincrement())
+  userId               Int              @map("user_id")
+  type                 NotificationType
+  title                String           @db.VarChar(255)
+  message              String           @db.Text
+  actionUrl            String?          @map("action_url") @db.VarChar(500)
+  isRead               Boolean          @default(false) @map("is_read")
+  notificationMetadata Json             @default("{}") @map("notification_metadata")
+  createdAt            BigInt           @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -766,22 +659,22 @@ enum TicketCategory {
 }
 
 model SupportTicket {
-  id          Int             @id @default(autoincrement())
-  userId      Int             @map("user_id")
-  assignedTo  Int?            @map("assigned_to")
+  id          Int            @id @default(autoincrement())
+  userId      Int            @map("user_id")
+  assignedTo  Int?           @map("assigned_to")
   category    TicketCategory
-  priority    TicketPriority  @default(medium)
-  status      TicketStatus    @default(open)
-  title       String          @db.VarChar(500)
-  description String          @db.Text
-  tags        String[]        @default([])
-  metadata    Json            @default("{}")
-  createdAt   BigInt          @map("created_at")
-  updatedAt   BigInt          @map("updated_at")
-  resolvedAt  BigInt?         @map("resolved_at")
+  priority    TicketPriority @default(medium)
+  status      TicketStatus   @default(open)
+  title       String         @db.VarChar(500)
+  description String         @db.Text
+  tags        String[]       @default([])
+  metadata    Json           @default("{}")
+  createdAt   BigInt         @map("created_at")
+  updatedAt   BigInt         @map("updated_at")
+  resolvedAt  BigInt?        @map("resolved_at")
 
-  user        User             @relation("TicketUser", fields: [userId], references: [id], onDelete: Cascade)
-  assignee    User?            @relation("TicketAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
+  user        User               @relation("TicketUser", fields: [userId], references: [id], onDelete: Cascade)
+  assignee    User?              @relation("TicketAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
   replies     TicketReply[]
   attachments TicketAttachment[]
 
@@ -795,13 +688,13 @@ model SupportTicket {
 }
 
 model TicketReply {
-  id        Int     @id @default(autoincrement())
-  ticketId  Int     @map("ticket_id")
-  userId    Int     @map("user_id")
-  message   String  @db.Text
+  id         Int     @id @default(autoincrement())
+  ticketId   Int     @map("ticket_id")
+  userId     Int     @map("user_id")
+  message    String  @db.Text
   isInternal Boolean @default(false) @map("is_internal")
-  metadata  Json    @default("{}")
-  createdAt BigInt  @map("created_at")
+  metadata   Json    @default("{}")
+  createdAt  BigInt  @map("created_at")
 
   ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -825,117 +718,6 @@ model TicketAttachment {
 
   @@index([ticketId])
   @@map("ticket_attachments")
-}
-
-// ==================== PROMOTIONS ====================
-
-enum PromotionType {
-  percentage
-  fixed_amount
-  free_shipping
-  buy_x_get_y
-}
-
-enum PromotionStatus {
-  draft
-  active
-  paused
-  expired
-  cancelled
-}
-
-model Promotion {
-  id              Int             @id @default(autoincrement())
-  code            String          @unique @db.VarChar(50)
-  name            String          @db.VarChar(255)
-  description     String?         @db.Text
-  type            PromotionType
-  status          PromotionStatus @default(draft)
-  discountValue   Decimal         @map("discount_value") @db.Decimal(15, 2)
-  minOrderAmount  Decimal?        @map("min_order_amount") @db.Decimal(15, 2)
-  maxDiscount     Decimal?        @map("max_discount") @db.Decimal(15, 2)
-  usageLimit      Int?            @map("usage_limit")
-  usageCount      Int             @default(0) @map("usage_count")
-  userLimit       Int?            @map("user_limit")
-  startDate       BigInt          @map("start_date")
-  endDate         BigInt          @map("end_date")
-  applicableCategories Int[]      @default([]) @map("applicable_categories")
-  applicableProducts   Int[]      @default([]) @map("applicable_products")
-  excludedProducts     Int[]      @default([]) @map("excluded_products")
-  conditions      Json            @default("{}")
-  metadata        Json            @default("{}")
-  createdBy       Int             @map("created_by")
-  createdAt       BigInt          @map("created_at")
-  updatedAt       BigInt          @map("updated_at")
-
-  creator User              @relation(fields: [createdBy], references: [id], onDelete: Restrict)
-  usages  PromotionUsage[]
-
-  @@index([code])
-  @@index([status])
-  @@index([startDate, endDate])
-  @@index([createdBy])
-  @@map("promotions")
-}
-
-model PromotionUsage {
-  id          Int     @id @default(autoincrement())
-  promotionId Int     @map("promotion_id")
-  userId      Int     @map("user_id")
-  orderId     Int?    @map("order_id")
-  discount    Decimal @db.Decimal(15, 2)
-  createdAt   BigInt  @map("created_at")
-
-  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
-
-  @@index([promotionId])
-  @@index([userId])
-  @@index([orderId])
-  @@map("promotion_usages")
-}
-
-// ==================== CONTENT MANAGEMENT ====================
-
-enum ContentType {
-  policy
-  guide
-  faq
-  blog
-  announcement
-}
-
-enum ContentStatus {
-  draft
-  published
-  archived
-}
-
-model Content {
-  id          Int           @id @default(autoincrement())
-  type        ContentType
-  status      ContentStatus @default(draft)
-  title       String        @db.VarChar(500)
-  slug        String        @unique @db.VarChar(255)
-  content     String        @db.Text
-  excerpt     String?       @db.VarChar(500)
-  featuredImage String?     @map("featured_image") @db.VarChar(500)
-  tags        String[]      @default([])
-  viewCount   Int           @default(0) @map("view_count")
-  isPublic    Boolean       @default(true) @map("is_public")
-  publishedAt BigInt?       @map("published_at")
-  authorId    Int           @map("author_id")
-  metadata    Json          @default("{}")
-  createdAt   BigInt        @map("created_at")
-  updatedAt   BigInt        @map("updated_at")
-
-  author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
-
-  @@index([type])
-  @@index([status])
-  @@index([slug])
-  @@index([authorId])
-  @@index([publishedAt])
-  @@map("contents")
 }
 
 // ==================== SYSTEM SETTINGS ====================
@@ -990,152 +772,4 @@ model ApiKey {
   @@index([isActive])
   @@index([createdBy])
   @@map("api_keys")
-}
-
-// ==================== SYSTEM LOGS ====================
-
-enum LogLevel {
-  debug
-  info
-  warning
-  error
-  critical
-}
-
-enum LogCategory {
-  auth
-  user
-  order
-  payment
-  product
-  system
-  security
-  api
-}
-
-model SystemLog {
-  id        Int         @id @default(autoincrement())
-  level     LogLevel
-  category  LogCategory
-  action    String      @db.VarChar(255)
-  message   String      @db.Text
-  userId    Int?        @map("user_id")
-  ipAddress String?     @map("ip_address") @db.VarChar(45)
-  userAgent String?     @map("user_agent") @db.VarChar(500)
-  requestId String?     @map("request_id") @db.VarChar(100)
-  duration  Int?
-  metadata  Json        @default("{}")
-  createdAt BigInt      @map("created_at")
-
-  @@index([level])
-  @@index([category])
-  @@index([userId])
-  @@index([action])
-  @@index([createdAt])
-  @@map("system_logs")
-}
-
-// ==================== NOTIFICATION CAMPAIGNS ====================
-
-enum CampaignStatus {
-  draft
-  scheduled
-  sending
-  completed
-  cancelled
-}
-
-enum CampaignTargetType {
-  all_users
-  buyers
-  sellers
-  specific_users
-  by_segment
-}
-
-model NotificationCampaign {
-  id            Int                 @id @default(autoincrement())
-  name          String              @db.VarChar(255)
-  description   String?             @db.Text
-  status        CampaignStatus      @default(draft)
-  targetType    CampaignTargetType  @map("target_type")
-  targetUserIds Int[]               @default([]) @map("target_user_ids")
-  targetSegment Json?               @map("target_segment")
-  notificationType NotificationType @map("notification_type")
-  title         String              @db.VarChar(255)
-  message       String              @db.Text
-  actionUrl     String?             @map("action_url") @db.VarChar(500)
-  scheduledAt   BigInt?             @map("scheduled_at")
-  sentAt        BigInt?             @map("sent_at")
-  sentCount     Int                 @default(0) @map("sent_count")
-  openCount     Int                 @default(0) @map("open_count")
-  clickCount    Int                 @default(0) @map("click_count")
-  metadata      Json                @default("{}")
-  createdBy     Int                 @map("created_by")
-  createdAt     BigInt              @map("created_at")
-  updatedAt     BigInt              @map("updated_at")
-
-  @@index([status])
-  @@index([targetType])
-  @@index([scheduledAt])
-  @@index([createdBy])
-  @@map("notification_campaigns")
-}
-
-model NotificationTemplate {
-  id          Int              @id @default(autoincrement())
-  name        String           @db.VarChar(255)
-  code        String           @unique @db.VarChar(100)
-  type        NotificationType
-  title       String           @db.VarChar(255)
-  message     String           @db.Text
-  variables   String[]         @default([])
-  isActive    Boolean          @default(true) @map("is_active")
-  metadata    Json             @default("{}")
-  createdAt   BigInt           @map("created_at")
-  updatedAt   BigInt           @map("updated_at")
-
-  @@index([code])
-  @@index([type])
-  @@index([isActive])
-  @@map("notification_templates")
-}
-
-// ==================== PRODUCT MODERATION ====================
-
-enum ModerationStatus {
-  pending
-  approved
-  rejected
-  flagged
-}
-
-enum ModerationReason {
-  policy_violation
-  inappropriate_content
-  counterfeit
-  spam
-  duplicate
-  other
-}
-
-model ProductModeration {
-  id            Int               @id @default(autoincrement())
-  productId     Int               @map("product_id")
-  status        ModerationStatus  @default(pending)
-  reason        ModerationReason?
-  notes         String?           @db.Text
-  aiScore       Decimal?          @map("ai_score") @db.Decimal(5, 2)
-  aiFlags       String[]          @default([]) @map("ai_flags")
-  reviewedBy    Int?              @map("reviewed_by")
-  reviewedAt    BigInt?           @map("reviewed_at")
-  metadata      Json              @default("{}")
-  createdAt     BigInt            @map("created_at")
-  updatedAt     BigInt            @map("updated_at")
-
-  @@index([productId])
-  @@index([status])
-  @@index([reviewedBy])
-  @@index([createdAt])
-  @@map("product_moderations")
 }

@@ -5,7 +5,7 @@ import { VALIDATION_MESSAGES } from '@common/constants/messages.constants';
 export class AssignRoleDto {
   @ApiProperty({
     description: 'Role name',
-    example: 'seller',
+    example: 'user',
     maxLength: 50,
   })
   @IsString({ message: VALIDATION_MESSAGES.IS_STRING })

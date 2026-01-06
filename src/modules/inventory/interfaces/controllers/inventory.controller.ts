@@ -20,7 +20,6 @@ import { StockOutDto } from '@modules/inventory/application/dto/stock-out.dto';
 import { StockAdjustmentDto } from '@modules/inventory/application/dto/stock-adjustment.dto';
 import {
   QueryStockInDto,
-  QueryStockAlertDto,
   QueryStockMovementDto,
 } from '@modules/inventory/application/dto/query-stock.dto';
 
@@ -63,32 +62,6 @@ export class InventoryController {
   @ApiResponse({ status: 200, description: 'Stock in records retrieved successfully' })
   async getStockInRecords(@CurrentUser('id') userId: number, @Query() queryDto: QueryStockInDto) {
     return this.inventoryService.getStockInRecords(userId, queryDto);
-  }
-
-  @Get('stock-alerts')
-  @ApiOperation({ summary: 'Get stock alerts' })
-  @ApiResponse({ status: 200, description: 'Stock alerts retrieved successfully' })
-  async getStockAlerts(@CurrentUser('id') userId: number, @Query() queryDto: QueryStockAlertDto) {
-    return this.inventoryService.getStockAlerts(userId, queryDto);
-  }
-
-  @Put('stock-alerts/:id/read')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Mark alert as read' })
-  @ApiResponse({ status: 200, description: 'Alert marked as read successfully' })
-  async markAlertAsRead(
-    @CurrentUser('id') userId: number,
-    @Param('id', ParseIntPipe) alertId: number,
-  ) {
-    return this.inventoryService.markAlertAsRead(userId, alertId);
-  }
-
-  @Put('stock-alerts/read-all')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Mark all alerts as read' })
-  @ApiResponse({ status: 200, description: 'All alerts marked as read successfully' })
-  async markAllAlertsAsRead(@CurrentUser('id') userId: number) {
-    return this.inventoryService.markAllAlertsAsRead(userId);
   }
 
   @Get('stock-movements')

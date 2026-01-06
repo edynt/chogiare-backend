@@ -13,7 +13,7 @@ export class AdminDashboardService {
     const nowBigInt = BigInt(now.getTime());
     const lastMonthBigInt = BigInt(lastMonth.getTime());
 
-    const [totalUsers, lastMonthUsers, sellers, buyers] = await Promise.all([
+    const [totalUsers, lastMonthUsers, regularUsers] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.user.count({
         where: {
@@ -28,18 +28,7 @@ export class AdminDashboardService {
           userRoles: {
             some: {
               role: {
-                name: UserRoleEnum.seller,
-              },
-            },
-          },
-        },
-      }),
-      this.prisma.user.count({
-        where: {
-          userRoles: {
-            some: {
-              role: {
-                name: UserRoleEnum.buyer,
+                name: UserRoleEnum.user,
               },
             },
           },
@@ -142,8 +131,7 @@ export class AdminDashboardService {
         value: totalUsers,
         change: userChange,
         changeType: userChange >= 0 ? 'positive' : 'negative',
-        sellers,
-        buyers,
+        regularUsers,
       },
       totalProducts: {
         value: totalProducts,
@@ -177,11 +165,7 @@ export class AdminDashboardService {
         select: {
           id: true,
           email: true,
-          userInfo: {
-            select: {
-              fullName: true,
-            },
-          },
+          fullName: true,
           userRoles: {
             include: {
               role: true,
@@ -238,13 +222,12 @@ export class AdminDashboardService {
 
     const activities = [
       ...recentUsers.map((user) => {
-        const userName = user.userInfo?.fullName || user.email;
-        const isSeller = user.userRoles.some((ur) => ur.role.name === UserRoleEnum.seller);
+        const userName = user.fullName || user.email;
         return {
           id: `user-${user.id}`,
           type: 'user_registration',
           title: 'Người dùng mới đăng ký',
-          description: `${userName} đã đăng ký tài khoản ${isSeller ? 'người bán' : 'người mua'}`,
+          description: `${userName} đã đăng ký tài khoản`,
           time: this.getTimeAgo(user.createdAt),
           status: 'pending',
         };
@@ -385,12 +368,8 @@ export class AdminDashboardService {
       select: {
         id: true,
         email: true,
+        fullName: true,
         createdAt: true,
-        userInfo: {
-          select: {
-            fullName: true,
-          },
-        },
       },
     });
 
@@ -431,7 +410,7 @@ export class AdminDashboardService {
     const notifications = [
       ...pendingUsers.map((user) => ({
         id: `user-${user.id}`,
-        title: `Tài khoản mới cần duyệt: ${user.userInfo?.fullName || user.email}`,
+        title: `Tài khoản mới cần duyệt: ${user.fullName || user.email}`,
         time: this.getTimeAgo(user.createdAt),
         unread: true,
         type: 'user' as const,

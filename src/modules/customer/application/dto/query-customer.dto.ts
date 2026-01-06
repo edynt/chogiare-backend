@@ -59,7 +59,7 @@ export class QueryCustomerDto {
 
   @ApiProperty({
     description: 'Filter by role',
-    example: 'buyer',
+    example: 'user',
     required: false,
   })
   @IsOptional()

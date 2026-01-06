@@ -243,21 +243,4 @@ export class StoreController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('dashboard/promoted')
-  @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get promoted products for seller dashboard' })
-  async getPromotedProducts(@CurrentUser() user: CurrentUserPayload) {
-    const store = await this.storeService.findByUserId(user.id);
-    if (!store) {
-      throw new NotFoundException(MESSAGES.STORE.NOT_FOUND);
-    }
-    const storeId = typeof store.id === 'string' ? parseInt(store.id, 10) : store.id;
-    const products = await this.storeService.getPromotedProducts(storeId);
-    return {
-      message: MESSAGES.SUCCESS,
-      data: products,
-    };
-  }
 }

@@ -9,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
-import { OrderStatus, PaymentStatus, BoostStatus } from '@prisma/client';
+import { OrderStatus, PaymentStatus } from '@prisma/client';
 import {
   IStoreRepository,
   STORE_REPOSITORY,
@@ -400,9 +400,6 @@ export class StoreService {
   }) {
     const user = await this.prisma.user.findUnique({
       where: { id: store.userId },
-      include: {
-        userInfo: true,
-      },
     });
 
     const contactInfo = store.contactInfo || {};
@@ -429,7 +426,7 @@ export class StoreService {
       followerCount: store.followerCount,
       isVerified: store.isVerified,
       isActive: store.isActive,
-      userName: user?.userInfo?.fullName || undefined,
+      userName: user?.fullName || undefined,
       userEmail: user?.email || undefined,
       createdAt: new Date(Number(store.createdAt)).toISOString(),
       updatedAt: new Date(Number(store.updatedAt)).toISOString(),
@@ -640,62 +637,6 @@ export class StoreService {
         minStock: product.minStock,
         maxStock: product.maxStock || 0,
         status,
-      };
-    });
-  }
-
-  async getPromotedProducts(storeId: number) {
-    const now = BigInt(Date.now());
-    const products = await this.prisma.product.findMany({
-      where: {
-        storeId,
-        productBoosts: {
-          some: {
-            status: BoostStatus.active,
-            startDate: { lte: now },
-            OR: [{ endDate: null }, { endDate: { gte: now } }],
-          },
-        },
-      },
-      include: {
-        productBoosts: {
-          where: {
-            status: BoostStatus.active,
-            startDate: { lte: now },
-            OR: [{ endDate: null }, { endDate: { gte: now } }],
-          },
-          include: {
-            boostPackage: true,
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-        images: {
-          take: 1,
-          orderBy: { displayOrder: 'asc' },
-        },
-      },
-    });
-
-    return products.map((product) => {
-      const boost = product.productBoosts[0];
-      const boostPackage = boost?.boostPackage;
-      const image = product.images[0]?.imageUrl || '';
-
-      return {
-        id: product.id.toString(),
-        name: product.title,
-        image,
-        price: Number(product.price),
-        currentViews: boost?.viewsActual || 0,
-        totalViews: boost?.viewsTarget || 0,
-        startDate: new Date(Number(boost?.startDate || 0)),
-        endDate: boost?.endDate ? new Date(Number(boost.endDate)) : null,
-        remainingViews: (boost?.viewsTarget || 0) - (boost?.viewsActual || 0),
-        packageId: boostPackage?.id || '',
-        packageName: boostPackage?.name || '',
-        packageType: boostPackage?.type || 'payPerView',
-        packagePrice: boostPackage?.price ? Number(boostPackage.price) : 0,
       };
     });
   }

@@ -273,7 +273,6 @@ export class ReviewService {
     const [user, product] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: review.userId },
-        include: { userInfo: true },
       }),
       this.prisma.product.findUnique({
         where: { id: review.productId },
@@ -294,9 +293,9 @@ export class ReviewService {
       title: review.title,
       comment: review.comment,
       isVerified: review.isVerified,
-      userName: user?.userInfo?.fullName || undefined,
+      userName: user?.fullName || undefined,
       userEmail: user?.email || undefined,
-      userAvatar: user?.userInfo?.avatarUrl || undefined,
+      userAvatar: user?.avatarUrl || undefined,
       productName: product?.title || undefined,
       productImage: product?.images?.[0] || undefined,
       createdAt: new Date(Number(review.createdAt)).toISOString(),

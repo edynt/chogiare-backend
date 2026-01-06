@@ -12,7 +12,6 @@ export class CustomerRepository implements ICustomerRepository {
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: {
-        userInfo: true,
         userRoles: {
           include: {
             role: true,
@@ -32,7 +31,6 @@ export class CustomerRepository implements ICustomerRepository {
     const user = await this.prisma.user.findUnique({
       where: { email },
       include: {
-        userInfo: true,
         userRoles: {
           include: {
             role: true,
@@ -69,14 +67,7 @@ export class CustomerRepository implements ICustomerRepository {
     if (options?.search) {
       where.OR = [
         { email: { contains: options.search, mode: 'insensitive' } },
-        {
-          userInfo: {
-            fullName: {
-              contains: options.search,
-              mode: 'insensitive',
-            },
-          },
-        },
+        { fullName: { contains: options.search, mode: 'insensitive' } },
       ];
     }
 
@@ -101,8 +92,7 @@ export class CustomerRepository implements ICustomerRepository {
         take: pageSize,
         orderBy: { createdAt: 'desc' },
         include: {
-          userInfo: true,
-          userRoles: {
+            userRoles: {
             include: {
               role: true,
             },
@@ -123,7 +113,6 @@ export class CustomerRepository implements ICustomerRepository {
       where: { id },
       data: { status, updatedAt: BigInt(Date.now()) },
       include: {
-        userInfo: true,
         userRoles: {
           include: {
             role: true,
@@ -148,17 +137,15 @@ export class CustomerRepository implements ICustomerRepository {
     isVerified: boolean;
     status: boolean;
     language: string;
+    fullName: string | null;
+    avatarUrl: string | null;
+    gender: string | null;
+    dateOfBirth: string | null;
+    phoneNumber: string | null;
+    address: string | null;
+    country: string | null;
     createdAt: bigint;
     updatedAt: bigint;
-    userInfo: {
-      fullName: string | null;
-      avatarUrl: string | null;
-      gender: string | null;
-      dateOfBirth: string | null;
-      phoneNumber: string | null;
-      address: string | null;
-      country: string | null;
-    } | null;
     userRoles: Array<{
       role: {
         name: string;
@@ -173,17 +160,15 @@ export class CustomerRepository implements ICustomerRepository {
       language: user.language,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      userInfo: user.userInfo
-        ? {
-            fullName: user.userInfo.fullName,
-            avatarUrl: user.userInfo.avatarUrl,
-            gender: user.userInfo.gender,
-            dateOfBirth: user.userInfo.dateOfBirth,
-            phoneNumber: user.userInfo.phoneNumber,
-            address: user.userInfo.address,
-            country: user.userInfo.country,
-          }
-        : null,
+      userInfo: {
+        fullName: user.fullName,
+        avatarUrl: user.avatarUrl,
+        gender: user.gender,
+        dateOfBirth: user.dateOfBirth,
+        phoneNumber: user.phoneNumber,
+        address: user.address,
+        country: user.country,
+      },
       roles: user.userRoles.map((ur) => ur.role.name),
     };
   }

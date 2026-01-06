@@ -32,7 +32,6 @@ export class PaymentService {
       reference: depositDto.reference || null,
       description: depositDto.description || 'Deposit to wallet',
       orderId: null,
-      boostId: null,
       transactionMetadata: {},
       createdAt: now,
       updatedAt: now,
@@ -146,120 +145,14 @@ export class PaymentService {
     };
   }
 
-  async useBalanceForBoost(
-    userId: number,
-    amount: number,
-    boostId: number,
-    description?: string,
-  ): Promise<number> {
-    const hasBalance = await this.paymentRepository.checkBalance(userId, amount);
-    if (!hasBalance) {
-      throw new BadRequestException({
-        message: MESSAGES.PAYMENT.INSUFFICIENT_BALANCE,
-        errorCode: ERROR_CODES.PAYMENT_INSUFFICIENT_BALANCE,
-      });
-    }
-
-    const now = BigInt(Date.now());
-
-    let transactionId: number;
-
-    await this.prisma.$transaction(async (tx) => {
-      let userBalance = await tx.userBalance.findUnique({
-        where: { userId },
-      });
-
-      if (!userBalance) {
-        userBalance = await tx.userBalance.create({
-          data: {
-            userId,
-            balance: 0,
-            updatedAt: now,
-          },
-        });
-      }
-
-      const newBalance = Number(userBalance.balance) - amount;
-      if (newBalance < 0) {
-        throw new BadRequestException({
-          message: MESSAGES.PAYMENT.INSUFFICIENT_BALANCE,
-          errorCode: ERROR_CODES.PAYMENT_INSUFFICIENT_BALANCE,
-        });
-      }
-
-      await tx.userBalance.update({
-        where: { userId },
-        data: {
-          balance: newBalance,
-          updatedAt: now,
-        },
-      });
-
-      const transaction = await tx.transaction.create({
-        data: {
-          userId,
-          type: 'boost',
-          amount,
-          currency: 'VND',
-          status: 'completed',
-          paymentMethod: null,
-          reference: null,
-          description: description || `Boost product - Boost ID: ${boostId}`,
-          orderId: null,
-          boostId: boostId || null,
-          transactionMetadata: {},
-          createdAt: now,
-          updatedAt: now,
-        },
-      });
-
-      transactionId = transaction.id;
-    });
-
-    return transactionId!;
-  }
-
   private async processPayment(transactionId: number, paymentMethod: string): Promise<void> {
-    this.logger.log(
-      `Processing payment for transaction ${transactionId} with method ${paymentMethod}`,
-    );
-
-    switch (paymentMethod) {
-      case 'momo':
-        return this.processMoMoPayment(transactionId);
-      case 'zalopay':
-        return this.processZaloPayPayment(transactionId);
-      case 'stripe':
-        return this.processStripePayment(transactionId);
-      case 'paypal':
-        return this.processPayPalPayment(transactionId);
-      case 'bank_transfer':
-        return this.processBankTransferPayment(transactionId);
-      default:
-        throw new BadRequestException({
-          message: MESSAGES.PAYMENT.INVALID_PAYMENT_METHOD,
-          errorCode: ERROR_CODES.PAYMENT_INVALID_PAYMENT_METHOD,
-        });
+    if (paymentMethod !== 'bank_transfer') {
+      throw new BadRequestException({
+        message: MESSAGES.PAYMENT.INVALID_PAYMENT_METHOD,
+        errorCode: ERROR_CODES.PAYMENT_INVALID_PAYMENT_METHOD,
+      });
     }
-  }
-
-  private async processMoMoPayment(transactionId: number): Promise<void> {
-    this.logger.log(`Processing MoMo payment for transaction ${transactionId}`);
-  }
-
-  private async processZaloPayPayment(transactionId: number): Promise<void> {
-    this.logger.log(`Processing ZaloPay payment for transaction ${transactionId}`);
-  }
-
-  private async processStripePayment(transactionId: number): Promise<void> {
-    this.logger.log(`Processing Stripe payment for transaction ${transactionId}`);
-  }
-
-  private async processPayPalPayment(transactionId: number): Promise<void> {
-    this.logger.log(`Processing PayPal payment for transaction ${transactionId}`);
-  }
-
-  private async processBankTransferPayment(transactionId: number): Promise<void> {
     this.logger.log(`Processing Bank Transfer payment for transaction ${transactionId}`);
+    // Bank transfer processing logic (if any)
   }
 }

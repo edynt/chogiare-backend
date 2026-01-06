@@ -2,7 +2,6 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import { seedBoostPackages } from './seeders/boost-packages.seeder';
 
 // Create Prisma client with proper configuration
 function createPrismaClient() {
@@ -41,8 +40,8 @@ async function main() {
   console.log('🌱 Starting database seeding...\n');
 
   try {
-    // Seed boost packages
-    await seedBoostPackages(prisma);
+    // Add seeders here as needed
+    console.log('No seeders configured.');
 
     console.log('\n✅ Seeding completed successfully');
   } catch (error) {

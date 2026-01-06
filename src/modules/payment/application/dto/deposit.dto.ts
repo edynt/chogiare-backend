@@ -25,10 +25,10 @@ export class DepositDto {
 
   @ApiProperty({
     description: 'Payment method',
-    example: 'momo',
-    enum: ['momo', 'zalopay', 'stripe', 'paypal', 'bank_transfer'],
+    example: 'bank_transfer',
+    enum: ['bank_transfer'],
   })
-  @IsEnum(['momo', 'zalopay', 'stripe', 'paypal', 'bank_transfer'], {
+  @IsEnum(['bank_transfer'], {
     message: VALIDATION_MESSAGES.IS_ENUM,
   })
   @IsNotEmpty({ message: VALIDATION_MESSAGES.IS_NOT_EMPTY })
