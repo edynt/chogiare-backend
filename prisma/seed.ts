@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import { seedAdminUser } from './seeders/seed-admin-user';
+import { seedCategories } from './seeders/seed-categories';
 
 // Create Prisma client with proper configuration
 function createPrismaClient() {
@@ -43,6 +44,7 @@ async function main() {
   try {
     // Run seeders
     await seedAdminUser(prisma);
+    await seedCategories(prisma);
 
     console.log('\n✅ Seeding completed successfully');
   } catch (error) {
