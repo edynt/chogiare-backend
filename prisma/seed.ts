@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
+import { seedAdminUser } from './seeders/seed-admin-user';
 
 // Create Prisma client with proper configuration
 function createPrismaClient() {
@@ -40,8 +41,8 @@ async function main() {
   console.log('🌱 Starting database seeding...\n');
 
   try {
-    // Add seeders here as needed
-    console.log('No seeders configured.');
+    // Run seeders
+    await seedAdminUser(prisma);
 
     console.log('\n✅ Seeding completed successfully');
   } catch (error) {
