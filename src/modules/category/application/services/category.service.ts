@@ -245,7 +245,9 @@ export class CategoryService {
         });
       }
 
-      if (updateCategoryDto.parentId !== null) {
+      const isParentChanging = updateCategoryDto.parentId !== category.parentId;
+
+      if (updateCategoryDto.parentId !== null && isParentChanging) {
         const parentExists = await this.categoryRepository.exists(updateCategoryDto.parentId);
         if (!parentExists) {
           throw new NotFoundException({
