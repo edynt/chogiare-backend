@@ -1,7 +1,17 @@
-import { Controller, Get, Query, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Query,
+  Body,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { ProductService } from '@modules/product/application/services/product.service';
 import { QueryProductDto } from '@modules/product/application/dto/query-product.dto';
+import { CreateProductDto } from '@modules/product/application/dto/create-product.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
@@ -32,6 +42,21 @@ export class SellerProductController {
     return {
       message: MESSAGES.SUCCESS,
       data: result,
+    };
+  }
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Create a new product' })
+  async createProduct(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() createProductDto: CreateProductDto,
+  ) {
+    const product = await this.productService.create(user.id, createProductDto);
+    return {
+      message: MESSAGES.CREATED,
+      data: product,
     };
   }
 }
