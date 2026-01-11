@@ -646,8 +646,7 @@ export class AdminUserService {
     // Check if the user exists
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: {
-      },
+      include: {},
     });
 
     if (!user) {

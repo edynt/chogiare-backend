@@ -910,7 +910,10 @@ export class AuthService {
     }
 
     if (Object.keys(metadataUpdate).length > 0) {
-      prismaData.profileMetadata = { ...currentMetadata, ...metadataUpdate } as Prisma.InputJsonValue;
+      prismaData.profileMetadata = {
+        ...currentMetadata,
+        ...metadataUpdate,
+      } as Prisma.InputJsonValue;
     }
 
     await this.prisma.user.update({

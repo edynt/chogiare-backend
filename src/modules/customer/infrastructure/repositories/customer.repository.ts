@@ -92,7 +92,7 @@ export class CustomerRepository implements ICustomerRepository {
         take: pageSize,
         orderBy: { createdAt: 'desc' },
         include: {
-            userRoles: {
+          userRoles: {
             include: {
               role: true,
             },

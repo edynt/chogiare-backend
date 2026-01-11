@@ -66,6 +66,7 @@ enum TransactionType {
   refund
   commission
   bonus
+  subscription_purchase
 }
 
 enum ConversationType {
@@ -128,6 +129,7 @@ model User {
   ticketsCreated     SupportTicket[]           @relation("TicketUser")
   ticketsAssigned    SupportTicket[]           @relation("TicketAssignee")
   ticketReplies      TicketReply[]
+  subscription       UserSubscription?
 
   @@index([email])
   @@index([status])
@@ -772,4 +774,63 @@ model ApiKey {
   @@index([isActive])
   @@index([createdBy])
   @@map("api_keys")
+}
+
+// ==================== SERVICE PACKAGES ====================
+
+model ServicePackage {
+  id           Int     @id @default(autoincrement())
+  name         String  @db.VarChar(255)
+  displayName  String  @map("display_name") @db.VarChar(255)
+  description  String? @db.Text
+  durationDays Int     @map("duration_days")
+  price        Decimal @db.Decimal(15, 2)
+  isActive     Boolean @default(true) @map("is_active")
+  displayOrder Int     @default(0) @map("display_order")
+  features     Json    @default("[]")
+  metadata     Json    @default("{}")
+  createdAt    BigInt  @map("created_at")
+  updatedAt    BigInt  @map("updated_at")
+
+  purchases SubscriptionPurchase[]
+
+  @@index([isActive])
+  @@index([displayOrder])
+  @@map("service_packages")
+}
+
+model UserSubscription {
+  id        Int     @id @default(autoincrement())
+  userId    Int     @unique @map("user_id")
+  expiresAt BigInt? @map("expires_at")
+  isActive  Boolean @default(false) @map("is_active")
+  createdAt BigInt  @map("created_at")
+  updatedAt BigInt  @map("updated_at")
+
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purchases SubscriptionPurchase[]
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([isActive])
+  @@map("user_subscriptions")
+}
+
+model SubscriptionPurchase {
+  id                     Int     @id @default(autoincrement())
+  subscriptionId         Int     @map("subscription_id")
+  packageId              Int     @map("package_id")
+  purchasedAt            BigInt  @map("purchased_at")
+  durationDays           Int     @map("duration_days")
+  pricePaid              Decimal @map("price_paid") @db.Decimal(15, 2)
+  expiresAtAfterPurchase BigInt  @map("expires_at_after_purchase")
+  metadata               Json    @default("{}")
+
+  subscription UserSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  package      ServicePackage   @relation(fields: [packageId], references: [id], onDelete: Restrict)
+
+  @@index([subscriptionId])
+  @@index([packageId])
+  @@index([purchasedAt])
+  @@map("subscription_purchases")
 }

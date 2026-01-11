@@ -144,7 +144,7 @@ export class ChatService {
         if (otherParticipant) {
           const user = await this.prisma.user.findUnique({
             where: { id: otherParticipant.userId },
-            });
+          });
           otherUserInfo = {
             userId: otherParticipant.userId,
             fullName: user?.fullName || null,

@@ -6,10 +6,7 @@ import {
   StockMovement,
   StockMovementType,
 } from '@modules/inventory/domain/entities/stock-movement.entity';
-import {
-  StockInRecord as PrismaStockInRecord,
-  Prisma,
-} from '@prisma/client';
+import { StockInRecord as PrismaStockInRecord, Prisma } from '@prisma/client';
 
 @Injectable()
 export class InventoryRepository implements IInventoryRepository {
