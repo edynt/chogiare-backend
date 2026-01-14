@@ -1,5 +1,6 @@
 import { Transaction } from '../entities/transaction.entity';
 import { UserBalance } from '../entities/user-balance.entity';
+import { DepositPackage } from '../entities/deposit-package.entity';
 
 export const PAYMENT_REPOSITORY = Symbol('PAYMENT_REPOSITORY');
 
@@ -24,4 +25,5 @@ export interface IPaymentRepository {
     operation: 'add' | 'subtract',
   ): Promise<UserBalance>;
   checkBalance(userId: number, amount: number): Promise<boolean>;
+  findActiveDepositPackages(): Promise<DepositPackage[]>;
 }

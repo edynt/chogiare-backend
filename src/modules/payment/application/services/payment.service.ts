@@ -155,4 +155,14 @@ export class PaymentService {
     this.logger.log(`Processing Bank Transfer payment for transaction ${transactionId}`);
     // Bank transfer processing logic (if any)
   }
+
+  async getDepositPackages() {
+    const packages = await this.paymentRepository.findActiveDepositPackages();
+    return packages.map((pkg) => ({
+      id: pkg.id,
+      name: pkg.name,
+      amount: pkg.amount,
+      displayOrder: pkg.displayOrder,
+    }));
+  }
 }

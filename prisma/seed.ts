@@ -5,6 +5,7 @@ import { Pool } from 'pg';
 import { seedAdminUser } from './seeders/seed-admin-user';
 import { seedCategories } from './seeders/seed-categories';
 import { seedServicePackages } from './seeders/seed-service-packages';
+import { seedDepositPackages } from './seeders/seed-deposit-packages';
 
 // Create Prisma client with proper configuration
 function createPrismaClient() {
@@ -47,6 +48,7 @@ async function main() {
     await seedAdminUser(prisma);
     await seedCategories(prisma);
     await seedServicePackages(prisma);
+    await seedDepositPackages(prisma);
 
     console.log('\n✅ Seeding completed successfully');
   } catch (error) {

@@ -3,12 +3,14 @@ import { PrismaService } from '@common/database/prisma.service';
 import { IPaymentRepository } from '@modules/payment/domain/repositories/payment.repository.interface';
 import { Transaction } from '@modules/payment/domain/entities/transaction.entity';
 import { UserBalance } from '@modules/payment/domain/entities/user-balance.entity';
+import { DepositPackage } from '@modules/payment/domain/entities/deposit-package.entity';
 import {
   Transaction as PrismaTransaction,
   TransactionType,
   PaymentMethod,
   Prisma,
   UserBalance as PrismaUserBalance,
+  DepositPackage as PrismaDepositPackage,
 } from '@prisma/client';
 
 @Injectable()
@@ -173,6 +175,26 @@ export class PaymentRepository implements IPaymentRepository {
       userId: balance.userId,
       balance: Number(balance.balance),
       updatedAt: balance.updatedAt,
+    };
+  }
+
+  async findActiveDepositPackages(): Promise<DepositPackage[]> {
+    const packages = await this.prisma.depositPackage.findMany({
+      where: { isActive: true },
+      orderBy: { displayOrder: 'asc' },
+    });
+    return packages.map((pkg) => this.toDomainDepositPackage(pkg));
+  }
+
+  private toDomainDepositPackage(pkg: PrismaDepositPackage): DepositPackage {
+    return {
+      id: pkg.id,
+      name: pkg.name,
+      amount: Number(pkg.amount),
+      displayOrder: pkg.displayOrder,
+      isActive: pkg.isActive,
+      createdAt: pkg.createdAt,
+      updatedAt: pkg.updatedAt,
     };
   }
 }

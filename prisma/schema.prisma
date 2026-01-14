@@ -776,6 +776,22 @@ model ApiKey {
   @@map("api_keys")
 }
 
+// ==================== DEPOSIT PACKAGES ====================
+
+model DepositPackage {
+  id           Int     @id @default(autoincrement())
+  name         String  @db.VarChar(255)
+  amount       Decimal @db.Decimal(15, 2)
+  displayOrder Int     @default(0) @map("display_order")
+  isActive     Boolean @default(true) @map("is_active")
+  createdAt    BigInt  @map("created_at")
+  updatedAt    BigInt  @map("updated_at")
+
+  @@index([isActive])
+  @@index([displayOrder])
+  @@map("deposit_packages")
+}
+
 // ==================== SERVICE PACKAGES ====================
 
 model ServicePackage {

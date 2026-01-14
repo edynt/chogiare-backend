@@ -78,4 +78,12 @@ export class PaymentController {
   ) {
     return await this.paymentService.getTransactionById(user.id, id);
   }
+
+  @Get('deposit-packages')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get active deposit packages' })
+  async getDepositPackages() {
+    return await this.paymentService.getDepositPackages();
+  }
 }
