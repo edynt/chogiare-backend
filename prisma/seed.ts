@@ -6,6 +6,7 @@ import { seedAdminUser } from './seeders/seed-admin-user';
 import { seedCategories } from './seeders/seed-categories';
 import { seedServicePackages } from './seeders/seed-service-packages';
 import { seedDepositPackages } from './seeders/seed-deposit-packages';
+import { seedProductsWithRelatedData } from './seeders/seed-products-with-related-data';
 
 // Create Prisma client with proper configuration
 function createPrismaClient() {
@@ -44,11 +45,12 @@ async function main() {
   console.log('🌱 Starting database seeding...\n');
 
   try {
-    // Run seeders
+    // Run seeders in order
     await seedAdminUser(prisma);
     await seedCategories(prisma);
     await seedServicePackages(prisma);
     await seedDepositPackages(prisma);
+    await seedProductsWithRelatedData(prisma);
 
     console.log('\n✅ Seeding completed successfully');
   } catch (error) {
