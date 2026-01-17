@@ -229,4 +229,19 @@ export class UpdateProductDto {
     message: VALIDATION_MESSAGES.IS_ENUM,
   })
   badges?: string[];
+
+  @ApiProperty({
+    description: 'Product image URLs from Cloudinary',
+    example: [
+      'https://res.cloudinary.com/dvweth7yl/image/upload/v1234567890/products/img1.jpg',
+      'https://res.cloudinary.com/dvweth7yl/image/upload/v1234567890/products/img2.jpg',
+    ],
+    type: [String],
+    required: false,
+  })
+  @IsOptional()
+  @IsArray({ message: VALIDATION_MESSAGES.IS_ARRAY })
+  @IsString({ each: true, message: VALIDATION_MESSAGES.IS_STRING })
+  @MaxLength(500, { each: true, message: VALIDATION_MESSAGES.MAX_LENGTH(500) })
+  images?: string[];
 }

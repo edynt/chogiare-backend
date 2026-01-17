@@ -48,6 +48,7 @@ export class ProductController {
   @ApiQuery({ name: 'isFeatured', required: false, type: Boolean })
   @ApiQuery({ name: 'isPromoted', required: false, type: Boolean })
   async findAll(@Query() queryDto: QueryProductDto, @CurrentUser() user?: CurrentUserPayload) {
+    // Return result directly - TransformInterceptor will wrap it
     return await this.productService.findAll(queryDto, user?.id);
   }
 
@@ -63,6 +64,7 @@ export class ProductController {
     @Query() queryDto: QueryProductDto,
     @CurrentUser() user?: CurrentUserPayload,
   ) {
+    // Return result directly - TransformInterceptor will wrap it
     return await this.productService.searchProducts(query, queryDto, user?.id);
   }
 
@@ -89,6 +91,7 @@ export class ProductController {
   @ApiOperation({ summary: 'Get product by ID (public)' })
   @ApiParam({ name: 'id', type: Number })
   async findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user?: CurrentUserPayload) {
+    // Return result directly - TransformInterceptor will wrap it
     return await this.productService.findOne(id, user?.id);
   }
 

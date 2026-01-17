@@ -10,7 +10,7 @@ import {
   Min,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import { VALIDATION_MESSAGES } from '@common/constants/messages.constants';
 
 export class CreateProductDto {
@@ -189,6 +189,15 @@ export class CreateProductDto {
     required: false,
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return value
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    return value;
+  })
   @IsArray({ message: VALIDATION_MESSAGES.IS_ARRAY })
   @IsString({ each: true, message: VALIDATION_MESSAGES.IS_STRING })
   tags?: string[];
@@ -201,10 +210,34 @@ export class CreateProductDto {
     required: false,
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return value
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    return value;
+  })
   @IsArray({ message: VALIDATION_MESSAGES.IS_ARRAY })
   @IsEnum(['NEW', 'FEATURED', 'PROMO', 'HOT', 'SALE'], {
     each: true,
     message: VALIDATION_MESSAGES.IS_ENUM,
   })
   badges?: string[];
+
+  @ApiProperty({
+    description: 'Product image URLs from Cloudinary (for backward compatibility)',
+    example: [
+      'https://res.cloudinary.com/dvweth7yl/image/upload/v1234567890/products/img1.jpg',
+      'https://res.cloudinary.com/dvweth7yl/image/upload/v1234567890/products/img2.jpg',
+    ],
+    type: [String],
+    required: false,
+  })
+  @IsOptional()
+  @IsArray({ message: VALIDATION_MESSAGES.IS_ARRAY })
+  @IsString({ each: true, message: VALIDATION_MESSAGES.IS_STRING })
+  @MaxLength(500, { each: true, message: VALIDATION_MESSAGES.MAX_LENGTH(500) })
+  images?: string[];
 }

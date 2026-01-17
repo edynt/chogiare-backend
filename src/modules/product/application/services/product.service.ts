@@ -4,12 +4,14 @@ import {
   ConflictException,
   BadRequestException,
   UnauthorizedException,
+  InternalServerErrorException,
   Inject,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
+import { FILE_UPLOAD_PATHS } from '@common/constants/file.constants';
 import {
   IProductRepository,
   PRODUCT_REPOSITORY,
@@ -18,6 +20,7 @@ import {
   ICategoryRepository,
   CATEGORY_REPOSITORY,
 } from '@modules/category/domain/repositories/category.repository.interface';
+import { UploadService } from '@modules/upload/application/services/upload.service';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { QueryProductDto } from '../dto/query-product.dto';
@@ -36,6 +39,7 @@ export class ProductService {
     private readonly categoryRepository: ICategoryRepository,
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly uploadService: UploadService,
   ) {
     const s3Config = this.configService.get('s3');
     this.cdnUrl = s3Config?.cdnUrl || '';
@@ -60,7 +64,25 @@ export class ProductService {
     return `https://${this.s3Bucket}.s3.${this.s3Region}.amazonaws.com/${imageUrl}`;
   }
 
-  async create(sellerId: number, createProductDto: CreateProductDto) {
+  /**
+   * Extract Cloudinary public_id from full URL
+   * Example: https://res.cloudinary.com/dvweth7yl/image/upload/v1234567890/folder/image.jpg
+   * Returns: folder/image
+   */
+  private extractCloudinaryPublicId(url: string): string | null {
+    try {
+      const match = url.match(/\/upload\/(?:v\d+\/)?(.+)\.[^.]+$/);
+      return match ? match[1] : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async create(
+    sellerId: number,
+    createProductDto: CreateProductDto,
+    files?: Express.Multer.File[],
+  ) {
     const category = await this.categoryRepository.findById(createProductDto.categoryId);
     if (!category) {
       throw new NotFoundException({
@@ -86,6 +108,46 @@ export class ProductService {
       }
     }
 
+    // STEP 1: Upload files to Cloudinary (BEFORE transaction)
+    let uploadedImageUrls: string[] = [];
+
+    if (files && files.length > 0) {
+      try {
+        // Validate files have buffer (required for memory storage)
+        const validFiles = files.filter((file) => file && file.buffer && file.buffer.length > 0);
+        if (validFiles.length === 0) {
+          console.warn('No valid files with buffer found for upload');
+        } else {
+          const uploadResults = await this.uploadService.uploadMultipleFiles(
+            validFiles,
+            FILE_UPLOAD_PATHS.PRODUCTS,
+            undefined,
+            true,
+          );
+          uploadedImageUrls = uploadResults.map((result) => result.url);
+        }
+      } catch (error) {
+        console.error('Failed to upload product images:', {
+          error: error instanceof Error ? error.message : error,
+          stack: error instanceof Error ? error.stack : undefined,
+          filesCount: files.length,
+          fileDetails: files.map((f) => ({
+            name: f?.originalname,
+            size: f?.size,
+            mimetype: f?.mimetype,
+            hasBuffer: !!(f?.buffer),
+          })),
+        });
+        throw new InternalServerErrorException({
+          message: 'Failed to upload product images',
+          errorCode: 'UPLOAD_FAILED',
+        });
+      }
+    }
+
+    // Combine uploaded URLs with pre-uploaded URLs (backward compat)
+    const allImageUrls = [...uploadedImageUrls, ...(createProductDto.images || [])];
+
     const profit =
       createProductDto.sellingPrice && createProductDto.costPrice
         ? createProductDto.sellingPrice - createProductDto.costPrice
@@ -96,45 +158,63 @@ export class ProductService {
         : null;
 
     const now = BigInt(Date.now());
-    const product = await this.productRepository.create({
-      sellerId,
-      storeId: createProductDto.storeId || null,
-      categoryId: createProductDto.categoryId,
-      title: createProductDto.title,
-      description: createProductDto.description || null,
-      price: createProductDto.price,
-      originalPrice: createProductDto.originalPrice || null,
-      condition: createProductDto.condition,
-      location: createProductDto.location || null,
-      stock: createProductDto.stock,
-      minStock: createProductDto.minStock ?? 0,
-      maxStock: createProductDto.maxStock || null,
-      reservedStock: 0,
-      availableStock: createProductDto.stock,
-      costPrice: createProductDto.costPrice || null,
-      sellingPrice: createProductDto.sellingPrice || createProductDto.price,
-      profit,
-      profitMargin,
-      sku: createProductDto.sku || null,
-      barcode: createProductDto.barcode || null,
-      status: 'draft',
-      rating: 0,
-      reviewCount: 0,
-      viewCount: 0,
-      salesCount: 0,
-      isFeatured: false,
-      isPromoted: false,
-      tags: createProductDto.tags || [],
-      badges: createProductDto.badges || [],
-      inventoryInfo: {},
-      metadata: {},
-      createdAt: now,
-      updatedAt: now,
+
+    // STEP 2: Create DB record in transaction
+    return await this.prisma.$transaction(async (tx) => {
+      const product = await tx.product.create({
+        data: {
+          sellerId,
+          storeId: createProductDto.storeId || null,
+          categoryId: createProductDto.categoryId,
+          title: createProductDto.title,
+          description: createProductDto.description || null,
+          price: createProductDto.price,
+          originalPrice: createProductDto.originalPrice || null,
+          condition: createProductDto.condition as any,
+          location: createProductDto.location || null,
+          stock: createProductDto.stock,
+          minStock: createProductDto.minStock ?? 0,
+          maxStock: createProductDto.maxStock || null,
+          reservedStock: 0,
+          availableStock: createProductDto.stock,
+          costPrice: createProductDto.costPrice || null,
+          sellingPrice: createProductDto.sellingPrice || createProductDto.price,
+          profit,
+          profitMargin,
+          sku: createProductDto.sku || null,
+          barcode: createProductDto.barcode || null,
+          status: 'draft',
+          rating: 0,
+          reviewCount: 0,
+          viewCount: 0,
+          salesCount: 0,
+          isFeatured: false,
+          isPromoted: false,
+          tags: createProductDto.tags || [],
+          badges: (createProductDto.badges || []) as any,
+          inventoryInfo: {},
+          metadata: {},
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+
+      // Save product images if provided
+      if (allImageUrls.length > 0) {
+        await tx.productImage.createMany({
+          data: allImageUrls.map((url, index) => ({
+            productId: product.id,
+            imageUrl: url,
+            displayOrder: index,
+            createdAt: now,
+          })),
+        });
+      }
+
+      await this.categoryRepository.updateProductCount(createProductDto.categoryId, 1);
+
+      return product;
     });
-
-    await this.categoryRepository.updateProductCount(createProductDto.categoryId, 1);
-
-    return product;
   }
 
   async findAll(queryDto: QueryProductDto, userId?: number) {
@@ -153,17 +233,12 @@ export class ProductService {
       pageSize,
     };
 
+    // Only filter by sellerId if explicitly requested in query params
     if (queryDto.sellerId) {
-      if (userId && userId !== queryDto.sellerId) {
-        throw new UnauthorizedException({
-          message: MESSAGES.PRODUCT.UNAUTHORIZED_ACCESS,
-          errorCode: ERROR_CODES.PRODUCT_UNAUTHORIZED_ACCESS,
-        });
-      }
       options.sellerId = queryDto.sellerId;
-    } else if (userId) {
-      options.sellerId = userId;
     }
+    // Note: Don't auto-filter by userId here - this is a public products endpoint
+    // For seller's own products, use /seller/products endpoint instead
 
     if (queryDto.categoryId) {
       options.categoryId = queryDto.categoryId;
@@ -257,11 +332,7 @@ export class ProductService {
             slug: category.slug,
           }
         : null,
-      images: images.map((img) => ({
-        id: img.id,
-        imageUrl: img.imageUrl,
-        displayOrder: img.displayOrder,
-      })),
+      images: images.map((img) => this.getImageUrl(img.imageUrl)),
     };
   }
 
@@ -320,8 +391,10 @@ export class ProductService {
       }
     }
 
-    const updateData: Partial<typeof product> = {
-      ...updateProductDto,
+    // Remove images from updateData to prevent it from being passed to Prisma update
+    const { images: _images, ...updateDtoWithoutImages } = updateProductDto;
+    const updateData: any = {
+      ...updateDtoWithoutImages,
       updatedAt: BigInt(Date.now()),
     };
 
@@ -340,6 +413,60 @@ export class ProductService {
       updateData.availableStock = updateProductDto.stock - product.reservedStock;
     }
 
+    // Handle image updates with transaction
+    if (updateProductDto.images !== undefined) {
+      return await this.prisma.$transaction(async (tx) => {
+        // Get existing images for cleanup
+        const existingImages = await tx.productImage.findMany({
+          where: { productId: id },
+        });
+
+        // Delete existing images from database
+        await tx.productImage.deleteMany({
+          where: { productId: id },
+        });
+
+        // Insert new images if provided
+        if (updateProductDto.images && updateProductDto.images.length > 0) {
+          const now = BigInt(Date.now());
+          await tx.productImage.createMany({
+            data: updateProductDto.images.map((url, index) => ({
+              productId: id,
+              imageUrl: url,
+              displayOrder: index,
+              createdAt: now,
+            })),
+          });
+        }
+
+        // Update product
+        const updatedProduct = await tx.product.update({
+          where: { id },
+          data: updateData,
+        });
+
+        // Delete old images from Cloudinary (do this after transaction succeeds)
+        // Use Promise.allSettled to not block on deletion failures
+        if (existingImages.length > 0) {
+          const publicIds = existingImages
+            .map((img) => this.extractCloudinaryPublicId(img.imageUrl))
+            .filter((id): id is string => id !== null);
+
+          if (publicIds.length > 0) {
+            Promise.allSettled(
+              publicIds.map((publicId) => this.uploadService.deleteFile(publicId)),
+            ).catch((error) => {
+              // Log error but don't fail the update
+              console.error('Failed to delete some images from Cloudinary:', error);
+            });
+          }
+        }
+
+        return updatedProduct;
+      });
+    }
+
+    // No image updates, just update product
     const updatedProduct = await this.productRepository.update(id, updateData);
     return updatedProduct;
   }

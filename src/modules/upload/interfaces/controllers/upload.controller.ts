@@ -23,6 +23,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { CurrentUser, CurrentUserPayload } from '@common/decorators/current-user.decorator';
+import { SkipHeaderValidation } from '@common/decorators/skip-header-validation.decorator';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { UploadService } from '@modules/upload/application/services/upload.service';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
@@ -36,9 +37,10 @@ export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
   @Post('file')
+  @SkipHeaderValidation()
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Upload a single file to S3' })
+  @ApiOperation({ summary: 'Upload a single file to Cloudinary' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -86,9 +88,10 @@ export class UploadController {
   }
 
   @Post('files')
+  @SkipHeaderValidation()
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Upload multiple files to S3' })
+  @ApiOperation({ summary: 'Upload multiple files to Cloudinary' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -139,9 +142,10 @@ export class UploadController {
   }
 
   @Post('image')
+  @SkipHeaderValidation()
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Upload a single image to S3 (images only)' })
+  @ApiOperation({ summary: 'Upload a single image to Cloudinary (images only)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -182,9 +186,10 @@ export class UploadController {
   }
 
   @Post('images')
+  @SkipHeaderValidation()
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Upload multiple images to S3 (images only)' })
+  @ApiOperation({ summary: 'Upload multiple images to Cloudinary (images only)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -230,14 +235,14 @@ export class UploadController {
   @Delete('file')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Delete a file from S3' })
+  @ApiOperation({ summary: 'Delete a file from Cloudinary' })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
         key: {
           type: 'string',
-          description: 'S3 object key',
+          description: 'Cloudinary public ID',
         },
       },
     },
@@ -252,7 +257,7 @@ export class UploadController {
   @Delete('files')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Delete multiple files from S3' })
+  @ApiOperation({ summary: 'Delete multiple files from Cloudinary' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -262,7 +267,7 @@ export class UploadController {
           items: {
             type: 'string',
           },
-          description: 'Array of S3 object keys',
+          description: 'Array of Cloudinary public IDs',
         },
       },
     },
@@ -275,6 +280,7 @@ export class UploadController {
   }
 
   @Post('product-images')
+  @SkipHeaderValidation()
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Upload product images' })
@@ -315,6 +321,7 @@ export class UploadController {
   }
 
   @Post('store-image')
+  @SkipHeaderValidation()
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Upload store image' })
@@ -352,6 +359,7 @@ export class UploadController {
   }
 
   @Post('avatar')
+  @SkipHeaderValidation()
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Upload avatar' })
@@ -387,7 +395,7 @@ export class UploadController {
   @Get('files/:key')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get file info by key' })
-  @ApiParam({ name: 'key', type: String, description: 'S3 object key' })
+  @ApiParam({ name: 'key', type: String, description: 'Cloudinary public ID' })
   async getFileInfo(@Param('key') key: string) {
     const fileInfo = await this.uploadService.getFileInfo(key);
     return {
@@ -400,7 +408,7 @@ export class UploadController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Delete file by key' })
-  @ApiParam({ name: 'key', type: String, description: 'S3 object key' })
+  @ApiParam({ name: 'key', type: String, description: 'Cloudinary public ID' })
   async deleteFileByKey(@Param('key') key: string) {
     await this.uploadService.deleteFile(key);
     return {

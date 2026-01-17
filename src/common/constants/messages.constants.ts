@@ -67,7 +67,7 @@ export const MESSAGES = {
   },
   HEADER: {
     MISSING_REQUIRED: 'Missing required header',
-    INVALID_CONTENT_TYPE: 'Content-Type must be application/json',
+    INVALID_CONTENT_TYPE: 'Content-Type must be application/json or multipart/form-data',
   },
   TOKEN: {
     INVALID_OR_EXPIRED: 'Invalid or expired token',

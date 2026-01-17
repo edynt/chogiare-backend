@@ -37,7 +37,11 @@ export class HeaderValidationGuard implements CanActivate {
       // Only validate Content-Type when body actually present
       if (hasBody) {
         const contentType = headers['content-type'];
-        if (!contentType || !contentType.includes('application/json')) {
+        // Allow both application/json and multipart/form-data (for file uploads)
+        const isValidContentType =
+          contentType &&
+          (contentType.includes('application/json') || contentType.includes('multipart/form-data'));
+        if (!isValidContentType) {
           throw new BadRequestException(MESSAGES.HEADER.INVALID_CONTENT_TYPE);
         }
       }
