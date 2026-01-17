@@ -493,8 +493,29 @@ export class ProductService {
       });
     }
 
+    // Get product images before deletion
+    const productImages = await this.prisma.productImage.findMany({
+      where: { productId: id },
+    });
+
+    // Delete product and related data from database
     await this.productRepository.delete(id);
     await this.categoryRepository.updateProductCount(product.categoryId, -1);
+
+    // Delete images from Cloudinary (fire-and-forget, don't block deletion)
+    if (productImages.length > 0) {
+      const publicIds = productImages
+        .map((img) => this.extractCloudinaryPublicId(img.imageUrl))
+        .filter((publicId): publicId is string => publicId !== null);
+
+      if (publicIds.length > 0) {
+        Promise.allSettled(
+          publicIds.map((publicId) => this.uploadService.deleteFile(publicId)),
+        ).catch((error) => {
+          console.error('Failed to delete product images from Cloudinary:', error);
+        });
+      }
+    }
   }
 
   async searchProducts(query: string, queryDto: QueryProductDto, userId?: number) {

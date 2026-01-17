@@ -2,13 +2,16 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Query,
   Body,
+  Param,
   HttpCode,
   HttpStatus,
   UseGuards,
   UseInterceptors,
   UploadedFiles,
+  ParseIntPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,6 +20,7 @@ import {
   ApiQuery,
   ApiConsumes,
   ApiBody,
+  ApiParam,
 } from '@nestjs/swagger';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ProductService } from '@modules/product/application/services/product.service';
@@ -24,7 +28,6 @@ import { QueryProductDto } from '@modules/product/application/dto/query-product.
 import { CreateProductDto } from '@modules/product/application/dto/create-product.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '@common/decorators/current-user.decorator';
-import { MESSAGES } from '@common/constants/messages.constants';
 
 @ApiTags('Seller - Products')
 @Controller('seller/products')
@@ -46,11 +49,8 @@ export class SellerProductController {
   })
   @ApiQuery({ name: 'search', required: false, type: String })
   async getMyProducts(@CurrentUser() user: CurrentUserPayload, @Query() queryDto: QueryProductDto) {
-    const result = await this.productService.getSellerProducts(user.id, queryDto);
-    return {
-      message: MESSAGES.SUCCESS,
-      data: result,
-    };
+    // Return result directly - TransformInterceptor will wrap it
+    return await this.productService.getSellerProducts(user.id, queryDto);
   }
 
   @Post()
@@ -97,10 +97,21 @@ export class SellerProductController {
     @UploadedFiles() files: Express.Multer.File[],
     @Body() createProductDto: CreateProductDto,
   ) {
-    const product = await this.productService.create(user.id, createProductDto, files);
-    return {
-      message: MESSAGES.CREATED,
-      data: product,
-    };
+    // Return result directly - TransformInterceptor will wrap it
+    return await this.productService.create(user.id, createProductDto, files);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Delete seller product' })
+  @ApiParam({ name: 'id', type: Number, description: 'Product ID' })
+  async deleteProduct(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    // ProductService.remove already checks ownership
+    await this.productService.remove(id, user.id);
+    return { deleted: true };
   }
 }
