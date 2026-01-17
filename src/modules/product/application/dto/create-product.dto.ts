@@ -101,6 +101,19 @@ export class CreateProductDto {
   stock: number;
 
   @ApiProperty({
+    description: 'Product status',
+    example: 'active',
+    enum: ['draft', 'active', 'sold', 'archived', 'suspended'],
+    default: 'active',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(['draft', 'active', 'sold', 'archived', 'suspended'], {
+    message: VALIDATION_MESSAGES.IS_ENUM,
+  })
+  status?: string;
+
+  @ApiProperty({
     description: 'Minimum stock threshold',
     example: 10,
     minimum: 0,

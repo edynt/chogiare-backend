@@ -183,7 +183,7 @@ export class ProductService {
           profitMargin,
           sku: createProductDto.sku || null,
           barcode: createProductDto.barcode || null,
-          status: 'draft',
+          status: (createProductDto.status || 'active') as any,
           rating: 0,
           reviewCount: 0,
           viewCount: 0,
