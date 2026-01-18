@@ -2,6 +2,7 @@ import { Injectable, ExecutionContext, UnauthorizedException, Logger } from '@ne
 import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { IS_ADMIN_AUTH_KEY } from '../decorators/admin-auth.decorator';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
 import { MESSAGES } from '../constants/messages.constants';
 
@@ -20,6 +21,17 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     ]);
 
     if (isPublic) {
+      return true;
+    }
+
+    // Skip global JWT guard for routes that use admin authentication
+    // These routes use JwtAdminAuthGuard which reads from adminAccessToken cookie
+    const isAdminAuth = this.reflector.getAllAndOverride<boolean>(IS_ADMIN_AUTH_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (isAdminAuth) {
       return true;
     }
 

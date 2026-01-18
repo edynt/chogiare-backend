@@ -15,10 +15,12 @@ import {
 import { JwtAdminAuthGuard } from '../../../../../common/guards/jwt-admin-auth.guard';
 import { RolesGuard } from '../../../../../common/guards/roles.guard';
 import { Roles } from '../../../../../common/decorators/roles.decorator';
+import { AdminAuth } from '../../../../../common/decorators/admin-auth.decorator';
 import { AdminPackagesService } from '../../application/services';
 import { CreatePackageDto, UpdatePackageDto } from '../../application/dto';
 
 @Controller('admin/packages')
+@AdminAuth()
 @UseGuards(JwtAdminAuthGuard, RolesGuard)
 @Roles('admin')
 export class AdminPackagesController {

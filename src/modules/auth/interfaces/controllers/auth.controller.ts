@@ -28,6 +28,7 @@ import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { JwtAdminAuthGuard } from '@common/guards/jwt-admin-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '@common/decorators/current-user.decorator';
 import { Public } from '@common/decorators/public.decorator';
+import { AdminAuth } from '@common/decorators/admin-auth.decorator';
 import { SkipHeaderValidation } from '@common/decorators/skip-header-validation.decorator';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
@@ -133,8 +134,9 @@ export class AuthController {
 
     const isProduction = process.env.NODE_ENV === 'production';
 
-    // Set HttpOnly cookies for admin tokens - using unified cookie names
-    res.cookie('accessToken', result.tokens.accessToken, {
+    // Set HttpOnly cookies for admin tokens - using SEPARATE cookie names for admin
+    // This allows admin and user to be logged in simultaneously on the same browser
+    res.cookie('adminAccessToken', result.tokens.accessToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: 'lax',
@@ -142,7 +144,7 @@ export class AuthController {
       path: '/',
     });
 
-    res.cookie('refreshToken', result.tokens.refreshToken, {
+    res.cookie('adminRefreshToken', result.tokens.refreshToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: 'lax',
@@ -151,10 +153,14 @@ export class AuthController {
     });
 
     // Return user info WITH tokens in body for frontend compatibility
-    // Cookies are also set for additional security
+    // Response uses adminAccessToken/adminRefreshToken naming
     return {
       user: result.user,
-      tokens: result.tokens,
+      tokens: {
+        adminAccessToken: result.tokens.accessToken,
+        adminRefreshToken: result.tokens.refreshToken,
+        expiresIn: result.tokens.expiresIn,
+      },
       roles: result.roles,
       permissions: result.permissions,
     };
@@ -292,6 +298,51 @@ export class AuthController {
     return result;
   }
 
+  @Public()
+  @SkipHeaderValidation()
+  @Post('admin/refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Refresh admin access token using admin refresh token from cookies' })
+  async adminRefresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    // Extract refresh token from admin HttpOnly cookie
+    const refreshToken = req.cookies?.['adminRefreshToken'];
+
+    if (!refreshToken) {
+      throw new UnauthorizedException({
+        message: MESSAGES.AUTH.INVALID_REFRESH_TOKEN,
+        errorCode: ERROR_CODES.AUTH_INVALID_REFRESH_TOKEN,
+      });
+    }
+
+    const result = await this.authService.refreshToken({ refreshToken });
+
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // Set new tokens as HttpOnly cookies with admin-specific names
+    res.cookie('adminAccessToken', result.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      maxAge: result.expiresIn * 1000,
+      path: '/',
+    });
+
+    res.cookie('adminRefreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+    });
+
+    // Return admin token naming
+    return {
+      adminAccessToken: result.accessToken,
+      adminRefreshToken: result.refreshToken,
+      expiresIn: result.expiresIn,
+    };
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('logout')
   @HttpCode(HttpStatus.OK)
@@ -323,8 +374,9 @@ export class AuthController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('admin/logout') // Changed from POST to GET
+  @AdminAuth()
+  @UseGuards(JwtAdminAuthGuard)
+  @Get('admin/logout')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Admin logout and invalidate tokens' })
@@ -333,8 +385,8 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    // Extract refresh token from cookies for GET request
-    const refreshToken = req.cookies?.['refreshToken'];
+    // Extract refresh token from admin cookies
+    const refreshToken = req.cookies?.['adminRefreshToken'];
 
     await this.authService.logout(user.id, refreshToken);
 
@@ -344,10 +396,10 @@ export class AuthController {
       path: '/',
     };
 
-    // Force clear cookies by setting them to empty string with immediate expiration
-    // Using unified cookie names
-    res.cookie('accessToken', '', { ...cookieOptions, maxAge: 0 });
-    res.cookie('refreshToken', '', { ...cookieOptions, maxAge: 0 });
+    // Force clear admin cookies by setting them to empty string with immediate expiration
+    // Using SEPARATE admin cookie names
+    res.cookie('adminAccessToken', '', { ...cookieOptions, maxAge: 0 });
+    res.cookie('adminRefreshToken', '', { ...cookieOptions, maxAge: 0 });
 
     return {
       message: MESSAGES.AUTH.LOGOUT_SUCCESS,
@@ -385,6 +437,7 @@ export class AuthController {
     return await this.authService.getProfile(user.id);
   }
 
+  @AdminAuth()
   @UseGuards(JwtAdminAuthGuard)
   @Get('admin/profile')
   @ApiBearerAuth('JWT-auth')

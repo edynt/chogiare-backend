@@ -3,11 +3,13 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { JwtAdminAuthGuard } from '@common/guards/jwt-admin-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
+import { AdminAuth } from '@common/decorators/admin-auth.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { AdminAnalyticsService } from '../../application/services/admin-analytics.service';
 
 @ApiTags('Admin - Analytics')
 @Controller('admin/analytics')
+@AdminAuth()
 @UseGuards(JwtAdminAuthGuard, RolesGuard)
 @Roles('admin')
 @ApiBearerAuth()

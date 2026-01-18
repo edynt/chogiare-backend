@@ -13,12 +13,14 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAdminAuthGuard } from '@common/guards/jwt-admin-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
+import { AdminAuth } from '@common/decorators/admin-auth.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { AdminProductService } from '../../application/services/admin-product.service';
 import { QueryAdminProductDto } from '../../application/dto/query-admin-product.dto';
 
 @ApiTags('Admin - Products')
 @Controller('admin/products')
+@AdminAuth()
 @UseGuards(JwtAdminAuthGuard, RolesGuard)
 @Roles('admin')
 @ApiBearerAuth()

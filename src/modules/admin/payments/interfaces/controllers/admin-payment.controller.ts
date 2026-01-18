@@ -3,12 +3,14 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAdminAuthGuard } from '@common/guards/jwt-admin-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
+import { AdminAuth } from '@common/decorators/admin-auth.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { AdminPaymentService } from '../../application/services/admin-payment.service';
 import { QueryAdminPaymentDto } from '../../application/dto/query-admin-payment.dto';
 
 @ApiTags('Admin - Payments')
 @Controller('admin/payments')
+@AdminAuth()
 @UseGuards(JwtAdminAuthGuard, RolesGuard)
 @Roles('admin')
 @ApiBearerAuth()

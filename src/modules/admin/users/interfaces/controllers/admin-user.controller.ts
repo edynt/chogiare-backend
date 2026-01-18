@@ -14,6 +14,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAdminAuthGuard } from '@common/guards/jwt-admin-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
+import { AdminAuth } from '@common/decorators/admin-auth.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { AdminUserService } from '../../application/services/admin-user.service';
 import { QueryAdminUserDto } from '../../application/dto/query-admin-user.dto';
@@ -22,6 +23,7 @@ import { UpdateUserRolesDto } from '../../application/dto/update-user-roles.dto'
 
 @ApiTags('Admin - Users')
 @Controller('admin/users')
+@AdminAuth()
 @UseGuards(JwtAdminAuthGuard, RolesGuard)
 @Roles('admin')
 @ApiBearerAuth()

@@ -3,12 +3,14 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger'
 import { JwtAdminAuthGuard } from '@common/guards/jwt-admin-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
+import { AdminAuth } from '@common/decorators/admin-auth.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { AdminSettingsService } from '../../application/services/admin-settings.service';
 import { UpdateSettingsCategoryDto } from '../../application/dto/system-settings.dto';
 
 @ApiTags('Admin - Settings')
 @Controller('admin/settings')
+@AdminAuth()
 @UseGuards(JwtAdminAuthGuard, RolesGuard)
 @Roles('admin')
 @ApiBearerAuth()

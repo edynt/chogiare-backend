@@ -15,6 +15,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { JwtAdminAuthGuard } from '@common/guards/jwt-admin-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
+import { AdminAuth } from '@common/decorators/admin-auth.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { AdminModerationProductService } from '../../application/services/admin-moderation-product.service';
 import { QueryModerationProductDto } from '../../application/dto/query-moderation-product.dto';
@@ -22,6 +23,7 @@ import { MESSAGES } from '@common/constants/messages.constants';
 
 @ApiTags('Admin - Moderation Products')
 @Controller('admin/moderation/products')
+@AdminAuth()
 @UseGuards(JwtAdminAuthGuard, RolesGuard)
 @Roles('admin')
 @ApiBearerAuth()

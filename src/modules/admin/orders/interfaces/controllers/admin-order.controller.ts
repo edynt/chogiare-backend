@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAdminAuthGuard } from '@common/guards/jwt-admin-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
+import { AdminAuth } from '@common/decorators/admin-auth.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { AdminOrderService } from '../../application/services/admin-order.service';
 import { QueryAdminOrderDto } from '../../application/dto/query-admin-order.dto';
@@ -10,6 +11,7 @@ import { UpdateOrderStatusDto } from '../../application/dto/update-order-status.
 
 @ApiTags('Admin - Orders')
 @Controller('admin/orders')
+@AdminAuth()
 @UseGuards(JwtAdminAuthGuard, RolesGuard)
 @Roles('admin')
 @ApiBearerAuth()

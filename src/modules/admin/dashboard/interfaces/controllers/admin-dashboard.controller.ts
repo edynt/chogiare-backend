@@ -3,11 +3,13 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiParam } from '@nestj
 import { JwtAdminAuthGuard } from '@common/guards/jwt-admin-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
+import { AdminAuth } from '@common/decorators/admin-auth.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { AdminDashboardService } from '../../application/services/admin-dashboard.service';
 
 @ApiTags('Admin - Dashboard')
 @Controller('admin/dashboard')
+@AdminAuth()
 @UseGuards(JwtAdminAuthGuard, RolesGuard)
 @Roles('admin')
 @ApiBearerAuth()

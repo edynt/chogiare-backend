@@ -25,11 +25,11 @@ export interface JwtAdminPayload {
   exp?: number;
 }
 
-// Custom extractor to get token from unified cookie or Authorization header
-const cookieOrBearerExtractor = (req: Request): string | null => {
-  // First try to get from unified accessToken cookie
-  if (req && req.cookies && req.cookies.accessToken) {
-    return req.cookies.accessToken;
+// Custom extractor to get admin token from adminAccessToken cookie or Authorization header
+const adminCookieOrBearerExtractor = (req: Request): string | null => {
+  // First try to get from admin-specific cookie (adminAccessToken)
+  if (req && req.cookies && req.cookies.adminAccessToken) {
+    return req.cookies.adminAccessToken;
   }
   // Fall back to Authorization header
   return ExtractJwt.fromAuthHeaderAsBearerToken()(req);
@@ -50,7 +50,7 @@ export class JwtAdminStrategy extends PassportStrategy(Strategy, 'jwt-admin') {
       throw new Error('JWT_SECRET is not configured');
     }
     super({
-      jwtFromRequest: cookieOrBearerExtractor,
+      jwtFromRequest: adminCookieOrBearerExtractor,
       ignoreExpiration: false,
       secretOrKey: secret,
     });
