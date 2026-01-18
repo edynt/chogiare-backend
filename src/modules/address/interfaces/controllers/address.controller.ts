@@ -18,7 +18,6 @@ import { CreateAddressDto } from '@modules/address/application/dto/create-addres
 import { UpdateAddressDto } from '@modules/address/application/dto/update-address.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '@common/decorators/current-user.decorator';
-import { MESSAGES } from '@common/constants/messages.constants';
 
 @ApiTags('Addresses')
 @Controller('addresses')
@@ -31,11 +30,7 @@ export class AddressController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get all addresses for current user' })
   async findAll(@CurrentUser() user: CurrentUserPayload) {
-    const addresses = await this.addressService.findAll(user.id);
-    return {
-      message: MESSAGES.SUCCESS,
-      data: addresses,
-    };
+    return await this.addressService.findAll(user.id);
   }
 
   @Get('default')
@@ -43,11 +38,7 @@ export class AddressController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get default address' })
   async getDefault(@CurrentUser() user: CurrentUserPayload) {
-    const address = await this.addressService.findDefault(user.id);
-    return {
-      message: MESSAGES.SUCCESS,
-      data: address,
-    };
+    return await this.addressService.findDefault(user.id);
   }
 
   @Get(':id')
@@ -56,11 +47,7 @@ export class AddressController {
   @ApiOperation({ summary: 'Get address by ID' })
   @ApiParam({ name: 'id', type: String })
   async findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: CurrentUserPayload) {
-    const address = await this.addressService.findOne(id, user.id);
-    return {
-      message: MESSAGES.SUCCESS,
-      data: address,
-    };
+    return await this.addressService.findOne(id, user.id);
   }
 
   @Post()
@@ -71,11 +58,7 @@ export class AddressController {
     @CurrentUser() user: CurrentUserPayload,
     @Body() createAddressDto: CreateAddressDto,
   ) {
-    const address = await this.addressService.create(user.id, createAddressDto);
-    return {
-      message: MESSAGES.CREATED,
-      data: address,
-    };
+    return await this.addressService.create(user.id, createAddressDto);
   }
 
   @Put(':id')
@@ -88,11 +71,7 @@ export class AddressController {
     @CurrentUser() user: CurrentUserPayload,
     @Body() updateAddressDto: UpdateAddressDto,
   ) {
-    const address = await this.addressService.update(id, user.id, updateAddressDto);
-    return {
-      message: MESSAGES.UPDATED,
-      data: address,
-    };
+    return await this.addressService.update(id, user.id, updateAddressDto);
   }
 
   @Delete(':id')
@@ -102,9 +81,7 @@ export class AddressController {
   @ApiParam({ name: 'id', type: String })
   async delete(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: CurrentUserPayload) {
     await this.addressService.delete(id, user.id);
-    return {
-      message: MESSAGES.DELETED,
-    };
+    return { deleted: true };
   }
 
   @Patch(':id/set-default')
@@ -113,10 +90,6 @@ export class AddressController {
   @ApiOperation({ summary: 'Set address as default' })
   @ApiParam({ name: 'id', type: String })
   async setDefault(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: CurrentUserPayload) {
-    const address = await this.addressService.setDefault(id, user.id);
-    return {
-      message: MESSAGES.UPDATED,
-      data: address,
-    };
+    return await this.addressService.setDefault(id, user.id);
   }
 }
