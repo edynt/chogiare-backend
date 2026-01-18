@@ -5,9 +5,10 @@ import { OrderRepository } from './infrastructure/repositories/order.repository'
 import { ORDER_REPOSITORY } from './domain/repositories/order.repository.interface';
 import { DatabaseModule } from '@common/database/database.module';
 import { CartModule } from '@modules/cart/cart.module';
+import { NotificationModule } from '@modules/notification/notification.module';
 
 @Module({
-  imports: [DatabaseModule, CartModule],
+  imports: [DatabaseModule, CartModule, NotificationModule],
   controllers: [OrderController],
   providers: [
     OrderService,

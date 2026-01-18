@@ -6,6 +6,7 @@ import {
   INotificationRepository,
   NOTIFICATION_REPOSITORY,
 } from '@modules/notification/domain/repositories/notification.repository.interface';
+import { NotificationGateway } from '../../interfaces/gateways/notification.gateway';
 import { CreateNotificationDto } from '../dto/create-notification.dto';
 import { QueryNotificationDto } from '../dto/query-notification.dto';
 
@@ -15,6 +16,7 @@ export class NotificationService {
     @Inject(NOTIFICATION_REPOSITORY)
     private readonly notificationRepository: INotificationRepository,
     private readonly prisma: PrismaService,
+    private readonly notificationGateway: NotificationGateway,
   ) {}
 
   async getNotifications(userId: number, queryDto: QueryNotificationDto) {
@@ -173,6 +175,52 @@ export class NotificationService {
       message: createNotificationDto.message,
       createdAt: now.toString(),
       sentCount,
+    };
+  }
+
+  /**
+   * Create notification for a single user and emit via WebSocket
+   */
+  async createAndEmitNotification(data: {
+    userId: number;
+    type: string;
+    title: string;
+    message: string;
+    actionUrl?: string;
+    metadata?: Record<string, unknown>;
+  }) {
+    const now = BigInt(Date.now());
+
+    const notification = await this.notificationRepository.create({
+      userId: data.userId,
+      type: data.type,
+      title: data.title,
+      message: data.message,
+      actionUrl: data.actionUrl,
+      metadata: data.metadata || {},
+      createdAt: now,
+    });
+
+    // Emit via WebSocket for real-time delivery
+    this.notificationGateway.sendNotificationToUser(data.userId, {
+      id: notification.id.toString(),
+      type: notification.type,
+      title: notification.title,
+      message: notification.message,
+      actionUrl: notification.actionUrl,
+      metadata: notification.metadata,
+      createdAt: notification.createdAt.toString(),
+    });
+
+    return {
+      id: notification.id.toString(),
+      type: notification.type,
+      title: notification.title,
+      message: notification.message,
+      isRead: notification.isRead,
+      createdAt: notification.createdAt.toString(),
+      actionUrl: notification.actionUrl,
+      metadata: notification.metadata,
     };
   }
 }

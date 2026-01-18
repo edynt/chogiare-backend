@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Inject,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
@@ -17,6 +18,7 @@ import {
   ICartRepository,
   CART_REPOSITORY,
 } from '@modules/cart/domain/repositories/cart.repository.interface';
+import { NotificationService } from '@modules/notification/application/services/notification.service';
 import { CreateOrderDto } from '../dto/create-order.dto';
 import { CreateOrderFromCartDto } from '../dto/create-order-from-cart.dto';
 import { QueryOrderDto } from '../dto/query-order.dto';
@@ -25,12 +27,15 @@ import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 @Injectable()
 export class OrderService {
+  private readonly logger = new Logger(OrderService.name);
+
   constructor(
     @Inject(ORDER_REPOSITORY)
     private readonly orderRepository: IOrderRepository,
     @Inject(CART_REPOSITORY)
     private readonly cartRepository: ICartRepository,
     private readonly prisma: PrismaService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async createOrderFromCart(userId: number, createOrderDto: CreateOrderFromCartDto) {
@@ -181,6 +186,21 @@ export class OrderService {
         await this.cartRepository.removeCartItem(cartItem.id);
       }
 
+      // Get buyer info for notification
+      const buyer = await tx.user.findUnique({
+        where: { id: userId },
+        select: { fullName: true, email: true },
+      });
+
+      // Send notification to seller
+      await this.sendNewOrderNotificationToSeller(
+        store.userId,
+        order.id,
+        buyer?.fullName || buyer?.email || 'Khách hàng',
+        total,
+        orderItems.length,
+      );
+
       return await this.getOrderById(userId, order.id);
     });
   }
@@ -300,6 +320,21 @@ export class OrderService {
           itemMetadata: {},
         });
       }
+
+      // Get buyer info for notification
+      const buyer = await tx.user.findUnique({
+        where: { id: userId },
+        select: { fullName: true, email: true },
+      });
+
+      // Send notification to seller
+      await this.sendNewOrderNotificationToSeller(
+        store.userId,
+        order.id,
+        buyer?.fullName || buyer?.email || 'Khách hàng',
+        total,
+        orderItems.length,
+      );
 
       return await this.getOrderById(userId, order.id);
     });
@@ -644,5 +679,42 @@ export class OrderService {
       totalRevenue,
       averageOrderValue: Math.round(averageOrderValue * 100) / 100,
     };
+  }
+
+  /**
+   * Send notification to seller when new order is placed
+   */
+  private async sendNewOrderNotificationToSeller(
+    sellerId: number,
+    orderId: number,
+    buyerName: string,
+    total: number,
+    itemCount: number,
+  ) {
+    try {
+      const formattedTotal = new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND',
+      }).format(total);
+
+      await this.notificationService.createAndEmitNotification({
+        userId: sellerId,
+        type: 'order',
+        title: 'Đơn hàng mới',
+        message: `${buyerName} vừa đặt ${itemCount} sản phẩm với tổng giá trị ${formattedTotal}`,
+        actionUrl: `/seller/orders/${orderId}`,
+        metadata: {
+          orderId,
+          buyerName,
+          total,
+          itemCount,
+        },
+      });
+
+      this.logger.log(`Sent new order notification to seller ${sellerId} for order ${orderId}`);
+    } catch (error) {
+      // Log error but don't fail the order creation
+      this.logger.error(`Failed to send notification to seller ${sellerId}:`, error);
+    }
   }
 }
