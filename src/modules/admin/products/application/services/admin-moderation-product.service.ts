@@ -135,7 +135,10 @@ export class AdminModerationProductService {
           status: moderationStatus,
           priority: 'medium' as const, // Default priority
           submittedAt: new Date(Number(product.createdAt)).toISOString(),
-          reviewedAt: product.status !== 'draft' ? new Date(Number(product.updatedAt)).toISOString() : undefined,
+          reviewedAt:
+            product.status !== 'draft'
+              ? new Date(Number(product.updatedAt)).toISOString()
+              : undefined,
           reviewer: undefined, // Can be extended later
           images: images.map((img) => this.getImageUrl(img.imageUrl)),
           description: product.description || '',
@@ -250,4 +253,3 @@ export class AdminModerationProductService {
     };
   }
 }
-

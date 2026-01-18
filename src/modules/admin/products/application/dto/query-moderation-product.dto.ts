@@ -36,4 +36,3 @@ export class QueryModerationProductDto {
   @IsString()
   priority?: string;
 }
-

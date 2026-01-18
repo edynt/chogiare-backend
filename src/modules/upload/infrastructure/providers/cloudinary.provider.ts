@@ -116,7 +116,9 @@ export class CloudinaryProvider implements IStorageProvider {
 
       // Don't throw for EPIPE if upload actually succeeded (check by retrying getFileInfo)
       if (errorCode === 'EPIPE') {
-        this.logger.warn('EPIPE error occurred, this may indicate the upload succeeded but response was lost');
+        this.logger.warn(
+          'EPIPE error occurred, this may indicate the upload succeeded but response was lost',
+        );
       }
 
       throw new InternalServerErrorException({
@@ -182,7 +184,8 @@ export class CloudinaryProvider implements IStorageProvider {
         key: result.public_id,
         fileName: result.public_id.split('/').pop() || key,
         size: result.bytes,
-        mimeType: result.resource_type === 'image' ? `image/${result.format}` : 'application/octet-stream',
+        mimeType:
+          result.resource_type === 'image' ? `image/${result.format}` : 'application/octet-stream',
       };
     } catch (error) {
       this.logger.error('Cloudinary get file info error', {
@@ -212,7 +215,10 @@ export class CloudinaryProvider implements IStorageProvider {
         key: resource.public_id,
         fileName: resource.public_id.split('/').pop() || resource.public_id,
         size: resource.bytes,
-        mimeType: resource.resource_type === 'image' ? `image/${resource.format}` : 'application/octet-stream',
+        mimeType:
+          resource.resource_type === 'image'
+            ? `image/${resource.format}`
+            : 'application/octet-stream',
       }));
 
       return files;

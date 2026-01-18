@@ -135,7 +135,7 @@ export class ProductService {
             name: f?.originalname,
             size: f?.size,
             mimetype: f?.mimetype,
-            hasBuffer: !!(f?.buffer),
+            hasBuffer: !!f?.buffer,
           })),
         });
         throw new InternalServerErrorException({

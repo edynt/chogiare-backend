@@ -76,9 +76,7 @@ export class AdminDepositPackagesService {
     });
 
     if (existingPackage) {
-      throw new BadRequestException(
-        `Deposit package with name "${createDto.name}" already exists`,
-      );
+      throw new BadRequestException(`Deposit package with name "${createDto.name}" already exists`);
     }
 
     const now = BigInt(Date.now());
