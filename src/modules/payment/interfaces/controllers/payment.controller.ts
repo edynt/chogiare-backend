@@ -36,6 +36,22 @@ export class PaymentController {
     };
   }
 
+  @Post('deposit/:id/confirm')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Confirm a pending bank transfer deposit' })
+  @ApiParam({ name: 'id', type: Number })
+  async confirmDeposit(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    const result = await this.paymentService.confirmDeposit(user.id, id);
+    return {
+      message: MESSAGES.PAYMENT.DEPOSIT_CONFIRMED,
+      data: result,
+    };
+  }
+
   @Get('balance')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')

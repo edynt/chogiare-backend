@@ -37,6 +37,30 @@ export class PaymentService {
       updatedAt: now,
     });
 
+    // For bank_transfer, return pending transaction (user confirms later)
+    if (depositDto.paymentMethod === 'bank_transfer') {
+      let userBalance = await this.paymentRepository.getUserBalance(userId);
+      if (!userBalance) {
+        userBalance = await this.paymentRepository.createUserBalance(userId, 0);
+      }
+
+      return {
+        transaction: {
+          id: transaction.id,
+          amount: transaction.amount,
+          currency: transaction.currency,
+          status: 'pending',
+          paymentMethod: transaction.paymentMethod,
+          createdAt: transaction.createdAt.toString(),
+        },
+        balance: {
+          previousBalance: Number(userBalance.balance),
+          newBalance: Number(userBalance.balance),
+        },
+      };
+    }
+
+    // For other payment methods, process immediately
     try {
       await this.processPayment(transaction.id, depositDto.paymentMethod);
 
@@ -76,6 +100,65 @@ export class PaymentService {
         errorCode: ERROR_CODES.PAYMENT_FAILED,
       });
     }
+  }
+
+  async confirmDeposit(userId: number, transactionId: number) {
+    const transaction = await this.paymentRepository.findTransactionById(transactionId);
+
+    if (!transaction) {
+      throw new NotFoundException({
+        message: MESSAGES.PAYMENT.TRANSACTION_NOT_FOUND,
+        errorCode: ERROR_CODES.PAYMENT_TRANSACTION_NOT_FOUND,
+      });
+    }
+
+    if (transaction.userId !== userId) {
+      throw new BadRequestException({
+        message: MESSAGES.PAYMENT.UNAUTHORIZED_ACCESS,
+        errorCode: ERROR_CODES.PAYMENT_UNAUTHORIZED_ACCESS,
+      });
+    }
+
+    if (transaction.type !== 'deposit') {
+      throw new BadRequestException({
+        message: 'Transaction is not a deposit',
+        errorCode: ERROR_CODES.PAYMENT_INVALID_TRANSACTION,
+      });
+    }
+
+    if (transaction.status !== 'pending') {
+      throw new BadRequestException({
+        message: 'Transaction is not pending',
+        errorCode: ERROR_CODES.PAYMENT_INVALID_TRANSACTION,
+      });
+    }
+
+    let userBalance = await this.paymentRepository.getUserBalance(userId);
+    if (!userBalance) {
+      userBalance = await this.paymentRepository.createUserBalance(userId, 0);
+    }
+
+    const previousBalance = Number(userBalance.balance);
+
+    await this.paymentRepository.updateBalance(userId, transaction.amount, 'add');
+    await this.paymentRepository.updateTransactionStatus(transactionId, 'completed');
+
+    const updatedBalance = await this.paymentRepository.getUserBalance(userId);
+
+    return {
+      transaction: {
+        id: transaction.id,
+        amount: transaction.amount,
+        currency: transaction.currency,
+        status: 'completed',
+        paymentMethod: transaction.paymentMethod,
+        createdAt: transaction.createdAt.toString(),
+      },
+      balance: {
+        previousBalance,
+        newBalance: updatedBalance ? Number(updatedBalance.balance) : previousBalance + transaction.amount,
+      },
+    };
   }
 
   async getBalance(userId: number) {

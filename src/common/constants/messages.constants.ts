@@ -86,11 +86,13 @@ export const MESSAGES = {
   },
   PAYMENT: {
     DEPOSIT_SUCCESS: 'Deposit successful',
+    DEPOSIT_CONFIRMED: 'Deposit confirmed successfully',
     PAYMENT_FAILED: 'Payment processing failed',
     INSUFFICIENT_BALANCE: 'Insufficient balance',
     TRANSACTION_NOT_FOUND: 'Transaction not found',
     UNAUTHORIZED_ACCESS: 'Unauthorized to access this transaction',
     INVALID_PAYMENT_METHOD: 'Invalid payment method',
+    INVALID_TRANSACTION: 'Invalid transaction',
   },
   BOOST: {
     PACKAGE_NOT_FOUND: 'Boost package not found',
