@@ -192,6 +192,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     try {
       await this.chatService.markAsRead(data.conversationId, client.userId);
+
+      // Notify other participants that messages were read
+      const conversation = await this.chatService.getConversation(
+        data.conversationId,
+        client.userId,
+      );
+      conversation.participants.forEach((participant) => {
+        if (participant.userId !== client.userId) {
+          this.server.to(`user:${participant.userId}`).emit('message_read', {
+            conversationId: data.conversationId,
+            userId: client.userId,
+          });
+        }
+      });
+
       return { success: true };
     } catch (error) {
       this.logger.error(`Error marking as read:`, error);
@@ -199,18 +214,75 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage('typing')
+  async handleTyping(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { conversationId: number; isTyping: boolean },
+  ) {
+    if (!client.userId) {
+      return { error: 'Unauthorized' };
+    }
+
+    try {
+      const conversation = await this.chatService.getConversation(
+        data.conversationId,
+        client.userId,
+      );
+
+      // Broadcast typing status to other participants
+      conversation.participants.forEach((participant) => {
+        if (participant.userId !== client.userId) {
+          this.server.to(`user:${participant.userId}`).emit('user_typing', {
+            conversationId: data.conversationId,
+            userId: client.userId,
+            isTyping: data.isTyping,
+          });
+        }
+      });
+
+      return { success: true };
+    } catch (error) {
+      this.logger.error(`Error handling typing:`, error);
+      return { error: 'Failed to send typing indicator' };
+    }
+  }
+
   private extractTokenFromSocket(client: Socket): string | null {
+    // 1. Try Authorization header
     const authHeader = client.handshake.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       return authHeader.substring(7);
     }
 
+    // 2. Try auth object or query params
     const token = client.handshake.auth?.token || client.handshake.query?.token;
     if (typeof token === 'string') {
       return token;
     }
 
+    // 3. Try cookies (for cookie-based auth)
+    const cookies = client.handshake.headers.cookie;
+    if (cookies) {
+      const cookieObj = this.parseCookies(cookies);
+      if (cookieObj.accessToken) {
+        return cookieObj.accessToken;
+      }
+    }
+
     return null;
+  }
+
+  private parseCookies(cookieString: string): Record<string, string> {
+    return cookieString.split(';').reduce(
+      (acc, cookie) => {
+        const [key, value] = cookie.trim().split('=');
+        if (key && value) {
+          acc[key] = decodeURIComponent(value);
+        }
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
   }
 
   private async verifyToken(token: string): Promise<{ sub: number | string } | null> {
