@@ -202,6 +202,8 @@ export class ChatService {
     }
 
     const participants = await this.participantRepository.findByConversationId(conversationId);
+    const otherParticipant = participants.find((p) => p.userId !== userId);
+
     const userInfos = await Promise.all(
       participants.map(async (p) => {
         const user = await this.prisma.user.findUnique({
@@ -215,11 +217,25 @@ export class ChatService {
       }),
     );
 
+    // Get otherUser info for frontend display
+    let otherUserInfo = null;
+    if (otherParticipant) {
+      const otherUser = await this.prisma.user.findUnique({
+        where: { id: otherParticipant.userId },
+      });
+      otherUserInfo = {
+        userId: otherParticipant.userId,
+        fullName: otherUser?.fullName || null,
+        avatarUrl: otherUser?.avatarUrl || null,
+      };
+    }
+
     return {
       ...conversation,
       createdAt: conversation.createdAt.toString(),
       updatedAt: conversation.updatedAt.toString(),
       participants: userInfos,
+      otherUser: otherUserInfo,
     };
   }
 

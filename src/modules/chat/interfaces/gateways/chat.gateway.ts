@@ -22,9 +22,17 @@ interface AuthenticatedSocket extends Socket {
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:3000',
+      process.env.CORS_ORIGIN || '',
+    ].filter(Boolean),
+    credentials: true,
   },
   namespace: '/chat',
+  transports: ['polling', 'websocket'],
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -82,7 +90,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       await client.join(`user:${userId}`);
 
-      this.logger.log(`Client ${client.id} connected as user ${userId}`);
+      this.logger.log(`Client ${client.id} connected as user ${userId}, joined room user:${userId}`);
+      this.logger.log(`Total connected users: ${this.userSockets.size}, user ${userId} has ${this.userSockets.get(userId)?.size || 0} connections`);
     } catch (error) {
       this.logger.error(`Error handling connection for client ${client.id}:`, error);
       client.disconnect();
@@ -129,13 +138,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
       const participants = conversation.participants;
 
+      // Emit to ALL participants (including sender for realtime confirmation)
       participants.forEach((participant) => {
-        if (participant.userId !== client.userId) {
-          this.server.to(`user:${participant.userId}`).emit('new_message', {
-            conversationId: data.conversationId,
-            message,
-          });
-        }
+        this.logger.log(`Emitting new_message to user:${participant.userId} for conversation ${data.conversationId}`);
+        this.server.to(`user:${participant.userId}`).emit('new_message', {
+          conversationId: data.conversationId,
+          message,
+        });
       });
 
       return { success: true, message };
