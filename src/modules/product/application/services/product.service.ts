@@ -315,11 +315,23 @@ export class ProductService {
       }
     }
 
-    const category = await this.categoryRepository.findById(product.categoryId);
-    const images = await this.prisma.productImage.findMany({
-      where: { productId: product.id },
-      orderBy: { displayOrder: 'asc' },
-    });
+    // Fetch category, images, and seller in parallel
+    const [category, images, seller] = await Promise.all([
+      this.categoryRepository.findById(product.categoryId),
+      this.prisma.productImage.findMany({
+        where: { productId: product.id },
+        orderBy: { displayOrder: 'asc' },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: product.sellerId },
+        select: {
+          id: true,
+          fullName: true,
+          avatarUrl: true,
+          isVerified: true,
+        },
+      }),
+    ]);
 
     return {
       ...product,
@@ -333,6 +345,14 @@ export class ProductService {
           }
         : null,
       images: images.map((img) => this.getImageUrl(img.imageUrl)),
+      seller: seller
+        ? {
+            id: seller.id,
+            name: seller.fullName,
+            avatar: seller.avatarUrl,
+            isVerified: seller.isVerified,
+          }
+        : null,
     };
   }
 
