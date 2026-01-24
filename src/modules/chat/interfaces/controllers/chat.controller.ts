@@ -72,6 +72,30 @@ export class ChatController {
     };
   }
 
+  @Delete('conversations/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a conversation' })
+  @ApiParam({ name: 'id', type: Number })
+  async deleteConversation(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id', ParseIntPipe) conversationId: number,
+  ) {
+    await this.chatService.deleteConversation(conversationId, user.id);
+    return {
+      message: MESSAGES.DELETED,
+    };
+  }
+
+  @Post('conversations/read-all')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Mark all conversations as read' })
+  async markAllAsRead(@CurrentUser() user: CurrentUserPayload) {
+    await this.chatService.markAllAsRead(user.id);
+    return {
+      message: MESSAGES.CHAT.MESSAGES_MARKED_AS_READ,
+    };
+  }
+
   @Post('conversations/:id/messages')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Send a message in a conversation' })

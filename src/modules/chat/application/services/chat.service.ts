@@ -557,4 +557,74 @@ export class ChatService {
       totalMessages: messages,
     };
   }
+
+  async deleteConversation(conversationId: number, userId: number) {
+    const conversation = await this.conversationRepository.findById(conversationId);
+    if (!conversation) {
+      throw new NotFoundException({
+        message: MESSAGES.CHAT.CONVERSATION_NOT_FOUND,
+        errorCode: ERROR_CODES.CHAT_CONVERSATION_NOT_FOUND,
+      });
+    }
+
+    const participant = await this.participantRepository.findByUserIdAndConversationId(
+      userId,
+      conversationId,
+    );
+
+    if (!participant) {
+      throw new UnauthorizedException({
+        message: MESSAGES.CHAT.UNAUTHORIZED_ACCESS,
+        errorCode: ERROR_CODES.CHAT_CONVERSATION_UNAUTHORIZED,
+      });
+    }
+
+    // Delete all messages in the conversation
+    await this.prisma.chatMessage.deleteMany({
+      where: { conversationId },
+    });
+
+    // Delete all participants
+    await this.prisma.conversationParticipant.deleteMany({
+      where: { conversationId },
+    });
+
+    // Delete the conversation itself
+    await this.conversationRepository.delete(conversationId);
+  }
+
+  async markAllAsRead(userId: number) {
+    // Get all conversations for this user
+    const participantRecords = await this.prisma.conversationParticipant.findMany({
+      where: { userId },
+      select: { conversationId: true },
+    });
+
+    const conversationIds = participantRecords.map((p) => p.conversationId);
+
+    if (conversationIds.length === 0) {
+      return;
+    }
+
+    const now = BigInt(Date.now());
+
+    // Mark all messages as read in all conversations
+    await this.prisma.chatMessage.updateMany({
+      where: {
+        conversationId: { in: conversationIds },
+        senderId: { not: userId },
+        isRead: false,
+      },
+      data: { isRead: true },
+    });
+
+    // Update lastReadAt for all participants
+    await this.prisma.conversationParticipant.updateMany({
+      where: {
+        userId,
+        conversationId: { in: conversationIds },
+      },
+      data: { lastReadAt: now },
+    });
+  }
 }
