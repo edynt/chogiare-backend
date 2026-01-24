@@ -17,6 +17,7 @@ import { ProductService } from '@modules/product/application/services/product.se
 import { CreateProductDto } from '@modules/product/application/dto/create-product.dto';
 import { UpdateProductDto } from '@modules/product/application/dto/update-product.dto';
 import { QueryProductDto } from '@modules/product/application/dto/query-product.dto';
+import { BoostProductDto } from '@modules/product/application/dto/boost-product.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
@@ -82,6 +83,18 @@ export class ProductController {
     };
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('boost-packages')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get available boost packages' })
+  async getBoostPackages() {
+    const packages = await this.productService.getBoostPackages();
+    return {
+      message: MESSAGES.SUCCESS,
+      data: packages,
+    };
+  }
+
   // ============================================================
   // GET DYNAMIC ROUTES (must come AFTER static routes)
   // ============================================================
@@ -107,6 +120,22 @@ export class ProductController {
     };
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/boost-status')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get product boost status' })
+  @ApiParam({ name: 'id', type: Number })
+  async getBoostStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    const status = await this.productService.getProductBoostStatus(id, user.id);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: status,
+    };
+  }
+
   // ============================================================
   // POST ROUTES
   // ============================================================
@@ -124,6 +153,24 @@ export class ProductController {
     return {
       message: MESSAGES.CREATED,
       data: product,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/boost')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Boost a product (deducts from wallet)' })
+  @ApiParam({ name: 'id', type: Number })
+  async boostProduct(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() boostDto: BoostProductDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    const result = await this.productService.boostProduct(id, boostDto, user.id);
+    return {
+      message: MESSAGES.PRODUCT.BOOST_SUCCESS,
+      data: result,
     };
   }
 

@@ -640,4 +640,52 @@ export class StoreService {
       };
     });
   }
+
+  async getPromotedProducts(storeId: number) {
+    const now = BigInt(Date.now());
+
+    const boosts = await this.prisma.productBoost.findMany({
+      where: {
+        product: {
+          storeId,
+        },
+        isActive: true,
+        endAt: { gt: now },
+      },
+      include: {
+        product: {
+          include: {
+            images: {
+              orderBy: { displayOrder: 'asc' },
+              take: 1,
+            },
+          },
+        },
+        package: true,
+      },
+      orderBy: { endAt: 'asc' },
+    });
+
+    return boosts.map((boost) => {
+      const startDate = new Date(Number(boost.startAt));
+      const endDate = new Date(Number(boost.endAt));
+      const remainingDays = Math.ceil((Number(boost.endAt) - Number(now)) / (1000 * 60 * 60 * 24));
+
+      return {
+        id: boost.product.id.toString(),
+        name: boost.product.title,
+        image: boost.product.images[0] ? this.getImageUrl(boost.product.images[0].imageUrl) : '',
+        price: Number(boost.product.price),
+        currentViews: boost.product.viewCount || 0,
+        totalViews: boost.product.viewCount || 0,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        remainingViews: 0,
+        packageId: boost.packageId.toString(),
+        packageName: boost.package.displayName,
+        packageType: 'payPerDay' as const,
+        packagePrice: Number(boost.pricePaid),
+      };
+    });
+  }
 }

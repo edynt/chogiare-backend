@@ -57,6 +57,8 @@ export const MESSAGES = {
     CATEGORY_NOT_FOUND: 'Category not found',
     UNAUTHORIZED: 'Unauthorized to access this product',
     UNAUTHORIZED_ACCESS: 'Unauthorized to access this product',
+    BOOST_PACKAGE_NOT_FOUND: 'Boost package not found',
+    BOOST_SUCCESS: 'Product boosted successfully',
   },
   CUSTOMER: {
     NOT_FOUND: 'Customer not found',

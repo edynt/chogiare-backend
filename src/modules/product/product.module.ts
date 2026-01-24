@@ -7,9 +7,10 @@ import { PRODUCT_REPOSITORY } from './domain/repositories/product.repository.int
 import { CategoryModule } from '@modules/category/category.module';
 import { DatabaseModule } from '@common/database/database.module';
 import { UploadModule } from '@modules/upload/upload.module';
+import { PaymentModule } from '@modules/payment/payment.module';
 
 @Module({
-  imports: [DatabaseModule, CategoryModule, UploadModule],
+  imports: [DatabaseModule, CategoryModule, UploadModule, PaymentModule],
   controllers: [ProductController, SellerProductController],
   providers: [
     ProductService,

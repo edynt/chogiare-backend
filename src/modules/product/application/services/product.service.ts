@@ -20,10 +20,15 @@ import {
   ICategoryRepository,
   CATEGORY_REPOSITORY,
 } from '@modules/category/domain/repositories/category.repository.interface';
+import {
+  IPaymentRepository,
+  PAYMENT_REPOSITORY,
+} from '@modules/payment/domain/repositories/payment.repository.interface';
 import { UploadService } from '@modules/upload/application/services/upload.service';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { QueryProductDto } from '../dto/query-product.dto';
+import { BoostProductDto } from '../dto/boost-product.dto';
 
 @Injectable()
 export class ProductService {
@@ -37,6 +42,8 @@ export class ProductService {
     private readonly productRepository: IProductRepository,
     @Inject(CATEGORY_REPOSITORY)
     private readonly categoryRepository: ICategoryRepository,
+    @Inject(PAYMENT_REPOSITORY)
+    private readonly paymentRepository: IPaymentRepository,
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly uploadService: UploadService,
@@ -722,5 +729,190 @@ export class ProductService {
       archived: [],
     };
     return transitions[currentStatus] || [];
+  }
+
+  async getBoostPackages() {
+    const packages = await this.prisma.servicePackage.findMany({
+      where: { isActive: true },
+      orderBy: { displayOrder: 'asc' },
+    });
+
+    return packages.map((pkg) => ({
+      id: pkg.id,
+      name: pkg.name,
+      displayName: pkg.displayName,
+      description: pkg.description,
+      durationDays: pkg.durationDays,
+      price: Number(pkg.price),
+      features: typeof pkg.features === 'string' ? JSON.parse(pkg.features) : pkg.features,
+    }));
+  }
+
+  async boostProduct(productId: number, boostDto: BoostProductDto, userId: number) {
+    const product = await this.productRepository.findById(productId);
+    if (!product) {
+      throw new NotFoundException({
+        message: MESSAGES.PRODUCT.NOT_FOUND,
+        errorCode: ERROR_CODES.PRODUCT_NOT_FOUND,
+      });
+    }
+
+    if (product.sellerId !== userId) {
+      throw new UnauthorizedException({
+        message: MESSAGES.PRODUCT.UNAUTHORIZED_ACCESS,
+        errorCode: ERROR_CODES.PRODUCT_UNAUTHORIZED_ACCESS,
+      });
+    }
+
+    const boostPackage = await this.prisma.servicePackage.findUnique({
+      where: { id: boostDto.packageId, isActive: true },
+    });
+
+    if (!boostPackage) {
+      throw new NotFoundException({
+        message: MESSAGES.PRODUCT.BOOST_PACKAGE_NOT_FOUND,
+        errorCode: ERROR_CODES.PRODUCT_BOOST_PACKAGE_NOT_FOUND,
+      });
+    }
+
+    const packagePrice = Number(boostPackage.price);
+    const now = BigInt(Date.now());
+    const boostEndAt = BigInt(Date.now() + boostPackage.durationDays * 24 * 60 * 60 * 1000);
+
+    // Use transaction with atomic balance check and deduction
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Get user balance with row-level lock (SELECT FOR UPDATE)
+      const userBalance = await tx.userBalance.findUnique({
+        where: { userId },
+      });
+
+      if (!userBalance || Number(userBalance.balance) < packagePrice) {
+        throw new BadRequestException({
+          message: MESSAGES.PAYMENT.INSUFFICIENT_BALANCE,
+          errorCode: ERROR_CODES.PAYMENT_INSUFFICIENT_BALANCE,
+        });
+      }
+
+      // Deduct balance atomically
+      const updatedBalance = await tx.userBalance.update({
+        where: { userId },
+        data: {
+          balance: { decrement: packagePrice },
+          updatedAt: now,
+        },
+      });
+
+      // Create transaction record
+      await tx.transaction.create({
+        data: {
+          userId,
+          type: 'boost',
+          amount: packagePrice,
+          currency: 'VND',
+          status: 'completed',
+          paymentMethod: null,
+          reference: `BOOST-${productId}-${Date.now()}`,
+          description: `Đẩy sản phẩm: ${product.title} - Gói ${boostPackage.displayName}`,
+          orderId: null,
+          transactionMetadata: { productId, packageId: boostDto.packageId },
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+
+      // Deactivate any existing active boost for this product
+      await tx.productBoost.updateMany({
+        where: { productId, isActive: true },
+        data: { isActive: false },
+      });
+
+      // Create boost record
+      const boost = await tx.productBoost.create({
+        data: {
+          productId,
+          packageId: boostDto.packageId,
+          pricePaid: packagePrice,
+          durationDays: boostPackage.durationDays,
+          startAt: now,
+          endAt: boostEndAt,
+          isActive: true,
+          createdAt: now,
+        },
+      });
+
+      // Update product
+      await tx.product.update({
+        where: { id: productId },
+        data: {
+          isPromoted: true,
+          boostEndAt,
+          updatedAt: now,
+        },
+      });
+
+      return { boost, newBalance: Number(updatedBalance.balance) };
+    });
+
+    return {
+      boost: {
+        id: result.boost.id,
+        productId: result.boost.productId,
+        packageId: result.boost.packageId,
+        pricePaid: Number(result.boost.pricePaid),
+        durationDays: result.boost.durationDays,
+        startAt: result.boost.startAt.toString(),
+        endAt: result.boost.endAt.toString(),
+      },
+      balance: {
+        current: result.newBalance,
+      },
+    };
+  }
+
+  async getProductBoostStatus(productId: number, userId: number) {
+    const product = await this.productRepository.findById(productId);
+    if (!product) {
+      throw new NotFoundException({
+        message: MESSAGES.PRODUCT.NOT_FOUND,
+        errorCode: ERROR_CODES.PRODUCT_NOT_FOUND,
+      });
+    }
+
+    if (product.sellerId !== userId) {
+      throw new UnauthorizedException({
+        message: MESSAGES.PRODUCT.UNAUTHORIZED_ACCESS,
+        errorCode: ERROR_CODES.PRODUCT_UNAUTHORIZED_ACCESS,
+      });
+    }
+
+    const activeBoost = await this.prisma.productBoost.findFirst({
+      where: {
+        productId,
+        isActive: true,
+        endAt: { gt: BigInt(Date.now()) },
+      },
+      include: { package: true },
+      orderBy: { endAt: 'desc' },
+    });
+
+    if (!activeBoost) {
+      return {
+        isPromoted: false,
+        boost: null,
+      };
+    }
+
+    return {
+      isPromoted: true,
+      boost: {
+        id: activeBoost.id,
+        packageName: activeBoost.package.displayName,
+        startAt: activeBoost.startAt.toString(),
+        endAt: activeBoost.endAt.toString(),
+        remainingDays: Math.ceil(
+          (Number(activeBoost.endAt) - Date.now()) / (24 * 60 * 60 * 1000),
+        ),
+      },
+    };
   }
 }

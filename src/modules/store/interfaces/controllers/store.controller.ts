@@ -30,6 +30,10 @@ import { MESSAGES } from '@common/constants/messages.constants';
 export class StoreController {
   constructor(private readonly storeService: StoreService) {}
 
+  // ============================================================
+  // STATIC ROUTES (must come BEFORE dynamic :id routes)
+  // ============================================================
+
   @Public()
   @Get()
   @HttpCode(HttpStatus.OK)
@@ -65,19 +69,6 @@ export class StoreController {
     };
   }
 
-  @Public()
-  @Get(':id')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get store by ID' })
-  @ApiParam({ name: 'id', type: String })
-  async findOne(@Param('id') id: string) {
-    const store = await this.storeService.findOne(parseInt(id, 10));
-    return {
-      message: MESSAGES.SUCCESS,
-      data: store,
-    };
-  }
-
   @UseGuards(JwtAuthGuard)
   @Get('my')
   @HttpCode(HttpStatus.OK)
@@ -85,6 +76,121 @@ export class StoreController {
   @ApiOperation({ summary: 'Get my store' })
   async getMyStore(@CurrentUser() user: CurrentUserPayload) {
     const store = await this.storeService.findByUserId(user.id);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: store,
+    };
+  }
+
+  @Public()
+  @Get('stats')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get store statistics' })
+  async getStats() {
+    const stats = await this.storeService.getStats();
+    return {
+      message: MESSAGES.STORE.STATS_RETRIEVED,
+      data: stats,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('stats/my')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get my store statistics' })
+  async getMyStats(@CurrentUser() user: CurrentUserPayload) {
+    const store = await this.storeService.findByUserId(user.id);
+    const storeId = typeof store.id === 'string' ? parseInt(store.id, 10) : store.id;
+    const stats = await this.storeService.getStats(storeId);
+    return {
+      message: MESSAGES.STORE.STATS_RETRIEVED,
+      data: stats,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('dashboard/stats')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get seller dashboard statistics' })
+  async getDashboardStats(@CurrentUser() user: CurrentUserPayload) {
+    const store = await this.storeService.findByUserId(user.id);
+    if (!store) {
+      throw new NotFoundException(MESSAGES.STORE.NOT_FOUND);
+    }
+    const storeId = typeof store.id === 'string' ? parseInt(store.id, 10) : store.id;
+    const stats = await this.storeService.getDashboardStats(storeId);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: stats,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('dashboard/low-stock')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get low stock products for seller dashboard' })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async getLowStockProducts(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query('limit') limit?: number,
+  ) {
+    const store = await this.storeService.findByUserId(user.id);
+    if (!store) {
+      throw new NotFoundException(MESSAGES.STORE.NOT_FOUND);
+    }
+    const storeId = typeof store.id === 'string' ? parseInt(store.id, 10) : store.id;
+    const products = await this.storeService.getLowStockProducts(storeId, limit || 20);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: products,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('dashboard/promoted')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get promoted products for seller dashboard' })
+  async getPromotedProducts(@CurrentUser() user: CurrentUserPayload) {
+    const store = await this.storeService.findByUserId(user.id);
+    if (!store) {
+      throw new NotFoundException(MESSAGES.STORE.NOT_FOUND);
+    }
+    const storeId = typeof store.id === 'string' ? parseInt(store.id, 10) : store.id;
+    const products = await this.storeService.getPromotedProducts(storeId);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: products,
+    };
+  }
+
+  // ============================================================
+  // DYNAMIC ROUTES (must come AFTER static routes)
+  // ============================================================
+
+  @Public()
+  @Get('stats/:storeId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get store statistics by ID' })
+  @ApiParam({ name: 'storeId', type: String })
+  async getStoreStats(@Param('storeId') storeId: string) {
+    const stats = await this.storeService.getStats(parseInt(storeId, 10));
+    return {
+      message: MESSAGES.STORE.STATS_RETRIEVED,
+      data: stats,
+    };
+  }
+
+  @Public()
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get store by ID' })
+  @ApiParam({ name: 'id', type: String })
+  async findOne(@Param('id') id: string) {
+    const store = await this.storeService.findOne(parseInt(id, 10));
     return {
       message: MESSAGES.SUCCESS,
       data: store,
@@ -136,46 +242,6 @@ export class StoreController {
   }
 
   @Public()
-  @Get('stats')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get store statistics' })
-  async getStats() {
-    const stats = await this.storeService.getStats();
-    return {
-      message: MESSAGES.STORE.STATS_RETRIEVED,
-      data: stats,
-    };
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('stats/my')
-  @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get my store statistics' })
-  async getMyStats(@CurrentUser() user: CurrentUserPayload) {
-    const store = await this.storeService.findByUserId(user.id);
-    const storeId = typeof store.id === 'string' ? parseInt(store.id, 10) : store.id;
-    const stats = await this.storeService.getStats(storeId);
-    return {
-      message: MESSAGES.STORE.STATS_RETRIEVED,
-      data: stats,
-    };
-  }
-
-  @Public()
-  @Get('stats/:storeId')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get store statistics by ID' })
-  @ApiParam({ name: 'storeId', type: String })
-  async getStoreStats(@Param('storeId') storeId: string) {
-    const stats = await this.storeService.getStats(parseInt(storeId, 10));
-    return {
-      message: MESSAGES.STORE.STATS_RETRIEVED,
-      data: stats,
-    };
-  }
-
-  @Public()
   @Get(':id/products')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get products by store ID' })
@@ -200,46 +266,6 @@ export class StoreController {
     return {
       message: MESSAGES.SUCCESS,
       data: result,
-    };
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('dashboard/stats')
-  @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get seller dashboard statistics' })
-  async getDashboardStats(@CurrentUser() user: CurrentUserPayload) {
-    const store = await this.storeService.findByUserId(user.id);
-    if (!store) {
-      throw new NotFoundException(MESSAGES.STORE.NOT_FOUND);
-    }
-    const storeId = typeof store.id === 'string' ? parseInt(store.id, 10) : store.id;
-    const stats = await this.storeService.getDashboardStats(storeId);
-    return {
-      message: MESSAGES.SUCCESS,
-      data: stats,
-    };
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('dashboard/low-stock')
-  @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get low stock products for seller dashboard' })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  async getLowStockProducts(
-    @CurrentUser() user: CurrentUserPayload,
-    @Query('limit', ParseIntPipe) limit?: number,
-  ) {
-    const store = await this.storeService.findByUserId(user.id);
-    if (!store) {
-      throw new NotFoundException(MESSAGES.STORE.NOT_FOUND);
-    }
-    const storeId = typeof store.id === 'string' ? parseInt(store.id, 10) : store.id;
-    const products = await this.storeService.getLowStockProducts(storeId, limit || 20);
-    return {
-      message: MESSAGES.SUCCESS,
-      data: products,
     };
   }
 }

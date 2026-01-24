@@ -67,6 +67,7 @@ enum TransactionType {
   commission
   bonus
   subscription_purchase
+  boost
 }
 
 enum ConversationType {
@@ -317,6 +318,7 @@ model Product {
   salesCount     Int              @default(0) @map("sales_count")
   isFeatured     Boolean          @default(false) @map("is_featured")
   isPromoted     Boolean          @default(false) @map("is_promoted")
+  boostEndAt     BigInt?          @map("boost_end_at")
   tags           String[]         @default([])
   badges         ProductBadge[]   @default([])
   inventoryInfo  Json             @default("{}") @map("inventory_info")
@@ -332,6 +334,7 @@ model Product {
   orderItems     OrderItem[]
   reviews        Review[]
   stockInRecords StockInRecord[]
+  boosts         ProductBoost[]
 
   @@index([sellerId])
   @@index([storeId])
@@ -339,9 +342,31 @@ model Product {
   @@index([status])
   @@index([isFeatured, isPromoted])
   @@index([isPromoted])
+  @@index([boostEndAt])
   @@index([sku])
   @@index([createdAt])
   @@map("products")
+}
+
+model ProductBoost {
+  id          Int     @id @default(autoincrement())
+  productId   Int     @map("product_id")
+  packageId   Int     @map("package_id")
+  pricePaid   Decimal @map("price_paid") @db.Decimal(15, 2)
+  durationDays Int    @map("duration_days")
+  startAt     BigInt  @map("start_at")
+  endAt       BigInt  @map("end_at")
+  isActive    Boolean @default(true) @map("is_active")
+  createdAt   BigInt  @map("created_at")
+
+  product Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  package ServicePackage @relation(fields: [packageId], references: [id], onDelete: Restrict)
+
+  @@index([productId])
+  @@index([packageId])
+  @@index([isActive])
+  @@index([endAt])
+  @@map("product_boosts")
 }
 
 model ProductImage {
@@ -808,7 +833,8 @@ model ServicePackage {
   createdAt    BigInt  @map("created_at")
   updatedAt    BigInt  @map("updated_at")
 
-  purchases SubscriptionPurchase[]
+  purchases     SubscriptionPurchase[]
+  productBoosts ProductBoost[]
 
   @@index([isActive])
   @@index([displayOrder])
