@@ -1,6 +1,7 @@
 import { Injectable, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
+import { firstValueFrom, isObservable } from 'rxjs';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { IS_ADMIN_AUTH_KEY } from '../decorators/admin-auth.decorator';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
@@ -14,15 +15,11 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     super();
   }
 
-  canActivate(context: ExecutionContext) {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
-
-    if (isPublic) {
-      return true;
-    }
 
     // Skip global JWT guard for routes that use admin authentication
     // These routes use JwtAdminAuthGuard which reads from adminAccessToken cookie
@@ -35,7 +32,28 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       return true;
     }
 
-    return super.canActivate(context);
+    if (isPublic) {
+      // For public routes, try to validate JWT if present (optional auth)
+      // This allows public routes to access user info when available
+      try {
+        const result = super.canActivate(context);
+        // Handle Observable, Promise, or boolean return types
+        if (isObservable(result)) {
+          await firstValueFrom(result);
+        } else {
+          await result;
+        }
+      } catch {
+        // Ignore auth errors for public routes - user will just be undefined
+      }
+      return true;
+    }
+
+    const result = super.canActivate(context);
+    if (isObservable(result)) {
+      return firstValueFrom(result);
+    }
+    return result;
   }
 
   handleRequest<TUser = CurrentUserPayload>(

@@ -408,7 +408,8 @@ export class ProductService {
       }
     }
 
-    if (updateProductDto.status) {
+    // Only validate status transition if status is actually changing
+    if (updateProductDto.status && updateProductDto.status !== product.status) {
       const validTransitions = this.getValidStatusTransitions(product.status);
       if (!validTransitions.includes(updateProductDto.status)) {
         throw new BadRequestException({

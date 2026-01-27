@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Query,
   Body,
@@ -26,6 +27,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { ProductService } from '@modules/product/application/services/product.service';
 import { QueryProductDto } from '@modules/product/application/dto/query-product.dto';
 import { CreateProductDto } from '@modules/product/application/dto/create-product.dto';
+import { UpdateProductDto } from '@modules/product/application/dto/update-product.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '@common/decorators/current-user.decorator';
 
@@ -99,6 +101,20 @@ export class SellerProductController {
   ) {
     // Return result directly - TransformInterceptor will wrap it
     return await this.productService.create(user.id, createProductDto, files);
+  }
+
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update seller product' })
+  @ApiParam({ name: 'id', type: Number, description: 'Product ID' })
+  async updateProduct(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() updateProductDto: UpdateProductDto,
+  ) {
+    // ProductService.update already checks ownership
+    return await this.productService.update(id, updateProductDto, user.id);
   }
 
   @Delete(':id')
