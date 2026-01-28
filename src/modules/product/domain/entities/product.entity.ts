@@ -29,6 +29,8 @@ export class Product {
   isPromoted: boolean;
   tags: string[];
   badges: string[];
+  warranty: string | null;
+  returnPolicy: string | null;
   inventoryInfo: Record<string, unknown>;
   metadata: Record<string, unknown>;
   createdAt: bigint;

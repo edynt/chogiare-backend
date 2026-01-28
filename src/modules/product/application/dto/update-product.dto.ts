@@ -177,11 +177,11 @@ export class UpdateProductDto {
   @ApiProperty({
     description: 'Product status',
     example: 'active',
-    enum: ['draft', 'active', 'sold', 'archived', 'suspended'],
+    enum: ['draft', 'active', 'out_of_stock'],
     required: false,
   })
   @IsOptional()
-  @IsEnum(['draft', 'active', 'sold', 'archived', 'suspended'], {
+  @IsEnum(['draft', 'active', 'out_of_stock'], {
     message: VALIDATION_MESSAGES.IS_ENUM,
   })
   status?: string;
@@ -252,4 +252,24 @@ export class UpdateProductDto {
   })
   @IsOptional()
   inventoryInfo?: Record<string, unknown>;
+
+  @ApiProperty({
+    description: 'Warranty information',
+    example: 'Bảo hành 12 tháng, đổi mới trong 7 ngày',
+    maxLength: 500,
+    required: false,
+  })
+  @IsOptional()
+  @IsString({ message: VALIDATION_MESSAGES.IS_STRING })
+  @MaxLength(500, { message: VALIDATION_MESSAGES.MAX_LENGTH(500) })
+  warranty?: string | null;
+
+  @ApiProperty({
+    description: 'Return policy',
+    example: 'Đổi trả trong 30 ngày nếu sản phẩm lỗi do nhà sản xuất',
+    required: false,
+  })
+  @IsOptional()
+  @IsString({ message: VALIDATION_MESSAGES.IS_STRING })
+  returnPolicy?: string | null;
 }

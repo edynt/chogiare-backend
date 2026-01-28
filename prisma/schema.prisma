@@ -27,9 +27,7 @@ enum ProductCondition {
 enum ProductStatus {
   draft
   active
-  sold
-  archived
-  suspended
+  out_of_stock
 }
 
 enum ProductBadge {
@@ -321,6 +319,8 @@ model Product {
   boostEndAt     BigInt?          @map("boost_end_at")
   tags           String[]         @default([])
   badges         ProductBadge[]   @default([])
+  warranty       String?          @db.VarChar(500)
+  returnPolicy   String?          @map("return_policy") @db.Text
   inventoryInfo  Json             @default("{}") @map("inventory_info")
   metadata       Json             @default("{}")
   createdAt      BigInt           @map("created_at")

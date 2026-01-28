@@ -728,14 +728,9 @@ export class ProductService {
   }
 
   private getValidStatusTransitions(currentStatus: string): string[] {
-    const transitions: Record<string, string[]> = {
-      draft: ['active', 'archived'],
-      active: ['sold', 'suspended', 'archived'],
-      sold: ['archived'],
-      suspended: ['active', 'archived'],
-      archived: [],
-    };
-    return transitions[currentStatus] || [];
+    // Allow free transitions between draft, active, and out_of_stock
+    const allStatuses = ['draft', 'active', 'out_of_stock'];
+    return allStatuses.filter(s => s !== currentStatus);
   }
 
   async getBoostPackages() {

@@ -150,6 +150,8 @@ export class ProductRepository implements IProductRepository {
         isPromoted: product.isPromoted ?? false,
         tags: product.tags || [],
         badges: (product.badges as ProductBadge[]) || [],
+        warranty: product.warranty || null,
+        returnPolicy: product.returnPolicy || null,
         inventoryInfo: (product.inventoryInfo as object) || {},
         metadata: (product.metadata as object) || {},
         createdAt: product.createdAt!,
@@ -191,6 +193,8 @@ export class ProductRepository implements IProductRepository {
     if (product.isPromoted !== undefined) updateData.isPromoted = product.isPromoted;
     if (product.tags !== undefined) updateData.tags = product.tags;
     if (product.badges !== undefined) updateData.badges = product.badges as ProductBadge[];
+    if (product.warranty !== undefined) updateData.warranty = product.warranty;
+    if (product.returnPolicy !== undefined) updateData.returnPolicy = product.returnPolicy;
 
     if (
       product.costPrice !== undefined &&
@@ -281,6 +285,8 @@ export class ProductRepository implements IProductRepository {
       isPromoted: prismaProduct.isPromoted,
       tags: prismaProduct.tags,
       badges: prismaProduct.badges,
+      warranty: prismaProduct.warranty,
+      returnPolicy: prismaProduct.returnPolicy,
       inventoryInfo: prismaProduct.inventoryInfo as Record<string, unknown>,
       metadata: prismaProduct.metadata as Record<string, unknown>,
       createdAt: prismaProduct.createdAt,
