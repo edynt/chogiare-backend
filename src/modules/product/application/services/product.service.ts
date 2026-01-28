@@ -159,10 +159,14 @@ export class ProductService {
       createProductDto.sellingPrice && createProductDto.costPrice
         ? createProductDto.sellingPrice - createProductDto.costPrice
         : null;
-    const profitMargin =
+    // Cap profitMargin to Decimal(5,2) range: -999.99 to 999.99
+    const rawMargin =
       profit && createProductDto.costPrice && createProductDto.costPrice > 0
         ? (profit / createProductDto.costPrice) * 100
         : null;
+    const profitMargin = rawMargin !== null
+      ? Math.max(-999.99, Math.min(999.99, rawMargin))
+      : null;
 
     const now = BigInt(Date.now());
 
@@ -431,7 +435,9 @@ export class ProductService {
       const costPrice = updateProductDto.costPrice ?? product.costPrice;
       if (costPrice !== null && costPrice !== undefined) {
         const profit = sellingPrice - costPrice;
-        const profitMargin = costPrice > 0 ? (profit / costPrice) * 100 : 0;
+        // Cap profitMargin to Decimal(5,2) range: -999.99 to 999.99
+        const rawMargin = costPrice > 0 ? (profit / costPrice) * 100 : 0;
+        const profitMargin = Math.max(-999.99, Math.min(999.99, rawMargin));
         updateData.profit = profit;
         updateData.profitMargin = profitMargin;
       }

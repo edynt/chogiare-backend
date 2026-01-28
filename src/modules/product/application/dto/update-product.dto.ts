@@ -244,4 +244,12 @@ export class UpdateProductDto {
   @IsString({ each: true, message: VALIDATION_MESSAGES.IS_STRING })
   @MaxLength(500, { each: true, message: VALIDATION_MESSAGES.MAX_LENGTH(500) })
   images?: string[];
+
+  @ApiProperty({
+    description: 'Inventory information (warehouse location, supplier, etc.)',
+    example: { warehouseLocation: 'Warehouse A', supplier: 'Supplier XYZ' },
+    required: false,
+  })
+  @IsOptional()
+  inventoryInfo?: Record<string, unknown>;
 }
