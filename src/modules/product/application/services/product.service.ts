@@ -269,11 +269,23 @@ export class ProductService {
 
     const products = await Promise.all(
       result.items.map(async (product) => {
-        const category = await this.categoryRepository.findById(product.categoryId);
-        const images = await this.prisma.productImage.findMany({
-          where: { productId: product.id },
-          orderBy: { displayOrder: 'asc' },
-        });
+        const [category, images, seller, store] = await Promise.all([
+          this.categoryRepository.findById(product.categoryId),
+          this.prisma.productImage.findMany({
+            where: { productId: product.id },
+            orderBy: { displayOrder: 'asc' },
+          }),
+          this.prisma.user.findUnique({
+            where: { id: product.sellerId },
+            select: { id: true, fullName: true, avatarUrl: true, isVerified: true },
+          }),
+          product.storeId
+            ? this.prisma.store.findUnique({
+                where: { id: product.storeId },
+                select: { id: true, name: true, slug: true, logo: true, isVerified: true },
+              })
+            : null,
+        ]);
 
         return {
           ...product,
@@ -287,6 +299,23 @@ export class ProductService {
               }
             : null,
           images: images.map((img) => this.getImageUrl(img.imageUrl)),
+          seller: seller
+            ? {
+                id: seller.id,
+                name: seller.fullName,
+                avatar: seller.avatarUrl ? this.getImageUrl(seller.avatarUrl) : null,
+                isVerified: seller.isVerified,
+              }
+            : null,
+          store: store
+            ? {
+                id: store.id,
+                name: store.name,
+                slug: store.slug,
+                logo: store.logo ? this.getImageUrl(store.logo) : null,
+                isVerified: store.isVerified,
+              }
+            : null,
         };
       }),
     );
@@ -566,11 +595,23 @@ export class ProductService {
     const featuredProducts = result.items.filter((p) => p.isFeatured);
     const products = await Promise.all(
       featuredProducts.map(async (product) => {
-        const category = await this.categoryRepository.findById(product.categoryId);
-        const images = await this.prisma.productImage.findMany({
-          where: { productId: product.id },
-          orderBy: { displayOrder: 'asc' },
-        });
+        const [category, images, seller, store] = await Promise.all([
+          this.categoryRepository.findById(product.categoryId),
+          this.prisma.productImage.findMany({
+            where: { productId: product.id },
+            orderBy: { displayOrder: 'asc' },
+          }),
+          this.prisma.user.findUnique({
+            where: { id: product.sellerId },
+            select: { id: true, fullName: true, avatarUrl: true, isVerified: true },
+          }),
+          product.storeId
+            ? this.prisma.store.findUnique({
+                where: { id: product.storeId },
+                select: { id: true, name: true, slug: true, logo: true, isVerified: true },
+              })
+            : null,
+        ]);
 
         return {
           ...product,
@@ -584,6 +625,23 @@ export class ProductService {
               }
             : null,
           images: images.map((img) => this.getImageUrl(img.imageUrl)),
+          seller: seller
+            ? {
+                id: seller.id,
+                name: seller.fullName,
+                avatar: seller.avatarUrl ? this.getImageUrl(seller.avatarUrl) : null,
+                isVerified: seller.isVerified,
+              }
+            : null,
+          store: store
+            ? {
+                id: store.id,
+                name: store.name,
+                slug: store.slug,
+                logo: store.logo ? this.getImageUrl(store.logo) : null,
+                isVerified: store.isVerified,
+              }
+            : null,
         };
       }),
     );
