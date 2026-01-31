@@ -271,12 +271,19 @@ export class OrderController {
   @ApiOperation({ summary: 'Update payment status' })
   @ApiParam({ name: 'id', type: Number })
   @ApiQuery({ name: 'paymentStatus', required: true, type: String })
+  @ApiQuery({ name: 'paymentProofUrl', required: false, type: String })
   async updatePaymentStatus(
     @Param('id', ParseIntPipe) orderId: number,
     @Query('paymentStatus') paymentStatus: string,
+    @Query('paymentProofUrl') paymentProofUrl: string | undefined,
     @CurrentUser('id') userId: number,
   ) {
-    const order = await this.orderService.updatePaymentStatus(orderId, paymentStatus, userId);
+    const order = await this.orderService.updatePaymentStatus(
+      orderId,
+      paymentStatus,
+      userId,
+      paymentProofUrl,
+    );
     return {
       message: MESSAGES.UPDATED,
       data: order,

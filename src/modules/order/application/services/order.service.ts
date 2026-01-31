@@ -517,6 +517,7 @@ export class OrderService {
   private formatOrder(order: OrderWithRelations) {
     const shippingAddress = order.shippingAddress;
     const billingAddress = order.billingAddress;
+    const orderMetadata = (order.orderMetadata as Record<string, unknown>) || {};
 
     return {
       id: order.id.toString(),
@@ -526,6 +527,7 @@ export class OrderService {
       status: order.status,
       paymentStatus: order.paymentStatus,
       paymentMethod: order.paymentMethod || '',
+      paymentProofUrl: (orderMetadata.paymentProofUrl as string) || undefined,
       subtotal: Number(order.subtotal) || 0,
       tax: Number(order.tax) || 0,
       shipping: Number(order.shipping) || 0,
@@ -814,8 +816,13 @@ export class OrderService {
     return this.formatOrder(updatedOrder!);
   }
 
-  async updatePaymentStatus(orderId: number, paymentStatus: string, userId: number) {
-    const order = await this.orderRepository.findById(orderId);
+  async updatePaymentStatus(
+    orderId: number,
+    paymentStatus: string,
+    userId: number,
+    paymentProofUrl?: string,
+  ) {
+    const order = await this.orderRepository.findByIdWithRelations(orderId);
     if (!order) {
       throw new NotFoundException({
         message: MESSAGES.ORDER.NOT_FOUND,
@@ -823,31 +830,78 @@ export class OrderService {
       });
     }
 
-    const store = await this.prisma.store.findUnique({
-      where: { id: order.storeId },
-    });
+    // Check authorization: user must be order owner, store owner, seller of products, or admin
+    let isAuthorized = false;
 
-    if (!store) {
-      throw new NotFoundException({
-        message: MESSAGES.STORE.NOT_FOUND,
-        errorCode: ERROR_CODES.STORE_NOT_FOUND || 'STORE_NOT_FOUND',
-      });
+    // Check if user is the order owner (buyer)
+    if (order.userId === userId) {
+      isAuthorized = true;
     }
 
-    const userRoles = await this.prisma.userRole.findMany({
-      where: { userId },
-      include: { role: true },
-    });
-    const isAdmin = userRoles.some((ur) => ur.role.name === 'admin');
+    // Check if user owns the store
+    if (!isAuthorized) {
+      const store = await this.prisma.store.findUnique({
+        where: { id: order.storeId },
+      });
 
-    if (order.userId !== userId && store.userId !== userId && !isAdmin) {
+      if (store && store.userId === userId) {
+        isAuthorized = true;
+      }
+    }
+
+    // Check if user is seller of any product in this order
+    if (!isAuthorized) {
+      const productIds = order.items.map((item) => item.productId);
+      const sellerProducts = await this.prisma.product.findFirst({
+        where: {
+          id: { in: productIds },
+          sellerId: userId,
+        },
+      });
+
+      if (sellerProducts) {
+        isAuthorized = true;
+      }
+    }
+
+    // Check if user is admin
+    if (!isAuthorized) {
+      const userRoles = await this.prisma.userRole.findMany({
+        where: { userId },
+        include: { role: true },
+      });
+      const isAdmin = userRoles.some((ur) => ur.role.name === 'admin');
+      if (isAdmin) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
       throw new ForbiddenException({
         message: MESSAGES.ORDER.UNAUTHORIZED_ACCESS,
         errorCode: ERROR_CODES.ORDER_UNAUTHORIZED_ACCESS,
       });
     }
 
+    // Update payment status and optionally save payment proof URL
     await this.orderRepository.updatePaymentStatus(orderId, paymentStatus);
+
+    // If payment proof URL provided, save it to orderMetadata
+    if (paymentProofUrl) {
+      const currentMetadata = (order.orderMetadata as Record<string, unknown>) || {};
+      await this.prisma.order.update({
+        where: { id: orderId },
+        data: {
+          orderMetadata: {
+            ...currentMetadata,
+            paymentProofUrl,
+            paymentProofUploadedAt: Date.now(),
+            paymentProofUploadedBy: userId,
+          },
+        },
+      });
+    }
+
     const updatedOrder = await this.orderRepository.findByIdWithRelations(orderId);
     return this.formatOrder(updatedOrder!);
   }
