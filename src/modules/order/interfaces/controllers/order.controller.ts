@@ -144,6 +144,30 @@ export class OrderController {
     };
   }
 
+  @Get('seller/my')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get seller orders (orders for products sold by current user)' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['pending', 'confirmed', 'ready_for_pickup', 'completed', 'cancelled', 'refunded'],
+  })
+  @ApiQuery({
+    name: 'paymentStatus',
+    required: false,
+    enum: ['pending', 'completed', 'failed', 'refunded'],
+  })
+  async getSellerOrders(@CurrentUser('id') userId: number, @Query() queryDto: QueryOrderDto) {
+    const result = await this.orderService.getSellerOrders(userId, queryDto);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: result,
+    };
+  }
+
   @Get('store/:storeId')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')

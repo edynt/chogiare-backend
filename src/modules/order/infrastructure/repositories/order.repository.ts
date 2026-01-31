@@ -43,11 +43,7 @@ const ORDER_INCLUDE_RELATIONS = {
     select: {
       id: true,
       email: true,
-      userInfo: {
-        select: {
-          fullName: true,
-        },
-      },
+      fullName: true,
     },
   },
 };
@@ -57,6 +53,7 @@ export class OrderRepository implements IOrderRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(data: {
+    orderNo: string;
     userId: number;
     storeId: number;
     status: string;
@@ -77,6 +74,7 @@ export class OrderRepository implements IOrderRepository {
     const now = BigInt(Date.now());
     const order = await this.prisma.order.create({
       data: {
+        orderNo: data.orderNo,
         userId: data.userId,
         storeId: data.storeId,
         status: data.status as OrderStatus,
@@ -373,6 +371,7 @@ export class OrderRepository implements IOrderRepository {
 
   private toDomainOrder(order: {
     id: number;
+    orderNo: string | null;
     userId: number;
     storeId: number;
     status: string;
@@ -394,6 +393,7 @@ export class OrderRepository implements IOrderRepository {
   }): Order {
     return {
       id: order.id,
+      orderNo: order.orderNo,
       userId: order.userId,
       storeId: order.storeId,
       status: order.status,
@@ -481,11 +481,7 @@ export class OrderRepository implements IOrderRepository {
       user: {
         id: order.user.id,
         email: order.user.email,
-        userInfo: order.user.userInfo
-          ? {
-              fullName: order.user.userInfo.fullName,
-            }
-          : null,
+        fullName: order.user.fullName,
       },
     };
   }

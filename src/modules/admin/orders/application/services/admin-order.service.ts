@@ -1,16 +1,11 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
 import { isAdmin } from '@common/utils/admin.utils';
 import { QueryAdminOrderDto } from '../dto/query-admin-order.dto';
 import { UpdateOrderStatusDto } from '../dto/update-order-status.dto';
-import { OrderStatus, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AdminOrderService {
@@ -176,23 +171,7 @@ export class AdminOrderService {
       });
     }
 
-    const validTransitions: Record<OrderStatus, OrderStatus[]> = {
-      pending: ['confirmed', 'cancelled'],
-      confirmed: ['ready_for_pickup', 'cancelled'],
-      ready_for_pickup: ['completed', 'cancelled'],
-      completed: [],
-      cancelled: [],
-      refunded: [],
-    };
-
-    const allowedStatuses = validTransitions[order.status];
-    if (!allowedStatuses.includes(updateDto.status)) {
-      throw new BadRequestException({
-        message: MESSAGES.ADMIN.INVALID_STATUS_TRANSITION,
-        errorCode: ERROR_CODES.ADMIN_INVALID_STATUS_TRANSITION,
-      });
-    }
-
+    // Allow seller/admin to transition to any status without restrictions
     const orderMetadata = (order.orderMetadata as Record<string, unknown>) || {};
     if (updateDto.adminNotes) {
       orderMetadata.adminNotes = updateDto.adminNotes;

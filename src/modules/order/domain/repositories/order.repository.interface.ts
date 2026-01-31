@@ -31,14 +31,13 @@ export interface OrderWithRelations extends Order {
   user: {
     id: number;
     email: string;
-    userInfo: {
-      fullName: string | null;
-    } | null;
+    fullName: string | null;
   };
 }
 
 export interface IOrderRepository {
   create(data: {
+    orderNo: string;
     userId: number;
     storeId: number;
     status: string;

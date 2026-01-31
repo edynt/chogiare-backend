@@ -1,5 +1,6 @@
 export class Order {
   id: number;
+  orderNo: string | null;
   userId: number;
   storeId: number;
   status: string;

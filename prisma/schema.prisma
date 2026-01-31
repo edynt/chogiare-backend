@@ -41,6 +41,7 @@ enum ProductBadge {
 enum OrderStatus {
   pending
   confirmed
+  preparing
   ready_for_pickup
   completed
   cancelled
@@ -416,6 +417,7 @@ model CartItem {
 
 model Order {
   id                Int            @id @default(autoincrement())
+  orderNo           String?        @unique @map("order_no") @db.VarChar(30)
   userId            Int            @map("user_id")
   storeId           Int            @map("store_id")
   status            OrderStatus    @default(pending)
