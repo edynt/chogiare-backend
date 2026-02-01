@@ -9,6 +9,8 @@ import {
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
+import { UploadService } from '@modules/upload/application/services/upload.service';
+import { FILE_UPLOAD_PATHS } from '@common/constants/file.constants';
 import {
   IOrderRepository,
   ORDER_REPOSITORY,
@@ -36,6 +38,7 @@ export class OrderService {
     private readonly cartRepository: ICartRepository,
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
+    private readonly uploadService: UploadService,
   ) {}
 
   /**
@@ -527,7 +530,7 @@ export class OrderService {
       status: order.status,
       paymentStatus: order.paymentStatus,
       paymentMethod: order.paymentMethod || '',
-      paymentProofUrl: (orderMetadata.paymentProofUrl as string) || undefined,
+      paymentImage: order.paymentImage || undefined,
       subtotal: Number(order.subtotal) || 0,
       tax: Number(order.tax) || 0,
       shipping: Number(order.shipping) || 0,
@@ -883,24 +886,94 @@ export class OrderService {
       });
     }
 
-    // Update payment status and optionally save payment proof URL
-    await this.orderRepository.updatePaymentStatus(orderId, paymentStatus);
+    // Update payment status and payment image in single atomic operation
+    await this.orderRepository.update(orderId, {
+      paymentStatus,
+      ...(paymentProofUrl && { paymentImage: paymentProofUrl }),
+    });
 
-    // If payment proof URL provided, save it to orderMetadata
-    if (paymentProofUrl) {
-      const currentMetadata = (order.orderMetadata as Record<string, unknown>) || {};
-      await this.prisma.order.update({
-        where: { id: orderId },
-        data: {
-          orderMetadata: {
-            ...currentMetadata,
-            paymentProofUrl,
-            paymentProofUploadedAt: Date.now(),
-            paymentProofUploadedBy: userId,
-          },
-        },
+    const updatedOrder = await this.orderRepository.findByIdWithRelations(orderId);
+    return this.formatOrder(updatedOrder!);
+  }
+
+  /**
+   * Upload payment proof image for an order
+   * Authorized users: order owner (buyer), store owner, product seller, or admin
+   */
+  async uploadPaymentImage(orderId: number, file: Express.Multer.File, userId: number) {
+    const order = await this.orderRepository.findByIdWithRelations(orderId);
+    if (!order) {
+      throw new NotFoundException({
+        message: MESSAGES.ORDER.NOT_FOUND,
+        errorCode: ERROR_CODES.ORDER_NOT_FOUND,
       });
     }
+
+    // Check authorization: user must be order owner, store owner, seller of products, or admin
+    let isAuthorized = false;
+
+    // Check if user is the order owner (buyer)
+    if (order.userId === userId) {
+      isAuthorized = true;
+    }
+
+    // Check if user owns the store
+    if (!isAuthorized) {
+      const store = await this.prisma.store.findUnique({
+        where: { id: order.storeId },
+      });
+
+      if (store && store.userId === userId) {
+        isAuthorized = true;
+      }
+    }
+
+    // Check if user is seller of any product in this order
+    if (!isAuthorized) {
+      const productIds = order.items.map((item) => item.productId);
+      const sellerProducts = await this.prisma.product.findFirst({
+        where: {
+          id: { in: productIds },
+          sellerId: userId,
+        },
+      });
+
+      if (sellerProducts) {
+        isAuthorized = true;
+      }
+    }
+
+    // Check if user is admin
+    if (!isAuthorized) {
+      const userRoles = await this.prisma.userRole.findMany({
+        where: { userId },
+        include: { role: true },
+      });
+      const isAdmin = userRoles.some((ur) => ur.role.name === 'admin');
+      if (isAdmin) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
+      throw new ForbiddenException({
+        message: MESSAGES.ORDER.UNAUTHORIZED_ACCESS,
+        errorCode: ERROR_CODES.ORDER_UNAUTHORIZED_ACCESS,
+      });
+    }
+
+    // Upload image to storage
+    const uploadResult = await this.uploadService.uploadFile(
+      file,
+      FILE_UPLOAD_PATHS.PAYMENTS,
+      `order-${orderId}`,
+      true, // imageOnly
+    );
+
+    // Update order with payment image URL
+    await this.orderRepository.update(orderId, {
+      paymentImage: uploadResult.url,
+    });
 
     const updatedOrder = await this.orderRepository.findByIdWithRelations(orderId);
     return this.formatOrder(updatedOrder!);

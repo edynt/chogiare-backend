@@ -11,13 +11,18 @@ import {
   HttpStatus,
   UseGuards,
   ParseIntPipe,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { SkipHeaderValidation } from '@common/decorators/skip-header-validation.decorator';
 import { OrderService } from '@modules/order/application/services/order.service';
 import { CreateOrderDto } from '@modules/order/application/dto/create-order.dto';
 import { CreateOrderFromCartDto } from '@modules/order/application/dto/create-order-from-cart.dto';
 import { QueryOrderDto } from '@modules/order/application/dto/query-order.dto';
 import { UpdateOrderDto } from '@modules/order/application/dto/update-order.dto';
+import { UpdatePaymentStatusDto } from '@modules/order/application/dto/update-payment-status.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { MESSAGES } from '@common/constants/messages.constants';
@@ -270,20 +275,50 @@ export class OrderController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Update payment status' })
   @ApiParam({ name: 'id', type: Number })
-  @ApiQuery({ name: 'paymentStatus', required: true, type: String })
-  @ApiQuery({ name: 'paymentProofUrl', required: false, type: String })
   async updatePaymentStatus(
     @Param('id', ParseIntPipe) orderId: number,
-    @Query('paymentStatus') paymentStatus: string,
-    @Query('paymentProofUrl') paymentProofUrl: string | undefined,
+    @Body() updatePaymentStatusDto: UpdatePaymentStatusDto,
     @CurrentUser('id') userId: number,
   ) {
     const order = await this.orderService.updatePaymentStatus(
       orderId,
-      paymentStatus,
+      updatePaymentStatusDto.paymentStatus,
       userId,
-      paymentProofUrl,
+      updatePaymentStatusDto.paymentProofUrl,
     );
+    return {
+      message: MESSAGES.UPDATED,
+      data: order,
+    };
+  }
+
+  @Post(':id/payment-image')
+  @SkipHeaderValidation()
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Upload payment proof image for order' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Payment proof image file',
+        },
+      },
+      required: ['file'],
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadPaymentImage(
+    @Param('id', ParseIntPipe) orderId: number,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser('id') userId: number,
+  ) {
+    const order = await this.orderService.uploadPaymentImage(orderId, file, userId);
     return {
       message: MESSAGES.UPDATED,
       data: order,

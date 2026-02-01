@@ -433,6 +433,7 @@ model Order {
   billingAddressId  Int?           @map("billing_address_id")
   notes             String?        @db.Text
   sellerNotes       String?        @map("seller_notes") @db.Text
+  paymentImage      String?        @map("payment_image") @db.VarChar(500)
   orderMetadata     Json           @default("{}") @map("order_metadata")
   createdAt         BigInt         @map("created_at")
   updatedAt         BigInt         @map("updated_at")

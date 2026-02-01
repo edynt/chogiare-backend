@@ -16,6 +16,7 @@ export class Order {
   billingAddressId: number | null;
   notes: string | null;
   sellerNotes: string | null;
+  paymentImage: string | null;
   orderMetadata: Record<string, unknown>;
   createdAt: bigint;
   updatedAt: bigint;

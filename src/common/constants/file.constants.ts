@@ -28,6 +28,7 @@ export const FILE_UPLOAD_PATHS = {
   CATEGORIES: 'categories',
   STORES: 'stores',
   DOCUMENTS: 'documents',
+  PAYMENTS: 'payments',
 } as const;
 
 export type FileUploadPath = (typeof FILE_UPLOAD_PATHS)[keyof typeof FILE_UPLOAD_PATHS];

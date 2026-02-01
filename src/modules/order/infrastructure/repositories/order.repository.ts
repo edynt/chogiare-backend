@@ -331,6 +331,7 @@ export class OrderRepository implements IOrderRepository {
     }
     if (data.notes !== undefined) updateData.notes = data.notes;
     if (data.sellerNotes !== undefined) updateData.sellerNotes = data.sellerNotes;
+    if (data.paymentImage !== undefined) updateData.paymentImage = data.paymentImage;
 
     const order = await this.prisma.order.update({
       where: { id },
@@ -387,6 +388,7 @@ export class OrderRepository implements IOrderRepository {
     billingAddressId: number | null;
     notes: string | null;
     sellerNotes: string | null;
+    paymentImage?: string | null;
     orderMetadata: Record<string, unknown> | unknown;
     createdAt: bigint;
     updatedAt: bigint;
@@ -409,6 +411,7 @@ export class OrderRepository implements IOrderRepository {
       billingAddressId: order.billingAddressId,
       notes: order.notes,
       sellerNotes: order.sellerNotes,
+      paymentImage: order.paymentImage ?? null,
       orderMetadata: order.orderMetadata as Record<string, unknown>,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
