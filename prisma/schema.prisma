@@ -107,6 +107,24 @@ model User {
   country         String? @db.VarChar(100)
   profileMetadata Json?   @default("{}") @map("profile_metadata")
 
+  // Seller fields (moved from Store model)
+  isSeller         Boolean @default(false) @map("is_seller")
+  sellerName       String? @map("seller_name") @db.VarChar(255)
+  sellerSlug       String? @unique @map("seller_slug") @db.VarChar(255)
+  sellerDescription String? @map("seller_description") @db.Text
+  sellerLogo       String? @map("seller_logo") @db.VarChar(500)
+  sellerBanner     String? @map("seller_banner") @db.VarChar(500)
+  sellerRating     Decimal @default(0) @map("seller_rating") @db.Decimal(3, 2)
+  sellerReviewCount Int    @default(0) @map("seller_review_count")
+  sellerProductCount Int   @default(0) @map("seller_product_count")
+  sellerIsVerified Boolean @default(false) @map("seller_is_verified")
+  sellerContactInfo Json   @default("{}") @map("seller_contact_info")
+  sellerAddressInfo Json   @default("{}") @map("seller_address_info")
+  sellerBusinessInfo Json  @default("{}") @map("seller_business_info")
+  sellerBusinessHours Json @default("{}") @map("seller_business_hours")
+  sellerPolicies    Json   @default("{}") @map("seller_policies")
+  sellerMetadata    Json   @default("{}") @map("seller_metadata")
+
   createdAt BigInt @map("created_at")
   updatedAt BigInt @map("updated_at")
 
@@ -114,10 +132,10 @@ model User {
   emailVerifications EmailVerification[]
   passwordResets     PasswordReset[]
   userRoles          UserRole[]
-  stores             Store[]
   products           Product[]
   cart               Cart?
-  orders             Order[]
+  buyerOrders        Order[]             @relation("BuyerOrders")
+  sellerOrders       Order[]             @relation("SellerOrders")
   addresses          Address[]
   reviews            Review[]
   conversations      ConversationParticipant[]
@@ -133,6 +151,8 @@ model User {
 
   @@index([email])
   @@index([status])
+  @@index([isSeller])
+  @@index([sellerSlug])
   @@map("users")
 }
 
@@ -228,41 +248,6 @@ model UserRole {
   @@map("user_roles")
 }
 
-model Store {
-  id               Int     @id @default(autoincrement())
-  userId           Int     @map("user_id")
-  name             String  @db.VarChar(255)
-  slug             String  @unique @db.VarChar(255)
-  description      String? @db.Text
-  shortDescription String? @map("short_description") @db.VarChar(500)
-  logo             String? @db.VarChar(500)
-  banner           String? @db.VarChar(500)
-  rating           Decimal @default(0) @db.Decimal(3, 2)
-  reviewCount      Int     @default(0) @map("review_count")
-  productCount     Int     @default(0) @map("product_count")
-  followerCount    Int     @default(0) @map("follower_count")
-  isVerified       Boolean @default(false) @map("is_verified")
-  isActive         Boolean @default(true) @map("is_active")
-  contactInfo      Json    @default("{}") @map("contact_info")
-  addressInfo      Json    @default("{}") @map("address_info")
-  businessInfo     Json    @default("{}") @map("business_info")
-  businessHours    Json    @default("{}") @map("business_hours")
-  policies         Json    @default("{}")
-  metadata         Json    @default("{}")
-  createdAt        BigInt  @map("created_at")
-  updatedAt        BigInt  @map("updated_at")
-
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  products Product[]
-  orders   Order[]
-
-  @@index([userId])
-  @@index([slug])
-  @@index([isVerified, isActive])
-  @@index([isActive])
-  @@map("stores")
-}
-
 model Category {
   id           Int     @id @default(autoincrement())
   name         String  @db.VarChar(255)
@@ -291,7 +276,6 @@ model Category {
 model Product {
   id             Int              @id @default(autoincrement())
   sellerId       Int              @map("seller_id")
-  storeId        Int?             @map("store_id")
   categoryId     Int              @map("category_id")
   title          String           @db.VarChar(500)
   description    String?          @db.Text
@@ -328,7 +312,6 @@ model Product {
   updatedAt      BigInt           @map("updated_at")
 
   seller         User            @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  store          Store?          @relation(fields: [storeId], references: [id], onDelete: SetNull)
   category       Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   images         ProductImage[]
   cartItems      CartItem[]
@@ -338,7 +321,6 @@ model Product {
   boosts         ProductBoost[]
 
   @@index([sellerId])
-  @@index([storeId])
   @@index([categoryId])
   @@index([status])
   @@index([isFeatured, isPromoted])
@@ -418,8 +400,8 @@ model CartItem {
 model Order {
   id                Int            @id @default(autoincrement())
   orderNo           String?        @unique @map("order_no") @db.VarChar(30)
-  userId            Int            @map("user_id")
-  storeId           Int            @map("store_id")
+  buyerId           Int            @map("buyer_id")
+  sellerId          Int            @map("seller_id")
   status            OrderStatus    @default(pending)
   paymentStatus     PaymentStatus  @default(pending) @map("payment_status")
   paymentMethod     PaymentMethod? @map("payment_method")
@@ -438,15 +420,15 @@ model Order {
   createdAt         BigInt         @map("created_at")
   updatedAt         BigInt         @map("updated_at")
 
-  user            User          @relation(fields: [userId], references: [id], onDelete: Restrict)
-  store           Store         @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  buyer           User          @relation("BuyerOrders", fields: [buyerId], references: [id], onDelete: Restrict)
+  seller          User          @relation("SellerOrders", fields: [sellerId], references: [id], onDelete: Restrict)
   shippingAddress Address?      @relation("ShippingAddress", fields: [shippingAddressId], references: [id], onDelete: SetNull)
   billingAddress  Address?      @relation("BillingAddress", fields: [billingAddressId], references: [id], onDelete: SetNull)
   items           OrderItem[]
   transactions    Transaction[]
 
-  @@index([userId])
-  @@index([storeId])
+  @@index([buyerId])
+  @@index([sellerId])
   @@index([status])
   @@index([paymentStatus])
   @@index([status, paymentStatus])

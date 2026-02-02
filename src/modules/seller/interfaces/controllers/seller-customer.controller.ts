@@ -27,14 +27,6 @@ import { CurrentUser, CurrentUserPayload } from '@common/decorators/current-user
 export class SellerCustomerController {
   constructor(private readonly sellerCustomerService: SellerCustomerService) {}
 
-  private async getSellerStoreId(userId: number): Promise<number> {
-    const storeId = await this.sellerCustomerService.getStoreIdByUserId(userId);
-    if (!storeId) {
-      throw new ForbiddenException('You do not have an active store');
-    }
-    return storeId;
-  }
-
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')
@@ -46,8 +38,8 @@ export class SellerCustomerController {
     @CurrentUser() user: CurrentUserPayload,
     @Query() queryDto: QuerySellerCustomerDto,
   ) {
-    const storeId = await this.getSellerStoreId(user.id);
-    return await this.sellerCustomerService.getCustomers(storeId, queryDto);
+    // Use seller ID directly (user.id) instead of looking up store
+    return await this.sellerCustomerService.getCustomers(user.id, queryDto);
   }
 
   @Get('stats')
@@ -55,8 +47,7 @@ export class SellerCustomerController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get customer statistics' })
   async getCustomerStats(@CurrentUser() user: CurrentUserPayload) {
-    const storeId = await this.getSellerStoreId(user.id);
-    return await this.sellerCustomerService.getCustomerStats(storeId);
+    return await this.sellerCustomerService.getCustomerStats(user.id);
   }
 
   @Get(':customerId/orders')
@@ -72,8 +63,7 @@ export class SellerCustomerController {
     @Query('page') page?: number,
     @Query('pageSize') pageSize?: number,
   ) {
-    const storeId = await this.getSellerStoreId(user.id);
-    return await this.sellerCustomerService.getCustomerOrders(storeId, customerId, {
+    return await this.sellerCustomerService.getCustomerOrders(user.id, customerId, {
       page: page ? Number(page) : undefined,
       pageSize: pageSize ? Number(pageSize) : undefined,
     });

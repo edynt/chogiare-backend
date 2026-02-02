@@ -114,7 +114,7 @@ export class AdminUserService {
               role: true,
             },
           },
-          orders: {
+          buyerOrders: {
             where: {
               status: 'completed',
               paymentStatus: 'completed',
@@ -125,7 +125,7 @@ export class AdminUserService {
           },
           _count: {
             select: {
-              orders: true,
+              buyerOrders: true,
               products: true,
             },
           },
@@ -142,8 +142,8 @@ export class AdminUserService {
         const userRole = user.userRoles[0]?.role;
         const roleName = userRole?.name || 'user';
 
-        const totalOrders = user._count.orders;
-        const totalRevenue = user.orders.reduce((sum, o) => sum + Number(o.total), 0);
+        const totalOrders = user._count.buyerOrders;
+        const totalRevenue = user.buyerOrders.reduce((sum, o) => sum + Number(o.total), 0);
 
         return {
           id: user.id.toString(),
@@ -186,13 +186,12 @@ export class AdminUserService {
             role: true,
           },
         },
-        orders: {
+        buyerOrders: {
           include: {
             items: true,
           },
         },
         products: true,
-        stores: true,
       },
     });
 
@@ -207,8 +206,8 @@ export class AdminUserService {
       user.userRoles.find((ur) => ur.role.name !== 'admin')?.role || user.userRoles[0]?.role;
     const roleName = userRole?.name || 'user';
 
-    const totalOrders = user.orders.length;
-    const totalRevenue = user.orders
+    const totalOrders = user.buyerOrders.length;
+    const totalRevenue = user.buyerOrders
       .filter((o) => o.status === 'completed' && o.paymentStatus === 'completed')
       .reduce((sum, o) => sum + Number(o.total), 0);
 
@@ -530,7 +529,7 @@ export class AdminUserService {
 
     // Check for blocking constraints (Restrict policies)
     const [orderCount, transactionCount] = await Promise.all([
-      this.prisma.order.count({ where: { userId } }),
+      this.prisma.order.count({ where: { buyerId: userId } }),
       this.prisma.transaction.count({ where: { userId } }),
     ]);
 
@@ -550,31 +549,7 @@ export class AdminUserService {
 
     // Delete user and ALL related data in transaction
     await this.prisma.$transaction(async (tx) => {
-      // 1. Delete stores and their products
-      const stores = await tx.store.findMany({
-        where: { userId },
-        select: { id: true },
-      });
-
-      for (const store of stores) {
-        // Delete product images first
-        const products = await tx.product.findMany({
-          where: { storeId: store.id },
-          select: { id: true },
-        });
-
-        for (const product of products) {
-          await tx.productImage.deleteMany({ where: { productId: product.id } });
-        }
-
-        // Delete products in the store
-        await tx.product.deleteMany({ where: { storeId: store.id } });
-      }
-
-      // Delete stores
-      await tx.store.deleteMany({ where: { userId } });
-
-      // 2. Delete products without stores (sellerId reference)
+      // 1. Delete products owned by this seller
       const sellerProducts = await tx.product.findMany({
         where: { sellerId: userId },
         select: { id: true },
@@ -586,11 +561,11 @@ export class AdminUserService {
 
       await tx.product.deleteMany({ where: { sellerId: userId } });
 
-      // 3. Delete chat/conversation data
+      // 2. Delete chat/conversation data
       await tx.chatMessage.deleteMany({ where: { senderId: userId } });
       await tx.conversationParticipant.deleteMany({ where: { userId } });
 
-      // 4. Delete support tickets and replies
+      // 3. Delete support tickets and replies
       await tx.ticketReply.deleteMany({ where: { userId } });
       await tx.supportTicket.deleteMany({ where: { userId } });
       // Clear assignedTo references (SetNull)
@@ -599,34 +574,34 @@ export class AdminUserService {
         data: { assignedTo: null },
       });
 
-      // 5. Delete user balance
+      // 4. Delete user balance
       await tx.userBalance.deleteMany({ where: { userId } });
 
-      // 6. Delete auth-related data
+      // 5. Delete auth-related data
       await tx.session.deleteMany({ where: { userId } });
       await tx.emailVerification.deleteMany({ where: { userId } });
       await tx.passwordReset.deleteMany({ where: { userId } });
 
-      // 7. Delete user roles
+      // 6. Delete user roles
       await tx.userRole.deleteMany({ where: { userId } });
 
-      // 8. Delete cart and items
+      // 7. Delete cart and items
       const cart = await tx.cart.findUnique({ where: { userId } });
       if (cart) {
         await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
         await tx.cart.delete({ where: { userId } });
       }
 
-      // 10. Delete addresses
+      // 8. Delete addresses
       await tx.address.deleteMany({ where: { userId } });
 
-      // 11. Delete reviews
+      // 9. Delete reviews
       await tx.review.deleteMany({ where: { userId } });
 
-      // 12. Delete notifications
+      // 10. Delete notifications
       await tx.notification.deleteMany({ where: { userId } });
 
-      // 13. Delete the user (final step)
+      // 11. Delete the user (final step)
       await tx.user.delete({ where: { id: userId } });
     });
 

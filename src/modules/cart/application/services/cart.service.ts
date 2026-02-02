@@ -21,7 +21,7 @@ export class CartService {
     const product = await this.prisma.product.findUnique({
       where: { id: addToCartDto.productId },
       include: {
-        store: true,
+        seller: true,
       },
     });
 
@@ -109,13 +109,13 @@ export class CartService {
         id: { in: productIds },
       },
       include: {
-        store: {
+        seller: {
           select: {
             id: true,
-            name: true,
-            slug: true,
-            logo: true,
-            isVerified: true,
+            sellerName: true,
+            sellerSlug: true,
+            sellerLogo: true,
+            sellerIsVerified: true,
           },
         },
         images: {
@@ -142,11 +142,11 @@ export class CartService {
           price: Number(item.price),
           quantity: item.quantity,
           subtotal: Number(item.price) * item.quantity,
-          storeId: product.storeId,
-          storeName: product.store?.name || null,
-          storeSlug: product.store?.slug || null,
-          storeLogo: product.store?.logo || null,
-          storeIsVerified: product.store?.isVerified || false,
+          sellerId: product.sellerId,
+          sellerName: product.seller?.sellerName || null,
+          sellerSlug: product.seller?.sellerSlug || null,
+          sellerLogo: product.seller?.sellerLogo || null,
+          sellerIsVerified: product.seller?.sellerIsVerified || false,
         };
       })
       .filter((item) => item !== null);
@@ -154,11 +154,11 @@ export class CartService {
     const groupsMap = new Map<
       number,
       {
-        storeId: number;
-        storeName: string | null;
-        storeSlug: string | null;
-        storeLogo: string | null;
-        storeIsVerified: boolean;
+        sellerId: number;
+        sellerName: string | null;
+        sellerSlug: string | null;
+        sellerLogo: string | null;
+        sellerIsVerified: boolean;
         items: typeof items;
         subtotal: number;
       }
@@ -167,20 +167,20 @@ export class CartService {
     items.forEach((item) => {
       if (!item) return;
 
-      const storeId = item.storeId || 0;
-      if (!groupsMap.has(storeId)) {
-        groupsMap.set(storeId, {
-          storeId,
-          storeName: item.storeName,
-          storeSlug: item.storeSlug,
-          storeLogo: item.storeLogo,
-          storeIsVerified: item.storeIsVerified,
+      const sellerId = item.sellerId || 0;
+      if (!groupsMap.has(sellerId)) {
+        groupsMap.set(sellerId, {
+          sellerId,
+          sellerName: item.sellerName,
+          sellerSlug: item.sellerSlug,
+          sellerLogo: item.sellerLogo,
+          sellerIsVerified: item.sellerIsVerified,
           items: [],
           subtotal: 0,
         });
       }
 
-      const group = groupsMap.get(storeId);
+      const group = groupsMap.get(sellerId);
       if (group) {
         group.items.push(item);
         group.subtotal += item.subtotal;

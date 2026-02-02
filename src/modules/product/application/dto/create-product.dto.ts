@@ -185,17 +185,6 @@ export class CreateProductDto {
   barcode?: string;
 
   @ApiProperty({
-    description: 'Store ID (optional, if seller has a store)',
-    example: 1,
-    required: false,
-  })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt({ message: VALIDATION_MESSAGES.IS_NUMBER })
-  @Min(1, { message: VALIDATION_MESSAGES.MIN(1) })
-  storeId?: number;
-
-  @ApiProperty({
     description: 'Product tags',
     example: ['smartphone', 'apple', 'iphone'],
     type: [String],

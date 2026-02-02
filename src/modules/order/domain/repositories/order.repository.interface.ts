@@ -4,12 +4,14 @@ import { OrderItem } from '../entities/order-item.entity';
 export const ORDER_REPOSITORY = Symbol('ORDER_REPOSITORY');
 
 export interface OrderWithRelations extends Order {
-  store: {
+  seller: {
     id: number;
-    name: string;
-    slug: string;
-    logo: string | null;
-    isVerified: boolean;
+    email: string;
+    fullName: string | null;
+    sellerName: string | null;
+    sellerSlug: string | null;
+    sellerLogo: string | null;
+    sellerIsVerified: boolean;
   };
   items: OrderItem[];
   shippingAddress: {
@@ -28,7 +30,7 @@ export interface OrderWithRelations extends Order {
     city: string;
     state: string;
   } | null;
-  user: {
+  buyer: {
     id: number;
     email: string;
     fullName: string | null;
@@ -38,8 +40,8 @@ export interface OrderWithRelations extends Order {
 export interface IOrderRepository {
   create(data: {
     orderNo: string;
-    userId: number;
-    storeId: number;
+    buyerId: number;
+    sellerId: number;
     status: string;
     paymentStatus: string;
     paymentMethod: string | null;
@@ -57,8 +59,8 @@ export interface IOrderRepository {
   }): Promise<Order>;
   findById(id: number): Promise<Order | null>;
   findByIdWithRelations(id: number): Promise<OrderWithRelations | null>;
-  findByUserId(
-    userId: number,
+  findByBuyerId(
+    buyerId: number,
     options?: {
       status?: string;
       paymentStatus?: string;
@@ -66,8 +68,8 @@ export interface IOrderRepository {
       pageSize?: number;
     },
   ): Promise<{ items: Order[]; total: number }>;
-  findByUserIdWithRelations(
-    userId: number,
+  findByBuyerIdWithRelations(
+    buyerId: number,
     options?: {
       status?: string;
       paymentStatus?: string;
@@ -75,8 +77,8 @@ export interface IOrderRepository {
       pageSize?: number;
     },
   ): Promise<{ items: OrderWithRelations[]; total: number }>;
-  findByStoreId(
-    storeId: number,
+  findBySellerId(
+    sellerId: number,
     options?: {
       status?: string;
       paymentStatus?: string;
@@ -84,8 +86,8 @@ export interface IOrderRepository {
       pageSize?: number;
     },
   ): Promise<{ items: Order[]; total: number }>;
-  findByStoreIdWithRelations(
-    storeId: number,
+  findBySellerIdWithRelations(
+    sellerId: number,
     options?: {
       status?: string;
       paymentStatus?: string;

@@ -20,7 +20,6 @@ import { ChatModule } from '@modules/chat/chat.module';
 import { CartModule } from '@modules/cart/cart.module';
 import { OrderModule } from '@modules/order/order.module';
 import { CleanupModule } from '@modules/cleanup/cleanup.module';
-import { StoreModule } from '@modules/store/store.module';
 import { ReviewModule } from '@modules/review/review.module';
 import { AddressModule } from '@modules/address/address.module';
 import { ReportsModule } from '@modules/reports/reports.module';
@@ -44,7 +43,6 @@ import { SellerModule } from '@modules/seller/seller.module';
     CartModule,
     OrderModule,
     CleanupModule,
-    StoreModule,
     ReviewModule,
     AddressModule,
     ReportsModule,

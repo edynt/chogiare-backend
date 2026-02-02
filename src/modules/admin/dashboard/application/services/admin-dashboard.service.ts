@@ -211,9 +211,11 @@ export class AdminDashboardService {
           total: true,
           paymentStatus: true,
           createdAt: true,
-          store: {
+          seller: {
             select: {
-              name: true,
+              sellerName: true,
+              fullName: true,
+              email: true,
             },
           },
         },
@@ -252,7 +254,7 @@ export class AdminDashboardService {
         id: `payment-${payment.id}`,
         type: 'payment_received',
         title: 'Thanh toán nhận được',
-        description: `Nhận thanh toán ${payment.total} VNĐ từ ${payment.store?.name || 'N/A'}`,
+        description: `Nhận thanh toán ${payment.total} VNĐ từ ${payment.seller?.sellerName || payment.seller?.fullName || payment.seller?.email || 'N/A'}`,
         time: this.getTimeAgo(payment.createdAt),
         status: 'success',
       })),
@@ -272,9 +274,12 @@ export class AdminDashboardService {
     lastMonth.setMonth(lastMonth.getMonth() - 1);
     const lastMonthBigInt = BigInt(lastMonth.getTime());
 
-    const stores = await this.prisma.store.findMany({
+    const sellers = await this.prisma.user.findMany({
+      where: {
+        isSeller: true,
+      },
       include: {
-        orders: {
+        sellerOrders: {
           where: {
             createdAt: {
               gte: lastMonthBigInt,
@@ -289,9 +294,9 @@ export class AdminDashboardService {
       },
     });
 
-    type StoreWithOrders = Prisma.StoreGetPayload<{
+    type SellerWithOrders = Prisma.UserGetPayload<{
       include: {
-        orders: {
+        sellerOrders: {
           include: {
             items: true;
           };
@@ -299,18 +304,17 @@ export class AdminDashboardService {
       };
     }>;
 
-    const sellersData = (stores as StoreWithOrders[])
-      .map((store) => {
-        const orders = store.orders;
+    const sellersData = (sellers as SellerWithOrders[])
+      .map((seller) => {
+        const orders = seller.sellerOrders;
         const revenue = orders.reduce((sum: number, order) => sum + Number(order.total), 0);
         const orderCount = orders.length;
-        const avgRating = store.rating ? Number(store.rating) : 4.5;
 
         return {
-          name: store.name,
+          name: seller.sellerName || seller.fullName || seller.email,
           orders: orderCount,
           revenue,
-          rating: avgRating,
+          rating: 4.5,
         };
       })
       .filter((seller) => seller.orders > 0)

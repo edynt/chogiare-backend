@@ -9,13 +9,15 @@ import { OrderItem } from '@modules/order/domain/entities/order-item.entity';
 import { OrderStatus, PaymentStatus, PaymentMethod, Prisma } from '@prisma/client';
 
 const ORDER_INCLUDE_RELATIONS = {
-  store: {
+  seller: {
     select: {
       id: true,
-      name: true,
-      slug: true,
-      logo: true,
-      isVerified: true,
+      email: true,
+      fullName: true,
+      sellerName: true,
+      sellerSlug: true,
+      sellerLogo: true,
+      sellerIsVerified: true,
     },
   },
   items: true,
@@ -39,7 +41,7 @@ const ORDER_INCLUDE_RELATIONS = {
       state: true,
     },
   },
-  user: {
+  buyer: {
     select: {
       id: true,
       email: true,
@@ -54,8 +56,8 @@ export class OrderRepository implements IOrderRepository {
 
   async create(data: {
     orderNo: string;
-    userId: number;
-    storeId: number;
+    buyerId: number;
+    sellerId: number;
     status: string;
     paymentStatus: string;
     paymentMethod: string | null;
@@ -75,8 +77,8 @@ export class OrderRepository implements IOrderRepository {
     const order = await this.prisma.order.create({
       data: {
         orderNo: data.orderNo,
-        userId: data.userId,
-        storeId: data.storeId,
+        buyerId: data.buyerId,
+        sellerId: data.sellerId,
         status: data.status as OrderStatus,
         paymentStatus: data.paymentStatus as PaymentStatus,
         paymentMethod: data.paymentMethod as PaymentMethod | null,
@@ -124,8 +126,8 @@ export class OrderRepository implements IOrderRepository {
     return this.toDomainOrderWithRelations(order);
   }
 
-  async findByUserId(
-    userId: number,
+  async findByBuyerId(
+    buyerId: number,
     options?: {
       status?: string;
       paymentStatus?: string;
@@ -133,7 +135,7 @@ export class OrderRepository implements IOrderRepository {
       pageSize?: number;
     },
   ): Promise<{ items: Order[]; total: number }> {
-    const where: Prisma.OrderWhereInput = { userId };
+    const where: Prisma.OrderWhereInput = { buyerId };
 
     if (options?.status) {
       where.status = options.status as OrderStatus;
@@ -163,8 +165,8 @@ export class OrderRepository implements IOrderRepository {
     };
   }
 
-  async findByUserIdWithRelations(
-    userId: number,
+  async findByBuyerIdWithRelations(
+    buyerId: number,
     options?: {
       status?: string;
       paymentStatus?: string;
@@ -172,7 +174,7 @@ export class OrderRepository implements IOrderRepository {
       pageSize?: number;
     },
   ): Promise<{ items: OrderWithRelations[]; total: number }> {
-    const where: Prisma.OrderWhereInput = { userId };
+    const where: Prisma.OrderWhereInput = { buyerId };
 
     if (options?.status) {
       where.status = options.status as OrderStatus;
@@ -203,8 +205,8 @@ export class OrderRepository implements IOrderRepository {
     };
   }
 
-  async findByStoreId(
-    storeId: number,
+  async findBySellerId(
+    sellerId: number,
     options?: {
       status?: string;
       paymentStatus?: string;
@@ -212,7 +214,7 @@ export class OrderRepository implements IOrderRepository {
       pageSize?: number;
     },
   ): Promise<{ items: Order[]; total: number }> {
-    const where: Prisma.OrderWhereInput = { storeId };
+    const where: Prisma.OrderWhereInput = { sellerId };
 
     if (options?.status) {
       where.status = options.status as OrderStatus;
@@ -242,8 +244,8 @@ export class OrderRepository implements IOrderRepository {
     };
   }
 
-  async findByStoreIdWithRelations(
-    storeId: number,
+  async findBySellerIdWithRelations(
+    sellerId: number,
     options?: {
       status?: string;
       paymentStatus?: string;
@@ -251,7 +253,7 @@ export class OrderRepository implements IOrderRepository {
       pageSize?: number;
     },
   ): Promise<{ items: OrderWithRelations[]; total: number }> {
-    const where: Prisma.OrderWhereInput = { storeId };
+    const where: Prisma.OrderWhereInput = { sellerId };
 
     if (options?.status) {
       where.status = options.status as OrderStatus;
@@ -373,8 +375,8 @@ export class OrderRepository implements IOrderRepository {
   private toDomainOrder(order: {
     id: number;
     orderNo: string | null;
-    userId: number;
-    storeId: number;
+    buyerId: number;
+    sellerId: number;
     status: string;
     paymentStatus: string;
     paymentMethod: string | null;
@@ -396,8 +398,8 @@ export class OrderRepository implements IOrderRepository {
     return {
       id: order.id,
       orderNo: order.orderNo,
-      userId: order.userId,
-      storeId: order.storeId,
+      buyerId: order.buyerId,
+      sellerId: order.sellerId,
       status: order.status,
       paymentStatus: order.paymentStatus,
       paymentMethod: order.paymentMethod,
@@ -452,12 +454,14 @@ export class OrderRepository implements IOrderRepository {
     const baseOrder = this.toDomainOrder(order);
     return {
       ...baseOrder,
-      store: {
-        id: order.store.id,
-        name: order.store.name,
-        slug: order.store.slug,
-        logo: order.store.logo,
-        isVerified: order.store.isVerified,
+      seller: {
+        id: order.seller.id,
+        email: order.seller.email,
+        fullName: order.seller.fullName,
+        sellerName: order.seller.sellerName,
+        sellerSlug: order.seller.sellerSlug,
+        sellerLogo: order.seller.sellerLogo,
+        sellerIsVerified: order.seller.sellerIsVerified,
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       items: order.items.map((item: any) => this.toDomainOrderItem(item)),
@@ -481,10 +485,10 @@ export class OrderRepository implements IOrderRepository {
             state: order.billingAddress.state,
           }
         : null,
-      user: {
-        id: order.user.id,
-        email: order.user.email,
-        fullName: order.user.fullName,
+      buyer: {
+        id: order.buyer.id,
+        email: order.buyer.email,
+        fullName: order.buyer.fullName,
       },
     };
   }

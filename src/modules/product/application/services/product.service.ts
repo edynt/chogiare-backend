@@ -164,9 +164,7 @@ export class ProductService {
       profit && createProductDto.costPrice && createProductDto.costPrice > 0
         ? (profit / createProductDto.costPrice) * 100
         : null;
-    const profitMargin = rawMargin !== null
-      ? Math.max(-999.99, Math.min(999.99, rawMargin))
-      : null;
+    const profitMargin = rawMargin !== null ? Math.max(-999.99, Math.min(999.99, rawMargin)) : null;
 
     const now = BigInt(Date.now());
 
@@ -175,7 +173,6 @@ export class ProductService {
       const product = await tx.product.create({
         data: {
           sellerId,
-          storeId: createProductDto.storeId || null,
           categoryId: createProductDto.categoryId,
           title: createProductDto.title,
           description: createProductDto.description || null,
@@ -269,7 +266,7 @@ export class ProductService {
 
     const products = await Promise.all(
       result.items.map(async (product) => {
-        const [category, images, seller, store] = await Promise.all([
+        const [category, images, seller] = await Promise.all([
           this.categoryRepository.findById(product.categoryId),
           this.prisma.productImage.findMany({
             where: { productId: product.id },
@@ -277,14 +274,17 @@ export class ProductService {
           }),
           this.prisma.user.findUnique({
             where: { id: product.sellerId },
-            select: { id: true, fullName: true, avatarUrl: true, isVerified: true },
+            select: {
+              id: true,
+              fullName: true,
+              avatarUrl: true,
+              isVerified: true,
+              sellerName: true,
+              sellerSlug: true,
+              sellerLogo: true,
+              sellerIsVerified: true,
+            },
           }),
-          product.storeId
-            ? this.prisma.store.findUnique({
-                where: { id: product.storeId },
-                select: { id: true, name: true, slug: true, logo: true, isVerified: true },
-              })
-            : null,
         ]);
 
         return {
@@ -305,15 +305,10 @@ export class ProductService {
                 name: seller.fullName,
                 avatar: seller.avatarUrl ? this.getImageUrl(seller.avatarUrl) : null,
                 isVerified: seller.isVerified,
-              }
-            : null,
-          store: store
-            ? {
-                id: store.id,
-                name: store.name,
-                slug: store.slug,
-                logo: store.logo ? this.getImageUrl(store.logo) : null,
-                isVerified: store.isVerified,
+                sellerName: seller.sellerName,
+                sellerSlug: seller.sellerSlug,
+                sellerLogo: seller.sellerLogo ? this.getImageUrl(seller.sellerLogo) : null,
+                sellerIsVerified: seller.sellerIsVerified,
               }
             : null,
         };
@@ -595,7 +590,7 @@ export class ProductService {
     const featuredProducts = result.items.filter((p) => p.isFeatured);
     const products = await Promise.all(
       featuredProducts.map(async (product) => {
-        const [category, images, seller, store] = await Promise.all([
+        const [category, images, seller] = await Promise.all([
           this.categoryRepository.findById(product.categoryId),
           this.prisma.productImage.findMany({
             where: { productId: product.id },
@@ -603,14 +598,17 @@ export class ProductService {
           }),
           this.prisma.user.findUnique({
             where: { id: product.sellerId },
-            select: { id: true, fullName: true, avatarUrl: true, isVerified: true },
+            select: {
+              id: true,
+              fullName: true,
+              avatarUrl: true,
+              isVerified: true,
+              sellerName: true,
+              sellerSlug: true,
+              sellerLogo: true,
+              sellerIsVerified: true,
+            },
           }),
-          product.storeId
-            ? this.prisma.store.findUnique({
-                where: { id: product.storeId },
-                select: { id: true, name: true, slug: true, logo: true, isVerified: true },
-              })
-            : null,
         ]);
 
         return {
@@ -631,15 +629,10 @@ export class ProductService {
                 name: seller.fullName,
                 avatar: seller.avatarUrl ? this.getImageUrl(seller.avatarUrl) : null,
                 isVerified: seller.isVerified,
-              }
-            : null,
-          store: store
-            ? {
-                id: store.id,
-                name: store.name,
-                slug: store.slug,
-                logo: store.logo ? this.getImageUrl(store.logo) : null,
-                isVerified: store.isVerified,
+                sellerName: seller.sellerName,
+                sellerSlug: seller.sellerSlug,
+                sellerLogo: seller.sellerLogo ? this.getImageUrl(seller.sellerLogo) : null,
+                sellerIsVerified: seller.sellerIsVerified,
               }
             : null,
         };
@@ -788,7 +781,7 @@ export class ProductService {
   private getValidStatusTransitions(currentStatus: string): string[] {
     // Allow free transitions between draft, active, and out_of_stock
     const allStatuses = ['draft', 'active', 'out_of_stock'];
-    return allStatuses.filter(s => s !== currentStatus);
+    return allStatuses.filter((s) => s !== currentStatus);
   }
 
   async getBoostPackages() {
@@ -969,9 +962,7 @@ export class ProductService {
         packageName: activeBoost.package.displayName,
         startAt: activeBoost.startAt.toString(),
         endAt: activeBoost.endAt.toString(),
-        remainingDays: Math.ceil(
-          (Number(activeBoost.endAt) - Date.now()) / (24 * 60 * 60 * 1000),
-        ),
+        remainingDays: Math.ceil((Number(activeBoost.endAt) - Date.now()) / (24 * 60 * 60 * 1000)),
       },
     };
   }

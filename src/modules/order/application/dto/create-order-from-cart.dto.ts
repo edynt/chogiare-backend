@@ -6,12 +6,12 @@ import { PaymentMethod } from '@prisma/client';
 
 export class CreateOrderFromCartDto {
   @ApiProperty({
-    description: 'Store ID (required when creating order from cart grouped by store)',
+    description: 'Seller ID (required when creating order from cart grouped by seller)',
     example: 1,
   })
   @Type(() => Number)
   @IsInt({ message: VALIDATION_MESSAGES.IS_NUMBER })
-  storeId: number;
+  sellerId: number;
 
   @ApiProperty({
     description: 'Shipping address ID',

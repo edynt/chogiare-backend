@@ -1,7 +1,6 @@
 export class Product {
   id: number;
   sellerId: number;
-  storeId: number | null;
   categoryId: number;
   title: string;
   description: string | null;
@@ -40,11 +39,4 @@ export class Product {
 export interface ProductWithRelations extends Product {
   category: { id: number; name: string; slug: string } | null;
   images: Array<{ id: number; imageUrl: string; displayOrder: number }>;
-  store?: {
-    id: number;
-    name: string;
-    slug: string;
-    logo: string | null;
-    isVerified: boolean;
-  } | null;
 }

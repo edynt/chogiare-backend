@@ -33,36 +33,17 @@ export interface CustomerStats {
 export class SellerCustomerService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getStoreIdByUserId(userId: number): Promise<number | null> {
-    const store = await this.prisma.store.findFirst({
-      where: { userId, isActive: true },
-      select: { id: true },
-    });
-    return store?.id || null;
-  }
+  // Removed getStoreIdByUserId - Store model no longer exists
+  // Users with isSeller=true can be queried directly
 
-  async getCustomers(storeId: number, queryDto: QuerySellerCustomerDto) {
+  async getCustomers(sellerId: number, queryDto: QuerySellerCustomerDto) {
     const page = queryDto.page || 1;
     const pageSize = queryDto.pageSize || 10;
     const offset = (page - 1) * pageSize;
     const thirtyDaysAgoMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
 
-    // Build search condition for raw query
-    let searchCondition = '';
-    const params: (string | number | bigint)[] = [storeId];
-
-    if (queryDto.search) {
-      searchCondition = `
-        AND (
-          u.full_name ILIKE $2
-          OR u.email ILIKE $2
-          OR u.phone_number LIKE $3
-        )
-      `;
-      params.push(`%${queryDto.search}%`, `%${queryDto.search}%`);
-    }
-
     // Use raw SQL for efficient aggregation with pagination
+    // Orders now use sellerId directly (was storeId), buyerId (was userId)
     const customersQuery = Prisma.sql`
       SELECT
         u.id,
@@ -74,15 +55,19 @@ export class SellerCustomerService {
         COALESCE(SUM(o.total), 0)::numeric as "totalSpent",
         MAX(o.created_at) as "lastOrderDate"
       FROM orders o
-      INNER JOIN users u ON o.user_id = u.id
-      WHERE o.store_id = ${storeId}
-      ${queryDto.search ? Prisma.sql`
+      INNER JOIN users u ON o.buyer_id = u.id
+      WHERE o.seller_id = ${sellerId}
+      ${
+        queryDto.search
+          ? Prisma.sql`
         AND (
           u.full_name ILIKE ${`%${queryDto.search}%`}
           OR u.email ILIKE ${`%${queryDto.search}%`}
           OR u.phone_number LIKE ${`%${queryDto.search}%`}
         )
-      ` : Prisma.empty}
+      `
+          : Prisma.empty
+      }
       GROUP BY u.id, u.email, u.full_name, u.phone_number, u.avatar_url
       ORDER BY MAX(o.created_at) DESC
       LIMIT ${pageSize}
@@ -90,17 +75,21 @@ export class SellerCustomerService {
     `;
 
     const countQuery = Prisma.sql`
-      SELECT COUNT(DISTINCT o.user_id)::int as count
+      SELECT COUNT(DISTINCT o.buyer_id)::int as count
       FROM orders o
-      INNER JOIN users u ON o.user_id = u.id
-      WHERE o.store_id = ${storeId}
-      ${queryDto.search ? Prisma.sql`
+      INNER JOIN users u ON o.buyer_id = u.id
+      WHERE o.seller_id = ${sellerId}
+      ${
+        queryDto.search
+          ? Prisma.sql`
         AND (
           u.full_name ILIKE ${`%${queryDto.search}%`}
           OR u.email ILIKE ${`%${queryDto.search}%`}
           OR u.phone_number LIKE ${`%${queryDto.search}%`}
         )
-      ` : Prisma.empty}
+      `
+          : Prisma.empty
+      }
     `;
 
     const [customers, countResult] = await Promise.all([
@@ -142,10 +131,11 @@ export class SellerCustomerService {
     };
   }
 
-  async getCustomerStats(storeId: number): Promise<CustomerStats> {
+  async getCustomerStats(sellerId: number): Promise<CustomerStats> {
     const thirtyDaysAgoMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
 
     // Use raw SQL for efficient stats calculation
+    // Orders now use sellerId (was storeId), buyerId (was userId)
     const statsQuery = Prisma.sql`
       WITH customer_data AS (
         SELECT
@@ -157,8 +147,8 @@ export class SellerCustomerService {
           MIN(o.created_at) as "firstOrderDate",
           MAX(o.created_at) as "lastOrderDate"
         FROM orders o
-        INNER JOIN users u ON o.user_id = u.id
-        WHERE o.store_id = ${storeId}
+        INNER JOIN users u ON o.buyer_id = u.id
+        WHERE o.seller_id = ${sellerId}
         GROUP BY u.id, u.email, u.full_name
       )
       SELECT
@@ -177,8 +167,8 @@ export class SellerCustomerService {
         COUNT(o.id)::int as "totalOrders",
         COALESCE(SUM(o.total), 0)::numeric as "totalSpent"
       FROM orders o
-      INNER JOIN users u ON o.user_id = u.id
-      WHERE o.store_id = ${storeId}
+      INNER JOIN users u ON o.buyer_id = u.id
+      WHERE o.seller_id = ${sellerId}
       GROUP BY u.id, u.email, u.full_name
       ORDER BY SUM(o.total) DESC
       LIMIT 5
@@ -229,7 +219,7 @@ export class SellerCustomerService {
   }
 
   async getCustomerOrders(
-    storeId: number,
+    sellerId: number,
     customerId: number,
     pagination: { page?: number; pageSize?: number },
   ) {
@@ -237,19 +227,20 @@ export class SellerCustomerService {
     const pageSize = pagination.pageSize || 10;
     const skip = (page - 1) * pageSize;
 
-    // Verify customer has ordered from this store
+    // Verify customer has ordered from this seller
+    // Order model: sellerId (was storeId), buyerId (was userId)
     const hasOrdered = await this.prisma.order.findFirst({
-      where: { storeId, userId: customerId },
+      where: { sellerId, buyerId: customerId },
       select: { id: true },
     });
 
     if (!hasOrdered) {
-      throw new NotFoundException('Customer not found for this store');
+      throw new NotFoundException('Customer not found for this seller');
     }
 
     const [orders, total] = await Promise.all([
       this.prisma.order.findMany({
-        where: { storeId, userId: customerId },
+        where: { sellerId, buyerId: customerId },
         include: {
           items: {
             select: {
@@ -268,7 +259,7 @@ export class SellerCustomerService {
         take: pageSize,
       }),
       this.prisma.order.count({
-        where: { storeId, userId: customerId },
+        where: { sellerId, buyerId: customerId },
       }),
     ]);
 

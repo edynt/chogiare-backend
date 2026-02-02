@@ -123,7 +123,6 @@ export class ProductImportExportService {
           barcode: product.barcode || '',
           tags: product.tags.join(', ') || '',
           badges: product.badges.join(', ') || '',
-          storeId: product.storeId || '',
         });
       }
 
@@ -281,7 +280,6 @@ export class ProductImportExportService {
                     barcode: data[EXCEL_CONSTANTS.HEADERS.BARCODE]?.toString().trim() || null,
                     tags: this.parseArray(data[EXCEL_CONSTANTS.HEADERS.TAGS]),
                     badges: this.parseBadges(data[EXCEL_CONSTANTS.HEADERS.BADGES]),
-                    storeId: this.parseInt(data[EXCEL_CONSTANTS.HEADERS.STORE_ID]) || null,
                     updatedAt: BigInt(Date.now()),
                   });
                   result.success++;
@@ -305,7 +303,6 @@ export class ProductImportExportService {
 
             await this.productRepository.create({
               sellerId,
-              storeId: this.parseInt(data[EXCEL_CONSTANTS.HEADERS.STORE_ID]) || null,
               categoryId,
               title: data[EXCEL_CONSTANTS.HEADERS.TITLE]?.toString() || '',
               description: data[EXCEL_CONSTANTS.HEADERS.DESCRIPTION]?.toString() || null,

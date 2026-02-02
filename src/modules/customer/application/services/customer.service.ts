@@ -56,15 +56,17 @@ export class CustomerService {
 
     const [orders, addresses, reviews, balance, statistics] = await Promise.all([
       this.prisma.order.findMany({
-        where: { userId: id },
+        where: { buyerId: id },
         orderBy: { createdAt: 'desc' },
         take: 10,
         include: {
-          store: {
+          seller: {
             select: {
               id: true,
-              name: true,
-              slug: true,
+              sellerName: true,
+              sellerSlug: true,
+              sellerLogo: true,
+              sellerIsVerified: true,
             },
           },
         },
@@ -103,7 +105,13 @@ export class CustomerService {
         total: Number(order.total),
         currency: order.currency,
         createdAt: order.createdAt.toString(),
-        store: order.store,
+        seller: order.seller ? {
+          id: order.seller.id,
+          name: order.seller.sellerName || 'Unknown Seller',
+          slug: order.seller.sellerSlug,
+          logo: order.seller.sellerLogo,
+          isVerified: order.seller.sellerIsVerified,
+        } : null,
       })),
       addresses: addresses.map((addr) => ({
         id: addr.id,
@@ -247,17 +255,17 @@ export class CustomerService {
     const [totalOrders, completedOrders, totalSpent, totalReviews, averageRating, totalProducts] =
       await Promise.all([
         this.prisma.order.count({
-          where: { userId: customerId },
+          where: { buyerId: customerId },
         }),
         this.prisma.order.count({
           where: {
-            userId: customerId,
+            buyerId: customerId,
             status: 'completed',
           },
         }),
         this.prisma.order.aggregate({
           where: {
-            userId: customerId,
+            buyerId: customerId,
             paymentStatus: 'completed',
           },
           _sum: {

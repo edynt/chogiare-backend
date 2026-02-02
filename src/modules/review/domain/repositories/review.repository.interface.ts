@@ -9,7 +9,7 @@ export interface IReviewRepository {
     pageSize?: number;
     productId?: number;
     userId?: number;
-    storeId?: number;
+    sellerId?: number;
     rating?: number;
   }): Promise<{ reviews: Review[]; total: number }>;
   create(data: {

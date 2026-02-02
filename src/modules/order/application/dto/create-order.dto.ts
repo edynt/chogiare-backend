@@ -33,12 +33,12 @@ class OrderItemDto {
 
 export class CreateOrderDto {
   @ApiProperty({
-    description: 'Store ID',
+    description: 'Seller ID',
     example: 1,
   })
   @Type(() => Number)
   @IsInt({ message: VALIDATION_MESSAGES.IS_NUMBER })
-  storeId: number;
+  sellerId: number;
 
   @ApiProperty({
     description: 'Shipping address ID',

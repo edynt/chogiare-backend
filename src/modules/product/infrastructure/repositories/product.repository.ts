@@ -14,13 +14,6 @@ import {
 type PrismaProductWithRelations = PrismaProduct & {
   category: { id: number; name: string; slug: string } | null;
   images: Array<{ id: number; imageUrl: string; displayOrder: number }>;
-  store?: {
-    id: number;
-    name: string;
-    slug: string;
-    logo: string | null;
-    isVerified: boolean;
-  } | null;
 };
 
 @Injectable()
@@ -38,13 +31,6 @@ export class ProductRepository implements IProductRepository {
     },
   };
 
-  private readonly productIncludeWithStore = {
-    ...this.productInclude,
-    store: {
-      select: { id: true, name: true, slug: true, logo: true, isVerified: true },
-    },
-  };
-
   async findById(id: number): Promise<Product | null> {
     const product = await this.prisma.product.findUnique({
       where: { id },
@@ -56,7 +42,7 @@ export class ProductRepository implements IProductRepository {
   async findByIdWithRelations(id: number): Promise<ProductWithRelations | null> {
     const product = await this.prisma.product.findUnique({
       where: { id },
-      include: this.productIncludeWithStore,
+      include: this.productInclude,
     });
     return product ? this.toDomainWithRelations(product as PrismaProductWithRelations) : null;
   }
@@ -122,7 +108,6 @@ export class ProductRepository implements IProductRepository {
     const created = await this.prisma.product.create({
       data: {
         sellerId: product.sellerId!,
-        storeId: product.storeId || null,
         categoryId: product.categoryId!,
         title: product.title!,
         description: product.description || null,
@@ -257,7 +242,6 @@ export class ProductRepository implements IProductRepository {
     return {
       id: prismaProduct.id,
       sellerId: prismaProduct.sellerId,
-      storeId: prismaProduct.storeId,
       categoryId: prismaProduct.categoryId,
       title: prismaProduct.title,
       description: prismaProduct.description,
@@ -299,7 +283,6 @@ export class ProductRepository implements IProductRepository {
       ...this.toDomain(prismaProduct),
       category: prismaProduct.category,
       images: prismaProduct.images,
-      store: prismaProduct.store || null,
     };
   }
 }

@@ -1,8 +1,8 @@
 export class Order {
   id: number;
   orderNo: string | null;
-  userId: number;
-  storeId: number;
+  buyerId: number;
+  sellerId: number;
   status: string;
   paymentStatus: string;
   paymentMethod: string | null;

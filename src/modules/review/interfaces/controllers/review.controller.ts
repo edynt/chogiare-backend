@@ -56,7 +56,7 @@ export class ReviewController {
   @ApiQuery({ name: 'pageSize', required: false, type: Number })
   @ApiQuery({ name: 'productId', required: false, type: Number })
   @ApiQuery({ name: 'userId', required: false, type: Number })
-  @ApiQuery({ name: 'storeId', required: false, type: Number })
+  @ApiQuery({ name: 'sellerId', required: false, type: Number })
   @ApiQuery({ name: 'rating', required: false, type: Number })
   async findAll(@Query() queryDto: QueryReviewDto) {
     const result = await this.reviewService.findAll(queryDto);
@@ -123,19 +123,6 @@ export class ReviewController {
   }
 
   @Public()
-  @Get('stats/store/:storeId')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get store review statistics' })
-  @ApiParam({ name: 'storeId', type: String })
-  async getStoreStats(@Param('storeId', ParseIntPipe) storeId: number) {
-    const stats = await this.reviewService.getStats(undefined, storeId);
-    return {
-      message: MESSAGES.SUCCESS,
-      data: stats,
-    };
-  }
-
-  @Public()
   @Get('product/:productId')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get reviews by product ID' })
@@ -157,19 +144,19 @@ export class ReviewController {
   }
 
   @Public()
-  @Get('store/:storeId')
+  @Get('seller/:sellerId')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get reviews by store ID' })
-  @ApiParam({ name: 'storeId', type: String })
+  @ApiOperation({ summary: 'Get reviews by seller ID' })
+  @ApiParam({ name: 'sellerId', type: String })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'pageSize', required: false, type: Number })
-  async getStoreReviews(
-    @Param('storeId', ParseIntPipe) storeId: number,
+  async getSellerReviews(
+    @Param('sellerId', ParseIntPipe) sellerId: number,
     @Query() queryDto: QueryReviewDto,
   ) {
     const result = await this.reviewService.findAll({
       ...queryDto,
-      storeId,
+      sellerId,
     });
     return {
       message: MESSAGES.SUCCESS,

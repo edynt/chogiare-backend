@@ -15,7 +15,15 @@ import {
   UploadedFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+  ApiConsumes,
+  ApiBody,
+} from '@nestjs/swagger';
 import { SkipHeaderValidation } from '@common/decorators/skip-header-validation.decorator';
 import { OrderService } from '@modules/order/application/services/order.service';
 import { CreateOrderDto } from '@modules/order/application/dto/create-order.dto';
@@ -40,7 +48,7 @@ export class OrderController {
   @Post('from-cart')
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Create order from cart items grouped by store' })
+  @ApiOperation({ summary: 'Create order from cart items grouped by seller' })
   async createOrderFromCart(
     @CurrentUser('id') userId: number,
     @Body() createOrderDto: CreateOrderFromCartDto,
@@ -136,13 +144,13 @@ export class OrderController {
     };
   }
 
-  @Get('stats/store/:storeId')
+  @Get('stats/seller/:sellerId')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get store order statistics' })
-  @ApiParam({ name: 'storeId', type: String })
-  async getStoreOrderStats(@Param('storeId', ParseIntPipe) storeId: number) {
-    const stats = await this.orderService.getOrderStats(undefined, storeId);
+  @ApiOperation({ summary: 'Get seller order statistics' })
+  @ApiParam({ name: 'sellerId', type: String })
+  async getSellerOrderStats(@Param('sellerId', ParseIntPipe) sellerId: number) {
+    const stats = await this.orderService.getOrderStats(undefined, sellerId);
     return {
       message: MESSAGES.SUCCESS,
       data: stats,
@@ -173,11 +181,11 @@ export class OrderController {
     };
   }
 
-  @Get('store/:storeId')
+  @Get('seller/:sellerId')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get store orders' })
-  @ApiParam({ name: 'storeId', type: String })
+  @ApiOperation({ summary: 'Get seller orders' })
+  @ApiParam({ name: 'sellerId', type: String })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'pageSize', required: false, type: Number })
   @ApiQuery({
@@ -190,11 +198,11 @@ export class OrderController {
     required: false,
     enum: ['pending', 'completed', 'failed', 'refunded'],
   })
-  async getStoreOrders(
-    @Param('storeId', ParseIntPipe) storeId: number,
+  async getSellerOrdersById(
+    @Param('sellerId', ParseIntPipe) sellerId: number,
     @Query() queryDto: QueryOrderDto,
   ) {
-    const result = await this.orderService.getStoreOrders(storeId, queryDto);
+    const result = await this.orderService.getSellerOrders(sellerId, queryDto);
     return {
       message: MESSAGES.SUCCESS,
       data: result,

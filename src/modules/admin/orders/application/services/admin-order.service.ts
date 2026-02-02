@@ -23,11 +23,11 @@ export class AdminOrderService {
     const where: Prisma.OrderWhereInput = {};
 
     if (queryDto.userId) {
-      where.userId = queryDto.userId;
+      where.buyerId = queryDto.userId;
     }
 
     if (queryDto.storeId) {
-      where.storeId = queryDto.storeId;
+      where.sellerId = queryDto.storeId;
     }
 
     if (queryDto.status) {
@@ -43,7 +43,7 @@ export class AdminOrderService {
         { notes: { contains: queryDto.search, mode: 'insensitive' } },
         { sellerNotes: { contains: queryDto.search, mode: 'insensitive' } },
         {
-          user: {
+          buyer: {
             email: { contains: queryDto.search, mode: 'insensitive' },
           },
         },
@@ -61,8 +61,8 @@ export class AdminOrderService {
         take: pageSize,
         orderBy: { createdAt: 'desc' },
         include: {
-          user: true,
-          store: true,
+          buyer: true,
+          seller: true,
           items: {
             include: {
               product: true,
@@ -112,8 +112,8 @@ export class AdminOrderService {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        user: true,
-        store: true,
+        buyer: true,
+        seller: true,
         items: {
           include: {
             product: true,

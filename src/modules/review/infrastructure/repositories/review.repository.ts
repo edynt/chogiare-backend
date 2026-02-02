@@ -24,7 +24,7 @@ export class ReviewRepository implements IReviewRepository {
     pageSize?: number;
     productId?: number;
     userId?: number;
-    storeId?: number;
+    sellerId?: number;
     rating?: number;
   }): Promise<{ reviews: Review[]; total: number }> {
     const page = query.page || 1;
@@ -45,9 +45,9 @@ export class ReviewRepository implements IReviewRepository {
       where.rating = query.rating;
     }
 
-    if (query.storeId) {
+    if (query.sellerId) {
       where.product = {
-        storeId: query.storeId,
+        sellerId: query.sellerId,
       };
     }
 

@@ -51,7 +51,7 @@ export class ReviewService {
         });
       }
 
-      if (order.userId !== userId) {
+      if (order.buyerId !== userId) {
         throw new ForbiddenException({
           message: MESSAGES.ORDER.UNAUTHORIZED_ACCESS,
           errorCode: ERROR_CODES.ORDER_UNAUTHORIZED_ACCESS,
@@ -118,7 +118,7 @@ export class ReviewService {
       pageSize,
       productId: queryDto.productId,
       userId: queryDto.userId,
-      storeId: queryDto.storeId,
+      sellerId: queryDto.sellerId,
       rating: queryDto.rating,
     });
 
@@ -197,16 +197,16 @@ export class ReviewService {
     await this.updateProductRating(review.productId);
   }
 
-  async getStats(productId?: number, storeId?: number, userId?: number) {
+  async getStats(productId?: number, sellerId?: number, userId?: number) {
     const where: Record<string, unknown> = {};
 
     if (productId) {
       where.productId = productId;
     }
 
-    if (storeId) {
+    if (sellerId) {
       where.product = {
-        storeId,
+        sellerId,
       };
     }
 

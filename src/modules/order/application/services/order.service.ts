@@ -96,7 +96,7 @@ export class OrderService {
         id: { in: productIds },
       },
       include: {
-        store: true,
+        seller: true,
         images: {
           orderBy: { displayOrder: 'asc' },
           take: 1,
@@ -106,30 +106,32 @@ export class OrderService {
 
     const productMap = new Map(products.map((p) => [p.id, p]));
 
-    const storeItems = cartItems.filter((item) => {
+    // Filter items by seller
+    const sellerItems = cartItems.filter((item) => {
       const product = productMap.get(item.productId);
-      return product && product.storeId === createOrderDto.storeId;
+      return product && product.sellerId === createOrderDto.sellerId;
     });
 
-    if (storeItems.length === 0) {
+    if (sellerItems.length === 0) {
       throw new BadRequestException({
-        message: MESSAGES.ORDER.NO_ITEMS_FOR_STORE,
-        errorCode: ERROR_CODES.ORDER_NO_ITEMS_FOR_STORE,
+        message: MESSAGES.ORDER.NO_ITEMS_FOR_SELLER,
+        errorCode: ERROR_CODES.ORDER_NO_ITEMS_FOR_SELLER,
       });
     }
 
-    const store = await this.prisma.store.findUnique({
-      where: { id: createOrderDto.storeId },
+    // Verify seller exists and is active
+    const seller = await this.prisma.user.findUnique({
+      where: { id: createOrderDto.sellerId },
     });
 
-    if (!store) {
+    if (!seller || !seller.isSeller) {
       throw new NotFoundException({
-        message: MESSAGES.ORDER.STORE_NOT_FOUND,
-        errorCode: ERROR_CODES.ORDER_STORE_NOT_FOUND,
+        message: MESSAGES.ORDER.SELLER_NOT_FOUND,
+        errorCode: ERROR_CODES.ORDER_SELLER_NOT_FOUND,
       });
     }
 
-    for (const cartItem of storeItems) {
+    for (const cartItem of sellerItems) {
       const product = productMap.get(cartItem.productId);
       if (!product || product.status !== 'active') {
         throw new BadRequestException({
@@ -150,7 +152,7 @@ export class OrderService {
       let subtotal = 0;
       const orderItems = [];
 
-      for (const cartItem of storeItems) {
+      for (const cartItem of sellerItems) {
         const product = productMap.get(cartItem.productId);
         if (!product) continue;
 
@@ -190,8 +192,8 @@ export class OrderService {
 
       const order = await this.orderRepository.create({
         orderNo,
-        userId,
-        storeId: createOrderDto.storeId,
+        buyerId: userId,
+        sellerId: createOrderDto.sellerId,
         status: OrderStatus.pending,
         paymentStatus: PaymentStatus.pending,
         paymentMethod: createOrderDto.paymentMethod || null,
@@ -221,7 +223,7 @@ export class OrderService {
         });
       }
 
-      for (const cartItem of storeItems) {
+      for (const cartItem of sellerItems) {
         await this.cartRepository.removeCartItem(cartItem.id);
       }
 
@@ -233,7 +235,7 @@ export class OrderService {
 
       // Send notification to seller
       await this.sendNewOrderNotificationToSeller(
-        store.userId,
+        createOrderDto.sellerId,
         order.id,
         buyer?.fullName || buyer?.email || 'Khách hàng',
         total,
@@ -245,14 +247,15 @@ export class OrderService {
   }
 
   async createOrder(userId: number, createOrderDto: CreateOrderDto) {
-    const store = await this.prisma.store.findUnique({
-      where: { id: createOrderDto.storeId },
+    // Verify seller exists and is active
+    const seller = await this.prisma.user.findUnique({
+      where: { id: createOrderDto.sellerId },
     });
 
-    if (!store) {
+    if (!seller || !seller.isSeller) {
       throw new NotFoundException({
-        message: MESSAGES.ORDER.STORE_NOT_FOUND,
-        errorCode: ERROR_CODES.ORDER_STORE_NOT_FOUND,
+        message: MESSAGES.ORDER.SELLER_NOT_FOUND,
+        errorCode: ERROR_CODES.ORDER_SELLER_NOT_FOUND,
       });
     }
 
@@ -260,7 +263,7 @@ export class OrderService {
     const products = await this.prisma.product.findMany({
       where: {
         id: { in: productIds },
-        storeId: createOrderDto.storeId,
+        sellerId: createOrderDto.sellerId,
       },
       include: {
         images: {
@@ -333,8 +336,8 @@ export class OrderService {
 
       const order = await this.orderRepository.create({
         orderNo,
-        userId,
-        storeId: createOrderDto.storeId,
+        buyerId: userId,
+        sellerId: createOrderDto.sellerId,
         status: OrderStatus.pending,
         paymentStatus: PaymentStatus.pending,
         paymentMethod: createOrderDto.paymentMethod || null,
@@ -372,7 +375,7 @@ export class OrderService {
 
       // Send notification to seller
       await this.sendNewOrderNotificationToSeller(
-        store.userId,
+        createOrderDto.sellerId,
         order.id,
         buyer?.fullName || buyer?.email || 'Khách hàng',
         total,
@@ -387,7 +390,7 @@ export class OrderService {
     const page = queryDto.page || 1;
     const pageSize = queryDto.pageSize || 10;
 
-    const result = await this.orderRepository.findByUserIdWithRelations(userId, {
+    const result = await this.orderRepository.findByBuyerIdWithRelations(userId, {
       status: queryDto.status,
       paymentStatus: queryDto.paymentStatus,
       page,
@@ -412,38 +415,17 @@ export class OrderService {
       });
     }
 
-    // Check authorization: user must be order owner, store owner, seller of products, or admin
+    // Check authorization: user must be buyer, seller, or admin
     let isAuthorized = false;
 
-    // Check if user is the order owner (buyer)
-    if (order.userId === userId) {
+    // Check if user is the buyer
+    if (order.buyerId === userId) {
       isAuthorized = true;
     }
 
-    // Check if user owns the store
-    if (!isAuthorized) {
-      const store = await this.prisma.store.findUnique({
-        where: { id: order.storeId },
-      });
-
-      if (store && store.userId === userId) {
-        isAuthorized = true;
-      }
-    }
-
-    // Check if user is seller of any product in this order
-    if (!isAuthorized) {
-      const productIds = order.items.map((item) => item.productId);
-      const sellerProducts = await this.prisma.product.findFirst({
-        where: {
-          id: { in: productIds },
-          sellerId: userId,
-        },
-      });
-
-      if (sellerProducts) {
-        isAuthorized = true;
-      }
+    // Check if user is the seller
+    if (!isAuthorized && order.sellerId === userId) {
+      isAuthorized = true;
     }
 
     // Check if user is admin
@@ -477,7 +459,7 @@ export class OrderService {
       });
     }
 
-    if (order.userId !== userId) {
+    if (order.buyerId !== userId) {
       throw new ForbiddenException({
         message: MESSAGES.ORDER.UNAUTHORIZED_ACCESS,
         errorCode: ERROR_CODES.ORDER_UNAUTHORIZED_ACCESS,
@@ -520,13 +502,12 @@ export class OrderService {
   private formatOrder(order: OrderWithRelations) {
     const shippingAddress = order.shippingAddress;
     const billingAddress = order.billingAddress;
-    const orderMetadata = (order.orderMetadata as Record<string, unknown>) || {};
 
     return {
       id: order.id.toString(),
       orderNo: order.orderNo,
-      userId: order.userId,
-      storeId: order.storeId.toString(),
+      buyerId: order.buyerId,
+      sellerId: order.sellerId.toString(),
       status: order.status,
       paymentStatus: order.paymentStatus,
       paymentMethod: order.paymentMethod || '',
@@ -544,10 +525,10 @@ export class OrderService {
         ? `${billingAddress.street}, ${billingAddress.ward || ''}, ${billingAddress.district || ''}, ${billingAddress.city}, ${billingAddress.state}`
         : '',
       notes: order.notes || undefined,
-      storeName: order.store?.name,
-      storeLogo: order.store?.logo || undefined,
-      userEmail: order.user?.email,
-      userName: order.user?.fullName || undefined,
+      sellerName: order.seller?.sellerName || order.seller?.fullName,
+      sellerLogo: order.seller?.sellerLogo || undefined,
+      buyerEmail: order.buyer?.email,
+      buyerName: order.buyer?.fullName || undefined,
       items: order.items.map((item) => ({
         id: item.id.toString(),
         orderId: order.id.toString(),
@@ -565,114 +546,13 @@ export class OrderService {
     };
   }
 
-  async getStoreOrders(storeId: number, queryDto: QueryOrderDto) {
+  async getSellerOrders(sellerId: number, queryDto: QueryOrderDto) {
     const page = queryDto.page || 1;
     const pageSize = queryDto.pageSize || 10;
 
-    const result = await this.orderRepository.findByStoreIdWithRelations(storeId, {
-      status: queryDto.status,
-      paymentStatus: queryDto.paymentStatus,
-      page,
-      pageSize,
-    });
+    this.logger.log(`[getSellerOrders] Looking for orders with sellerId: ${sellerId}`);
 
-    return {
-      items: result.items.map((order) => this.formatOrder(order)),
-      total: result.total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(result.total / pageSize),
-    };
-  }
-
-  /**
-   * Get orders for a seller based on their userId
-   * This finds the seller's store and returns orders for that store
-   */
-  async getSellerOrders(userId: number, queryDto: QueryOrderDto) {
-    const page = queryDto.page || 1;
-    const pageSize = queryDto.pageSize || 10;
-
-    this.logger.log(`[getSellerOrders] Looking for store with userId: ${userId}`);
-
-    // Find store by userId (seller's store)
-    const store = await this.prisma.store.findFirst({
-      where: { userId },
-    });
-
-    this.logger.log(`[getSellerOrders] Found store: ${store ? JSON.stringify({ id: store.id, name: store.name, userId: store.userId }) : 'null'}`);
-
-    // If seller has no store, try to find orders where seller uploaded products
-    if (!store) {
-      // Alternative: Find orders containing products uploaded by this seller
-      const sellerProducts = await this.prisma.product.findMany({
-        where: { sellerId: userId },
-        select: { id: true },
-      });
-
-      this.logger.log(`[getSellerOrders] Seller has ${sellerProducts.length} products`);
-
-      if (sellerProducts.length === 0) {
-        return {
-          items: [],
-          total: 0,
-          page,
-          pageSize,
-          totalPages: 0,
-        };
-      }
-
-      const productIds = sellerProducts.map((p) => p.id);
-
-      // Find orders containing seller's products
-      const orders = await this.prisma.order.findMany({
-        where: {
-          items: {
-            some: {
-              productId: { in: productIds },
-            },
-          },
-        },
-        include: {
-          items: {
-            include: {
-              product: {
-                include: {
-                  images: true,
-                },
-              },
-            },
-          },
-          user: true,
-          store: true,
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      });
-
-      const total = await this.prisma.order.count({
-        where: {
-          items: {
-            some: {
-              productId: { in: productIds },
-            },
-          },
-        },
-      });
-
-      this.logger.log(`[getSellerOrders] Found ${total} orders for seller products`);
-
-      return {
-        items: orders.map((order) => this.formatOrder(order as unknown as OrderWithRelations)),
-        total,
-        page,
-        pageSize,
-        totalPages: Math.ceil(total / pageSize),
-      };
-    }
-
-    const result = await this.orderRepository.findByStoreIdWithRelations(store.id, {
+    const result = await this.orderRepository.findBySellerIdWithRelations(sellerId, {
       status: queryDto.status,
       paymentStatus: queryDto.paymentStatus,
       page,
@@ -697,38 +577,17 @@ export class OrderService {
       });
     }
 
-    // Check authorization: user must be order owner, store owner, seller of products, or admin
+    // Check authorization: user must be buyer, seller, or admin
     let isAuthorized = false;
 
-    // Check if user is the order owner (buyer)
-    if (order.userId === userId) {
+    // Check if user is the buyer
+    if (order.buyerId === userId) {
       isAuthorized = true;
     }
 
-    // Check if user owns the store
-    if (!isAuthorized) {
-      const store = await this.prisma.store.findUnique({
-        where: { id: order.storeId },
-      });
-
-      if (store && store.userId === userId) {
-        isAuthorized = true;
-      }
-    }
-
-    // Check if user is seller of any product in this order
-    if (!isAuthorized) {
-      const productIds = order.items.map((item) => item.productId);
-      const sellerProducts = await this.prisma.product.findFirst({
-        where: {
-          id: { in: productIds },
-          sellerId: userId,
-        },
-      });
-
-      if (sellerProducts) {
-        isAuthorized = true;
-      }
+    // Check if user is the seller
+    if (!isAuthorized && order.sellerId === userId) {
+      isAuthorized = true;
     }
 
     // Check if user is admin
@@ -764,31 +623,12 @@ export class OrderService {
       });
     }
 
-    // Check authorization: user must be store owner OR seller of products in this order
+    // Check authorization: user must be seller or admin
     let isAuthorized = false;
 
-    // Check if user owns the store
-    const store = await this.prisma.store.findUnique({
-      where: { id: order.storeId },
-    });
-
-    if (store && store.userId === userId) {
+    // Check if user is the seller
+    if (order.sellerId === userId) {
       isAuthorized = true;
-    }
-
-    // If not store owner, check if user is seller of any product in this order
-    if (!isAuthorized) {
-      const productIds = order.items.map((item) => item.productId);
-      const sellerProducts = await this.prisma.product.findFirst({
-        where: {
-          id: { in: productIds },
-          sellerId: userId,
-        },
-      });
-
-      if (sellerProducts) {
-        isAuthorized = true;
-      }
     }
 
     // Check if user is admin
@@ -833,38 +673,17 @@ export class OrderService {
       });
     }
 
-    // Check authorization: user must be order owner, store owner, seller of products, or admin
+    // Check authorization: user must be buyer, seller, or admin
     let isAuthorized = false;
 
-    // Check if user is the order owner (buyer)
-    if (order.userId === userId) {
+    // Check if user is the buyer
+    if (order.buyerId === userId) {
       isAuthorized = true;
     }
 
-    // Check if user owns the store
-    if (!isAuthorized) {
-      const store = await this.prisma.store.findUnique({
-        where: { id: order.storeId },
-      });
-
-      if (store && store.userId === userId) {
-        isAuthorized = true;
-      }
-    }
-
-    // Check if user is seller of any product in this order
-    if (!isAuthorized) {
-      const productIds = order.items.map((item) => item.productId);
-      const sellerProducts = await this.prisma.product.findFirst({
-        where: {
-          id: { in: productIds },
-          sellerId: userId,
-        },
-      });
-
-      if (sellerProducts) {
-        isAuthorized = true;
-      }
+    // Check if user is the seller
+    if (!isAuthorized && order.sellerId === userId) {
+      isAuthorized = true;
     }
 
     // Check if user is admin
@@ -898,7 +717,7 @@ export class OrderService {
 
   /**
    * Upload payment proof image for an order
-   * Authorized users: order owner (buyer), store owner, product seller, or admin
+   * Authorized users: buyer, seller, or admin
    */
   async uploadPaymentImage(orderId: number, file: Express.Multer.File, userId: number) {
     const order = await this.orderRepository.findByIdWithRelations(orderId);
@@ -909,38 +728,17 @@ export class OrderService {
       });
     }
 
-    // Check authorization: user must be order owner, store owner, seller of products, or admin
+    // Check authorization: user must be buyer, seller, or admin
     let isAuthorized = false;
 
-    // Check if user is the order owner (buyer)
-    if (order.userId === userId) {
+    // Check if user is the buyer
+    if (order.buyerId === userId) {
       isAuthorized = true;
     }
 
-    // Check if user owns the store
-    if (!isAuthorized) {
-      const store = await this.prisma.store.findUnique({
-        where: { id: order.storeId },
-      });
-
-      if (store && store.userId === userId) {
-        isAuthorized = true;
-      }
-    }
-
-    // Check if user is seller of any product in this order
-    if (!isAuthorized) {
-      const productIds = order.items.map((item) => item.productId);
-      const sellerProducts = await this.prisma.product.findFirst({
-        where: {
-          id: { in: productIds },
-          sellerId: userId,
-        },
-      });
-
-      if (sellerProducts) {
-        isAuthorized = true;
-      }
+    // Check if user is the seller
+    if (!isAuthorized && order.sellerId === userId) {
+      isAuthorized = true;
     }
 
     // Check if user is admin
@@ -988,7 +786,7 @@ export class OrderService {
       });
     }
 
-    if (order.userId !== userId) {
+    if (order.buyerId !== userId) {
       throw new ForbiddenException({
         message: MESSAGES.ORDER.UNAUTHORIZED_ACCESS,
         errorCode: ERROR_CODES.ORDER_UNAUTHORIZED_ACCESS,
@@ -1008,15 +806,15 @@ export class OrderService {
     return this.formatOrder(updatedOrder!);
   }
 
-  async getOrderStats(userId?: number, storeId?: number) {
+  async getOrderStats(buyerId?: number, sellerId?: number) {
     const where: Record<string, unknown> = {};
 
-    if (userId) {
-      where.userId = userId;
+    if (buyerId) {
+      where.buyerId = buyerId;
     }
 
-    if (storeId) {
-      where.storeId = storeId;
+    if (sellerId) {
+      where.sellerId = sellerId;
     }
 
     const orders = await this.prisma.order.findMany({

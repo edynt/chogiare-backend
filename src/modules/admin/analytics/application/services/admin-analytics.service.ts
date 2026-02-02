@@ -184,10 +184,12 @@ export class AdminAnalyticsService {
   }
 
   async getTopSellers(limit: number = 5) {
-    const stores = await this.prisma.store.findMany({
-      take: limit,
+    const sellers = await this.prisma.user.findMany({
+      where: {
+        isSeller: true,
+      },
       include: {
-        orders: {
+        sellerOrders: {
           where: {
             status: { not: OrderStatus.cancelled },
             paymentStatus: PaymentStatus.completed,
@@ -196,21 +198,23 @@ export class AdminAnalyticsService {
       },
     });
 
-    return stores
-      .map((store) => {
-        const orders = store.orders;
+    return sellers
+      .map((seller) => {
+        const orders = seller.sellerOrders;
         const revenue = orders.reduce((sum, order) => sum + Number(order.total), 0);
         const orderCount = orders.length;
 
         return {
-          name: store.name,
+          name: seller.sellerName || seller.fullName || seller.email,
           orders: orderCount,
           revenue,
           growth: '+25%',
-          rating: store.rating ? Number(store.rating) : 4.5,
+          rating: 4.5,
         };
       })
-      .sort((a, b) => b.revenue - a.revenue);
+      .filter((seller) => seller.orders > 0)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, limit);
   }
 
   async getCategoryStats() {

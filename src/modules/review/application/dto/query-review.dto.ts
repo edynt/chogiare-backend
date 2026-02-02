@@ -29,11 +29,11 @@ export class QueryReviewDto {
   @IsInt()
   userId?: number;
 
-  @ApiPropertyOptional({ description: 'Store ID' })
+  @ApiPropertyOptional({ description: 'Seller ID' })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  storeId?: number;
+  sellerId?: number;
 
   @ApiPropertyOptional({ description: 'Rating filter' })
   @IsOptional()

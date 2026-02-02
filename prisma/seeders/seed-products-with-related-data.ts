@@ -299,7 +299,7 @@ function generateProductData(
   categorySlug: string,
   categoryId: number,
   sellerId: number,
-  storeId: number | null,
+  _storeId: number | null, // Deprecated: Store model no longer exists
 ): any {
   const template = PRODUCT_TEMPLATES[categorySlug];
   const names = PRODUCT_NAMES[categorySlug];
@@ -328,7 +328,6 @@ function generateProductData(
 
   return {
     sellerId,
-    storeId,
     categoryId,
     title,
     description: template.descriptions.join('. ') + '.',
@@ -366,6 +365,7 @@ async function seedSellers(prisma: PrismaClient, count: number) {
     const existing = await prisma.user.findUnique({ where: { email } });
 
     if (!existing) {
+      const fullName = faker.person.fullName();
       const seller = await prisma.user.create({
         data: {
           email,
@@ -373,10 +373,16 @@ async function seedSellers(prisma: PrismaClient, count: number) {
           isVerified: true,
           status: true,
           language: 'vi',
-          fullName: faker.person.fullName(),
+          fullName,
           phoneNumber: faker.phone.number(),
           address: faker.location.streetAddress(),
           country: 'Vietnam',
+          // Seller fields - REQUIRED for order creation
+          isSeller: true,
+          sellerName: fullName,
+          sellerSlug: faker.helpers.slugify(fullName.toLowerCase()) + '-' + faker.string.alphanumeric(6),
+          sellerDescription: faker.company.catchPhrase(),
+          sellerIsVerified: faker.datatype.boolean(0.3),
           createdAt: now,
           updatedAt: now,
         },
@@ -392,38 +398,8 @@ async function seedSellers(prisma: PrismaClient, count: number) {
 /**
  * Seed stores
  */
-async function seedStores(prisma: PrismaClient, sellers: any[]) {
-  console.log(`🏪 Seeding ${sellers.length} stores...`);
-
-  const now = BigInt(Date.now());
-  const stores = [];
-
-  for (const seller of sellers) {
-    const storeName = faker.company.name();
-    const slug = faker.helpers.slugify(storeName).toLowerCase() + '-' + faker.number.int({ min: 1000, max: 9999 });
-
-    const store = await prisma.store.create({
-      data: {
-        userId: seller.id,
-        name: storeName,
-        slug,
-        description: faker.company.catchPhrase(),
-        shortDescription: faker.lorem.sentence(),
-        rating: faker.number.float({ min: 3.5, max: 5, multipleOf: 0.1 }),
-        reviewCount: faker.number.int({ min: 0, max: 500 }),
-        isVerified: faker.datatype.boolean(0.5),
-        isActive: true,
-        createdAt: now,
-        updatedAt: now,
-      },
-    });
-
-    stores.push(store);
-  }
-
-  console.log(`  ✓ Created ${stores.length} stores`);
-  return stores;
-}
+// Removed seedStores function - Store model no longer exists
+// Store data is now merged into User model with seller fields
 
 /**
  * Seed products with related data
@@ -458,9 +434,6 @@ export async function seedProductsWithRelatedData(prisma: PrismaClient): Promise
       return;
     }
 
-    // Seed stores
-    const stores = await seedStores(prisma, sellers);
-
     // Calculate products per category
     const productsPerCategory = Math.floor(TARGET_PRODUCTS / categories.length);
     let totalCreated = 0;
@@ -473,9 +446,8 @@ export async function seedProductsWithRelatedData(prisma: PrismaClient): Promise
 
       for (let i = 0; i < productsPerCategory; i++) {
         const seller = faker.helpers.arrayElement(sellers);
-        const store = stores.find((s) => s.userId === seller.id);
 
-        const productData = generateProductData(category.slug, category.id, seller.id, store?.id || null);
+        const productData = generateProductData(category.slug, category.id, seller.id, null);
 
         if (productData) {
           productsInCategory.push(productData);
@@ -561,7 +533,6 @@ export async function seedProductsWithRelatedData(prisma: PrismaClient): Promise
 
     console.log(`\n  📊 Summary:`);
     console.log(`     - ${sellers.length} sellers created`);
-    console.log(`     - ${stores.length} stores created`);
     console.log(`     - ${totalCreated} products created`);
     console.log(`     - ${imagesCreated} product images created`);
     console.log(`     - ${reviewsCreated} reviews created`);
