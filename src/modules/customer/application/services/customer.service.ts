@@ -105,13 +105,15 @@ export class CustomerService {
         total: Number(order.total),
         currency: order.currency,
         createdAt: order.createdAt.toString(),
-        seller: order.seller ? {
-          id: order.seller.id,
-          name: order.seller.sellerName || 'Unknown Seller',
-          slug: order.seller.sellerSlug,
-          logo: order.seller.sellerLogo,
-          isVerified: order.seller.sellerIsVerified,
-        } : null,
+        seller: order.seller
+          ? {
+              id: order.seller.id,
+              name: order.seller.sellerName || 'Unknown Seller',
+              slug: order.seller.sellerSlug,
+              logo: order.seller.sellerLogo,
+              isVerified: order.seller.sellerIsVerified,
+            }
+          : null,
       })),
       addresses: addresses.map((addr) => ({
         id: addr.id,

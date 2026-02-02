@@ -156,7 +156,9 @@ export class PaymentService {
       },
       balance: {
         previousBalance,
-        newBalance: updatedBalance ? Number(updatedBalance.balance) : previousBalance + transaction.amount,
+        newBalance: updatedBalance
+          ? Number(updatedBalance.balance)
+          : previousBalance + transaction.amount,
       },
     };
   }

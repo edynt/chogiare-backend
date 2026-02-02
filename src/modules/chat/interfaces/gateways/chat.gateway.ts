@@ -90,8 +90,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       await client.join(`user:${userId}`);
 
-      this.logger.log(`Client ${client.id} connected as user ${userId}, joined room user:${userId}`);
-      this.logger.log(`Total connected users: ${this.userSockets.size}, user ${userId} has ${this.userSockets.get(userId)?.size || 0} connections`);
+      this.logger.log(
+        `Client ${client.id} connected as user ${userId}, joined room user:${userId}`,
+      );
+      this.logger.log(
+        `Total connected users: ${this.userSockets.size}, user ${userId} has ${this.userSockets.get(userId)?.size || 0} connections`,
+      );
     } catch (error) {
       this.logger.error(`Error handling connection for client ${client.id}:`, error);
       client.disconnect();
@@ -140,7 +144,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Emit to ALL participants (including sender for realtime confirmation)
       participants.forEach((participant) => {
-        this.logger.log(`Emitting new_message to user:${participant.userId} for conversation ${data.conversationId}`);
+        this.logger.log(
+          `Emitting new_message to user:${participant.userId} for conversation ${data.conversationId}`,
+        );
         this.server.to(`user:${participant.userId}`).emit('new_message', {
           conversationId: data.conversationId,
           message,
