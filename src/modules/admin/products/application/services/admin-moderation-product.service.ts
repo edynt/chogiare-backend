@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
+import { PRODUCT_STATUS } from '@common/constants/enum.constants';
 import { isAdmin } from '@common/utils/admin.utils';
 import {
   IProductRepository,
@@ -58,7 +59,7 @@ export class AdminModerationProductService {
     const options: {
       sellerId?: number;
       categoryId?: number;
-      status?: string;
+      status?: number;
       search?: string;
       page?: number;
       pageSize?: number;
@@ -77,14 +78,17 @@ export class AdminModerationProductService {
     }
 
     if (queryDto.status) {
-      // Map frontend status to backend status
-      const statusMap: Record<string, string> = {
-        pending: 'draft',
-        approved: 'active',
-        rejected: 'suspended',
-        draft: 'draft',
+      // Map frontend status to backend status (numeric)
+      const statusMap: Record<string, number> = {
+        pending: PRODUCT_STATUS.DRAFT,
+        approved: PRODUCT_STATUS.ACTIVE,
+        rejected: PRODUCT_STATUS.OUT_OF_STOCK, // Using OUT_OF_STOCK as suspended/rejected
+        draft: PRODUCT_STATUS.DRAFT,
       };
-      options.status = statusMap[queryDto.status] || queryDto.status;
+      const mappedStatus = statusMap[queryDto.status];
+      if (mappedStatus !== undefined) {
+        options.status = mappedStatus;
+      }
     }
 
     if (queryDto.search) {
@@ -114,11 +118,11 @@ export class AdminModerationProductService {
 
         // Map backend status to frontend status
         let moderationStatus: 'pending' | 'approved' | 'rejected' | 'draft';
-        if (product.status === 'active') {
+        if (product.status === PRODUCT_STATUS.ACTIVE) {
           moderationStatus = 'approved';
-        } else if (product.status === 'suspended') {
+        } else if (product.status === PRODUCT_STATUS.OUT_OF_STOCK) {
           moderationStatus = 'rejected';
-        } else if (product.status === 'draft') {
+        } else if (product.status === PRODUCT_STATUS.DRAFT) {
           moderationStatus = 'draft';
         } else {
           moderationStatus = 'pending';
@@ -136,7 +140,7 @@ export class AdminModerationProductService {
           priority: 'medium' as const, // Default priority
           submittedAt: new Date(Number(product.createdAt)).toISOString(),
           reviewedAt:
-            product.status !== 'draft'
+            product.status !== PRODUCT_STATUS.DRAFT
               ? new Date(Number(product.updatedAt)).toISOString()
               : undefined,
           reviewer: undefined, // Can be extended later
@@ -180,7 +184,7 @@ export class AdminModerationProductService {
     }
 
     const updated = await this.productRepository.update(productId, {
-      status: 'active',
+      status: PRODUCT_STATUS.ACTIVE,
       updatedAt: BigInt(Date.now()),
     });
 
@@ -204,9 +208,9 @@ export class AdminModerationProductService {
       });
     }
 
-    // Use 'suspended' status as rejection (since 'rejected' is not in ProductStatus enum)
+    // Use OUT_OF_STOCK status as rejection (since 'rejected' is not in ProductStatus enum)
     const updated = await this.productRepository.update(productId, {
-      status: 'suspended',
+      status: PRODUCT_STATUS.OUT_OF_STOCK,
       updatedAt: BigInt(Date.now()),
     });
 

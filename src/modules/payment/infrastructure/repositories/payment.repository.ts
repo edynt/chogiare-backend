@@ -6,8 +6,6 @@ import { UserBalance } from '@modules/payment/domain/entities/user-balance.entit
 import { DepositPackage } from '@modules/payment/domain/entities/deposit-package.entity';
 import {
   Transaction as PrismaTransaction,
-  TransactionType,
-  PaymentMethod,
   Prisma,
   UserBalance as PrismaUserBalance,
   DepositPackage as PrismaDepositPackage,
@@ -18,14 +16,15 @@ export class PaymentRepository implements IPaymentRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async createTransaction(transaction: Partial<Transaction>): Promise<Transaction> {
+    const typeNum = typeof transaction.type === 'string' ? parseInt(transaction.type, 10) : transaction.type;
     const created = await this.prisma.transaction.create({
       data: {
         userId: transaction.userId!,
-        type: transaction.type as TransactionType,
+        type: typeNum!,
         amount: transaction.amount!,
         currency: transaction.currency || 'VND',
         status: transaction.status || 'pending',
-        paymentMethod: transaction.paymentMethod as PaymentMethod | null,
+        paymentMethod: transaction.paymentMethod,
         reference: transaction.reference || null,
         description: transaction.description || null,
         orderId: transaction.orderId || null,
@@ -58,7 +57,8 @@ export class PaymentRepository implements IPaymentRepository {
     };
 
     if (options?.type) {
-      where.type = options.type as TransactionType;
+      const typeNum = typeof options.type === 'string' ? parseInt(options.type, 10) : options.type;
+      where.type = typeNum;
     }
 
     if (options?.status) {

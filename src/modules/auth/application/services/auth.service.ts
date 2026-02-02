@@ -19,6 +19,7 @@ import { EmailService } from '@common/services/email.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
 import { ROLE_IDS } from '@common/constants/roles.constants';
+import { LANGUAGE } from '@common/constants/enum.constants';
 import { Prisma } from '@prisma/client';
 import { LoginDto } from '../dto/login.dto';
 import { AdminLoginDto } from '../dto/admin-login.dto';
@@ -41,7 +42,7 @@ export interface AuthResponse {
     email: string;
     isVerified: boolean;
     status: boolean;
-    language: string;
+    language: number;
   };
   tokens: AuthTokens;
   roles?: string[];
@@ -87,7 +88,7 @@ export class AuthService {
       hashedPassword,
       isVerified: false,
       status: true,
-      language: 'vi',
+      language: LANGUAGE.VI,
       fullName: registerDto.fullName,
     });
 
@@ -922,7 +923,10 @@ export class AuthService {
     });
 
     if (updateProfileDto.language !== undefined) {
-      await this.userRepository.update(userId, { language: updateProfileDto.language });
+      const languageNum = typeof updateProfileDto.language === 'string'
+        ? parseInt(updateProfileDto.language, 10)
+        : updateProfileDto.language;
+      await this.userRepository.update(userId, { language: languageNum });
     }
   }
 
@@ -931,7 +935,7 @@ export class AuthService {
     email: string;
     isVerified: boolean;
     status: boolean;
-    language: string;
+    language: number;
     fullName: string | null;
     avatarUrl: string | null;
     gender: string | null;
@@ -1044,7 +1048,7 @@ export class AuthService {
           hashedPassword,
           isVerified: true,
           status: true,
-          language: 'vi',
+          language: LANGUAGE.VI,
           fullName: userInfo.name || null,
           avatarUrl: userInfo.picture || null,
         });

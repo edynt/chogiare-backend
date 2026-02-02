@@ -25,7 +25,7 @@ import { CreateOrderDto } from '../dto/create-order.dto';
 import { CreateOrderFromCartDto } from '../dto/create-order-from-cart.dto';
 import { QueryOrderDto } from '../dto/query-order.dto';
 import { UpdateOrderDto } from '../dto/update-order.dto';
-import { OrderStatus, PaymentStatus } from '@prisma/client';
+import { ORDER_STATUS, PAYMENT_STATUS, PRODUCT_STATUS } from '@common/constants/enum.constants';
 
 @Injectable()
 export class OrderService {
@@ -133,7 +133,7 @@ export class OrderService {
 
     for (const cartItem of sellerItems) {
       const product = productMap.get(cartItem.productId);
-      if (!product || product.status !== 'active') {
+      if (!product || product.status !== PRODUCT_STATUS.ACTIVE) {
         throw new BadRequestException({
           message: MESSAGES.ORDER.PRODUCT_NOT_AVAILABLE,
           errorCode: ERROR_CODES.ORDER_PRODUCT_NOT_AVAILABLE,
@@ -194,8 +194,8 @@ export class OrderService {
         orderNo,
         buyerId: userId,
         sellerId: createOrderDto.sellerId,
-        status: OrderStatus.pending,
-        paymentStatus: PaymentStatus.pending,
+        status: ORDER_STATUS.PENDING,
+        paymentStatus: PAYMENT_STATUS.PENDING,
         paymentMethod: createOrderDto.paymentMethod || null,
         subtotal,
         tax,
@@ -277,7 +277,7 @@ export class OrderService {
 
     for (const item of createOrderDto.items) {
       const product = productMap.get(item.productId);
-      if (!product || product.status !== 'active') {
+      if (!product || product.status !== PRODUCT_STATUS.ACTIVE) {
         throw new BadRequestException({
           message: MESSAGES.ORDER.PRODUCT_NOT_AVAILABLE,
           errorCode: ERROR_CODES.ORDER_PRODUCT_NOT_AVAILABLE,
@@ -338,8 +338,8 @@ export class OrderService {
         orderNo,
         buyerId: userId,
         sellerId: createOrderDto.sellerId,
-        status: OrderStatus.pending,
-        paymentStatus: PaymentStatus.pending,
+        status: ORDER_STATUS.PENDING,
+        paymentStatus: PAYMENT_STATUS.PENDING,
         paymentMethod: createOrderDto.paymentMethod || null,
         subtotal,
         tax,
@@ -466,7 +466,7 @@ export class OrderService {
       });
     }
 
-    if (order.status !== OrderStatus.pending) {
+    if (order.status !== ORDER_STATUS.PENDING) {
       throw new BadRequestException({
         message: MESSAGES.ORDER.CANNOT_CANCEL,
         errorCode: ERROR_CODES.ORDER_CANNOT_CANCEL,
@@ -492,7 +492,7 @@ export class OrderService {
         });
       }
 
-      await this.orderRepository.updateStatus(orderId, OrderStatus.cancelled);
+      await this.orderRepository.updateStatus(orderId, ORDER_STATUS.CANCELLED);
 
       const updatedOrder = await this.orderRepository.findByIdWithRelations(orderId);
       return this.formatOrder(updatedOrder!);
@@ -568,7 +568,7 @@ export class OrderService {
     };
   }
 
-  async updateOrderStatus(orderId: number, status: string, userId: number) {
+  async updateOrderStatus(orderId: number, status: string | number, userId: number) {
     const order = await this.orderRepository.findByIdWithRelations(orderId);
     if (!order) {
       throw new NotFoundException({
@@ -609,7 +609,8 @@ export class OrderService {
       });
     }
 
-    await this.orderRepository.updateStatus(orderId, status);
+    const statusNum = typeof status === 'string' ? parseInt(status, 10) : status;
+    await this.orderRepository.updateStatus(orderId, statusNum);
     const updatedOrder = await this.orderRepository.findByIdWithRelations(orderId);
     return this.formatOrder(updatedOrder!);
   }
@@ -651,7 +652,7 @@ export class OrderService {
     }
 
     await this.orderRepository.update(orderId, {
-      status: OrderStatus.confirmed,
+      status: ORDER_STATUS.CONFIRMED,
       sellerNotes: sellerNotes || null,
     });
 
@@ -706,8 +707,9 @@ export class OrderService {
     }
 
     // Update payment status and payment image in single atomic operation
+    const paymentStatusNum = typeof paymentStatus === 'string' ? parseInt(paymentStatus, 10) : paymentStatus;
     await this.orderRepository.update(orderId, {
-      paymentStatus,
+      paymentStatus: paymentStatusNum,
       ...(paymentProofUrl && { paymentImage: paymentProofUrl }),
     });
 
@@ -793,14 +795,15 @@ export class OrderService {
       });
     }
 
-    await this.orderRepository.update(orderId, {
-      status: updateOrderDto.status,
-      paymentStatus: updateOrderDto.paymentStatus,
-      paymentMethod: updateOrderDto.paymentMethod,
-      shippingAddressId: updateOrderDto.shippingAddressId,
-      billingAddressId: updateOrderDto.billingAddressId,
-      notes: updateOrderDto.notes,
-    });
+    const updateData: Record<string, unknown> = {};
+    if (updateOrderDto.status !== undefined) updateData.status = updateOrderDto.status;
+    if (updateOrderDto.paymentStatus !== undefined) updateData.paymentStatus = updateOrderDto.paymentStatus;
+    if (updateOrderDto.paymentMethod !== undefined) updateData.paymentMethod = updateOrderDto.paymentMethod;
+    if (updateOrderDto.shippingAddressId !== undefined) updateData.shippingAddressId = updateOrderDto.shippingAddressId;
+    if (updateOrderDto.billingAddressId !== undefined) updateData.billingAddressId = updateOrderDto.billingAddressId;
+    if (updateOrderDto.notes !== undefined) updateData.notes = updateOrderDto.notes;
+
+    await this.orderRepository.update(orderId, updateData);
 
     const updatedOrder = await this.orderRepository.findByIdWithRelations(orderId);
     return this.formatOrder(updatedOrder!);
@@ -827,15 +830,15 @@ export class OrderService {
     });
 
     const totalOrders = orders.length;
-    const pendingOrders = orders.filter((o) => o.status === OrderStatus.pending).length;
-    const processingOrders = orders.filter((o) => o.status === OrderStatus.confirmed).length;
-    const shippedOrders = orders.filter((o) => o.status === OrderStatus.ready_for_pickup).length;
-    const deliveredOrders = orders.filter((o) => o.status === OrderStatus.completed).length;
-    const cancelledOrders = orders.filter((o) => o.status === OrderStatus.cancelled).length;
+    const pendingOrders = orders.filter((o) => o.status === ORDER_STATUS.PENDING).length;
+    const processingOrders = orders.filter((o) => o.status === ORDER_STATUS.CONFIRMED).length;
+    const shippedOrders = orders.filter((o) => o.status === ORDER_STATUS.READY_FOR_PICKUP).length;
+    const deliveredOrders = orders.filter((o) => o.status === ORDER_STATUS.COMPLETED).length;
+    const cancelledOrders = orders.filter((o) => o.status === ORDER_STATUS.CANCELLED).length;
 
     const totalRevenue = orders
       .filter(
-        (o) => o.status === OrderStatus.completed && o.paymentStatus === PaymentStatus.completed,
+        (o) => o.status === ORDER_STATUS.COMPLETED && o.paymentStatus === PAYMENT_STATUS.COMPLETED,
       )
       .reduce((sum, o) => sum + Number(o.total), 0);
 

@@ -87,7 +87,7 @@ export async function seedAdminUser(prisma: PrismaClient): Promise<void> {
       hashedPassword,
       isVerified: true,
       status: true,
-      language: 'vi',
+      language: 0,
       fullName: 'Administrator',
       createdAt: now,
       updatedAt: now,

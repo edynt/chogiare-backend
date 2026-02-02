@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
+import { ORDER_STATUS, PAYMENT_STATUS } from '@common/constants/enum.constants';
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 const DAYS_TO_KEEP = 30;
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -116,7 +116,7 @@ export class CleanupService {
       const oldOrders = await this.prisma.order.findMany({
         where: {
           status: {
-            in: [OrderStatus.cancelled],
+            in: [ORDER_STATUS.CANCELLED],
           },
           createdAt: {
             lt: thirtyDaysAgo,
@@ -155,7 +155,7 @@ export class CleanupService {
         await tx.order.deleteMany({
           where: {
             status: {
-              in: [OrderStatus.cancelled],
+              in: [ORDER_STATUS.CANCELLED],
             },
             createdAt: {
               lt: thirtyDaysAgo,
@@ -181,12 +181,12 @@ export class CleanupService {
 
       const rejectedOrders = await this.prisma.order.findMany({
         where: {
-          status: OrderStatus.pending,
+          status: ORDER_STATUS.PENDING,
           createdAt: {
             lt: thirtyDaysAgo,
           },
           paymentStatus: {
-            in: [PaymentStatus.pending, PaymentStatus.failed],
+            in: [PAYMENT_STATUS.PENDING, PAYMENT_STATUS.FAILED],
           },
         },
         include: {
@@ -221,12 +221,12 @@ export class CleanupService {
 
         await tx.order.deleteMany({
           where: {
-            status: OrderStatus.pending,
+            status: ORDER_STATUS.PENDING,
             createdAt: {
               lt: thirtyDaysAgo,
             },
             paymentStatus: {
-              in: [PaymentStatus.pending, PaymentStatus.failed],
+              in: [PAYMENT_STATUS.PENDING, PAYMENT_STATUS.FAILED],
             },
           },
         });

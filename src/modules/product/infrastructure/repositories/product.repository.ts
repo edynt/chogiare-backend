@@ -2,12 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
 import { IProductRepository } from '@modules/product/domain/repositories/product.repository.interface';
 import { Product, ProductWithRelations } from '@modules/product/domain/entities/product.entity';
+import { PRODUCT_STATUS, PRODUCT_CONDITION } from '@common/constants/enum.constants';
 import {
   Product as PrismaProduct,
   Prisma,
-  ProductCondition,
-  ProductStatus,
-  ProductBadge,
 } from '@prisma/client';
 
 // Type for product with eager-loaded relations
@@ -57,7 +55,7 @@ export class ProductRepository implements IProductRepository {
   async findAll(options?: {
     sellerId?: number;
     categoryId?: number;
-    status?: string;
+    status?: number | string;
     isActive?: boolean;
     search?: string;
     page?: number;
@@ -73,8 +71,8 @@ export class ProductRepository implements IProductRepository {
       where.categoryId = options.categoryId;
     }
 
-    if (options?.status) {
-      where.status = options.status as ProductStatus;
+    if (options?.status !== undefined) {
+      where.status = typeof options.status === 'string' ? parseInt(options.status, 10) : options.status;
     }
 
     if (options?.search) {
@@ -113,7 +111,7 @@ export class ProductRepository implements IProductRepository {
         description: product.description || null,
         price: product.price!,
         originalPrice: product.originalPrice || null,
-        condition: product.condition as ProductCondition,
+        condition: product.condition ?? PRODUCT_CONDITION.NEW,
         location: product.location || null,
         stock: product.stock ?? 0,
         minStock: product.minStock ?? 0,
@@ -126,7 +124,7 @@ export class ProductRepository implements IProductRepository {
         profitMargin: product.profitMargin || null,
         sku: product.sku || null,
         barcode: product.barcode || null,
-        status: (product.status as ProductStatus) || ProductStatus.draft,
+        status: product.status || PRODUCT_STATUS.DRAFT,
         rating: product.rating ?? 0,
         reviewCount: product.reviewCount ?? 0,
         viewCount: product.viewCount ?? 0,
@@ -134,7 +132,7 @@ export class ProductRepository implements IProductRepository {
         isFeatured: product.isFeatured ?? false,
         isPromoted: product.isPromoted ?? false,
         tags: product.tags || [],
-        badges: (product.badges as ProductBadge[]) || [],
+        badges: product.badges || [],
         warranty: product.warranty || null,
         returnPolicy: product.returnPolicy || null,
         inventoryInfo: (product.inventoryInfo as object) || {},
@@ -161,7 +159,7 @@ export class ProductRepository implements IProductRepository {
     if (product.price !== undefined) updateData.price = product.price;
     if (product.originalPrice !== undefined) updateData.originalPrice = product.originalPrice;
     if (product.condition !== undefined)
-      updateData.condition = product.condition as ProductCondition;
+      updateData.condition = product.condition;
     if (product.location !== undefined) updateData.location = product.location;
     if (product.stock !== undefined) {
       updateData.stock = product.stock;
@@ -173,11 +171,11 @@ export class ProductRepository implements IProductRepository {
     if (product.sellingPrice !== undefined) updateData.sellingPrice = product.sellingPrice;
     if (product.sku !== undefined) updateData.sku = product.sku;
     if (product.barcode !== undefined) updateData.barcode = product.barcode;
-    if (product.status !== undefined) updateData.status = product.status as ProductStatus;
+    if (product.status !== undefined) updateData.status = product.status;
     if (product.isFeatured !== undefined) updateData.isFeatured = product.isFeatured;
     if (product.isPromoted !== undefined) updateData.isPromoted = product.isPromoted;
     if (product.tags !== undefined) updateData.tags = product.tags;
-    if (product.badges !== undefined) updateData.badges = product.badges as ProductBadge[];
+    if (product.badges !== undefined) updateData.badges = product.badges;
     if (product.warranty !== undefined) updateData.warranty = product.warranty;
     if (product.returnPolicy !== undefined) updateData.returnPolicy = product.returnPolicy;
 

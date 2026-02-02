@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
-import { OrderStatus, PaymentStatus, UserRoleEnum, Prisma } from '@prisma/client';
+import { ORDER_STATUS, PAYMENT_STATUS, PRODUCT_STATUS } from '@common/constants/enum.constants';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AdminDashboardService {
@@ -28,7 +29,7 @@ export class AdminDashboardService {
           userRoles: {
             some: {
               role: {
-                name: UserRoleEnum.user,
+                name: 'user',
               },
             },
           },
@@ -40,12 +41,12 @@ export class AdminDashboardService {
       this.prisma.product.count(),
       this.prisma.product.count({
         where: {
-          status: 'active',
+          status: PRODUCT_STATUS.ACTIVE,
         },
       }),
       this.prisma.product.count({
         where: {
-          status: 'draft',
+          status: PRODUCT_STATUS.DRAFT,
         },
       }),
     ]);
@@ -65,7 +66,7 @@ export class AdminDashboardService {
             gte: lastMonthBigInt,
             lt: nowBigInt,
           },
-          status: OrderStatus.completed,
+          status: ORDER_STATUS.COMPLETED,
         },
       }),
       this.prisma.order.count({
@@ -75,7 +76,7 @@ export class AdminDashboardService {
             lt: nowBigInt,
           },
           status: {
-            in: [OrderStatus.confirmed, OrderStatus.ready_for_pickup],
+            in: [ORDER_STATUS.CONFIRMED, ORDER_STATUS.READY_FOR_PICKUP],
           },
         },
       }),
@@ -93,8 +94,8 @@ export class AdminDashboardService {
             gte: lastMonthBigInt,
             lt: nowBigInt,
           },
-          status: { not: OrderStatus.cancelled },
-          paymentStatus: PaymentStatus.completed,
+          status: { not: ORDER_STATUS.CANCELLED },
+          paymentStatus: PAYMENT_STATUS.COMPLETED,
         },
         _sum: {
           total: true,
@@ -106,8 +107,8 @@ export class AdminDashboardService {
             gte: previousMonthStartBigInt,
             lt: lastMonthBigInt,
           },
-          status: { not: OrderStatus.cancelled },
-          paymentStatus: PaymentStatus.completed,
+          status: { not: ORDER_STATUS.CANCELLED },
+          paymentStatus: PAYMENT_STATUS.COMPLETED,
         },
         _sum: {
           total: true,
@@ -178,7 +179,7 @@ export class AdminDashboardService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         where: {
-          status: 'draft',
+          status: PRODUCT_STATUS.DRAFT,
         },
         select: {
           id: true,
@@ -191,7 +192,7 @@ export class AdminDashboardService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         where: {
-          status: OrderStatus.completed,
+          status: ORDER_STATUS.COMPLETED,
         },
         select: {
           id: true,
@@ -204,7 +205,7 @@ export class AdminDashboardService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         where: {
-          paymentStatus: PaymentStatus.completed,
+          paymentStatus: PAYMENT_STATUS.COMPLETED,
         },
         select: {
           id: true,
@@ -284,8 +285,8 @@ export class AdminDashboardService {
             createdAt: {
               gte: lastMonthBigInt,
             },
-            status: { not: OrderStatus.cancelled },
-            paymentStatus: PaymentStatus.completed,
+            status: { not: ORDER_STATUS.CANCELLED },
+            paymentStatus: PAYMENT_STATUS.COMPLETED,
           },
           include: {
             items: true,
@@ -382,7 +383,7 @@ export class AdminDashboardService {
       take: limit,
       orderBy: { createdAt: 'desc' },
       where: {
-        status: 'draft',
+        status: PRODUCT_STATUS.DRAFT,
         createdAt: {
           gte: last24HoursBigInt,
         },
@@ -399,7 +400,7 @@ export class AdminDashboardService {
       take: limit,
       orderBy: { createdAt: 'desc' },
       where: {
-        status: OrderStatus.pending,
+        status: ORDER_STATUS.PENDING,
         createdAt: {
           gte: last24HoursBigInt,
         },

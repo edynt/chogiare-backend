@@ -1,8 +1,13 @@
-import { IsOptional, IsInt, IsEnum, Min } from 'class-validator';
+import { IsOptional, IsInt, IsIn, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { VALIDATION_MESSAGES } from '@common/constants/messages.constants';
-import { OrderStatus, PaymentStatus } from '@prisma/client';
+import {
+  ORDER_STATUS_VALUES,
+  OrderStatusType,
+  PAYMENT_STATUS_VALUES,
+  PaymentStatusType,
+} from '@common/constants/enum.constants';
 
 export class QueryOrderDto {
   @ApiProperty({
@@ -30,20 +35,24 @@ export class QueryOrderDto {
   pageSize?: number;
 
   @ApiProperty({
-    description: 'Filter by order status',
-    enum: OrderStatus,
+    description: 'Filter by order status (0=pending, 1=confirmed, 2=preparing, 3=ready_for_pickup, 4=completed, 5=cancelled, 6=refunded)',
+    enum: ORDER_STATUS_VALUES,
     required: false,
   })
   @IsOptional()
-  @IsEnum(OrderStatus, { message: VALIDATION_MESSAGES.IS_ENUM })
-  status?: OrderStatus;
+  @Type(() => Number)
+  @IsInt({ message: VALIDATION_MESSAGES.IS_NUMBER })
+  @IsIn(ORDER_STATUS_VALUES, { message: VALIDATION_MESSAGES.IS_ENUM })
+  status?: OrderStatusType;
 
   @ApiProperty({
-    description: 'Filter by payment status',
-    enum: PaymentStatus,
+    description: 'Filter by payment status (0=pending, 1=completed, 2=failed, 3=refunded)',
+    enum: PAYMENT_STATUS_VALUES,
     required: false,
   })
   @IsOptional()
-  @IsEnum(PaymentStatus, { message: VALIDATION_MESSAGES.IS_ENUM })
-  paymentStatus?: PaymentStatus;
+  @Type(() => Number)
+  @IsInt({ message: VALIDATION_MESSAGES.IS_NUMBER })
+  @IsIn(PAYMENT_STATUS_VALUES, { message: VALIDATION_MESSAGES.IS_ENUM })
+  paymentStatus?: PaymentStatusType;
 }

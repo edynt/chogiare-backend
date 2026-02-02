@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
+import { ORDER_STATUS, PAYMENT_STATUS } from '@common/constants/enum.constants';
 import { isAdmin } from '@common/utils/admin.utils';
 import { QueryAdminUserDto } from '../dto/query-admin-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
@@ -116,8 +117,8 @@ export class AdminUserService {
           },
           buyerOrders: {
             where: {
-              status: 'completed',
-              paymentStatus: 'completed',
+              status: ORDER_STATUS.COMPLETED,
+              paymentStatus: PAYMENT_STATUS.COMPLETED,
             },
             select: {
               total: true,
@@ -208,7 +209,7 @@ export class AdminUserService {
 
     const totalOrders = user.buyerOrders.length;
     const totalRevenue = user.buyerOrders
-      .filter((o) => o.status === 'completed' && o.paymentStatus === 'completed')
+      .filter((o) => o.status === ORDER_STATUS.COMPLETED && o.paymentStatus === PAYMENT_STATUS.COMPLETED)
       .reduce((sum, o) => sum + Number(o.total), 0);
 
     return {

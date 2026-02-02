@@ -2,7 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
 import { IChatMessageRepository } from '@modules/chat/domain/repositories/chat-message.repository.interface';
 import { ChatMessage } from '@modules/chat/domain/entities/chat-message.entity';
-import { ChatMessage as PrismaChatMessage, MessageType } from '@prisma/client';
+import { MESSAGE_TYPE } from '@common/constants/enum.constants';
+import { ChatMessage as PrismaChatMessage } from '@prisma/client';
 
 @Injectable()
 export class ChatMessageRepository implements IChatMessageRepository {
@@ -59,7 +60,7 @@ export class ChatMessageRepository implements IChatMessageRepository {
       data: {
         conversationId: message.conversationId!,
         senderId: message.senderId!,
-        messageType: (message.messageType as MessageType) || MessageType.text,
+        messageType: message.messageType || MESSAGE_TYPE.TEXT,
         content: message.content!,
         isRead: message.isRead ?? false,
         messageMetadata: (message.messageMetadata as object) || {},

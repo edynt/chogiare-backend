@@ -3,7 +3,7 @@ import { Notification } from '../entities/notification.entity';
 export interface INotificationRepository {
   create(data: {
     userId: number;
-    type: string;
+    type: number;
     title: string;
     message: string;
     actionUrl?: string;
@@ -16,7 +16,7 @@ export interface INotificationRepository {
   findByUserId(
     userId: number,
     filters?: {
-      type?: string;
+      type?: number;
       isRead?: boolean;
       page?: number;
       pageSize?: number;
@@ -34,7 +34,7 @@ export interface INotificationRepository {
   createForUsers(
     userIds: number[],
     data: {
-      type: string;
+      type: number;
       title: string;
       message: string;
       actionUrl?: string;

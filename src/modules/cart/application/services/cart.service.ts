@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, Inject } from '@nes
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
+import { PRODUCT_STATUS } from '@common/constants/enum.constants';
 import {
   ICartRepository,
   CART_REPOSITORY,
@@ -32,7 +33,7 @@ export class CartService {
       });
     }
 
-    if (product.status !== 'active') {
+    if (product.status !== PRODUCT_STATUS.ACTIVE) {
       throw new BadRequestException({
         message: MESSAGES.CART.PRODUCT_NOT_AVAILABLE,
         errorCode: ERROR_CODES.CART_PRODUCT_NOT_AVAILABLE,
@@ -130,7 +131,7 @@ export class CartService {
     const items = cartItems
       .map((item) => {
         const product = productMap.get(item.productId);
-        if (!product || product.status !== 'active') {
+        if (!product || product.status !== PRODUCT_STATUS.ACTIVE) {
           return null;
         }
 
@@ -222,7 +223,7 @@ export class CartService {
       });
     }
 
-    if (cartItem.product.status !== 'active') {
+    if (cartItem.product.status !== PRODUCT_STATUS.ACTIVE) {
       throw new BadRequestException({
         message: MESSAGES.CART.PRODUCT_NOT_AVAILABLE,
         errorCode: ERROR_CODES.CART_PRODUCT_NOT_AVAILABLE,

@@ -1,7 +1,12 @@
-import { IsOptional, IsNumber, IsString, IsEnum, Min } from 'class-validator';
+import { IsOptional, IsNumber, IsString, IsInt, IsIn, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { TransactionType, PaymentMethod } from '@prisma/client';
+import {
+  TRANSACTION_TYPE_VALUES,
+  TransactionTypeValue,
+  PAYMENT_METHOD_VALUES,
+  PaymentMethodType,
+} from '@common/constants/enum.constants';
 
 export class QueryAdminPaymentDto {
   @ApiProperty({ description: 'User ID filter', required: false })
@@ -10,15 +15,27 @@ export class QueryAdminPaymentDto {
   @Type(() => Number)
   userId?: number;
 
-  @ApiProperty({ description: 'Transaction type filter', enum: TransactionType, required: false })
+  @ApiProperty({
+    description: 'Transaction type filter (0=deposit, 1=sale, 2=refund, 3=commission, 4=bonus, 5=subscription_purchase, 6=boost)',
+    enum: TRANSACTION_TYPE_VALUES,
+    required: false
+  })
   @IsOptional()
-  @IsEnum(TransactionType)
-  type?: TransactionType;
+  @Type(() => Number)
+  @IsInt()
+  @IsIn(TRANSACTION_TYPE_VALUES)
+  type?: TransactionTypeValue;
 
-  @ApiProperty({ description: 'Payment method filter', enum: PaymentMethod, required: false })
+  @ApiProperty({
+    description: 'Payment method filter (0=bank_transfer)',
+    enum: PAYMENT_METHOD_VALUES,
+    required: false
+  })
   @IsOptional()
-  @IsEnum(PaymentMethod)
-  paymentMethod?: PaymentMethod;
+  @Type(() => Number)
+  @IsInt()
+  @IsIn(PAYMENT_METHOD_VALUES)
+  paymentMethod?: PaymentMethodType;
 
   @ApiProperty({ description: 'Status filter', required: false })
   @IsOptional()

@@ -1,32 +1,45 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsEnum, IsInt, MaxLength } from 'class-validator';
+import { IsOptional, IsString, IsIn, IsInt, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
-import { OrderStatus, PaymentStatus, PaymentMethod } from '@prisma/client';
+import {
+  ORDER_STATUS_VALUES,
+  OrderStatusType,
+  PAYMENT_STATUS_VALUES,
+  PaymentStatusType,
+  PAYMENT_METHOD_VALUES,
+  PaymentMethodType,
+} from '@common/constants/enum.constants';
 
 export class UpdateOrderDto {
   @ApiPropertyOptional({
-    description: 'Order status',
-    enum: OrderStatus,
+    description: 'Order status (0=pending, 1=confirmed, 2=preparing, 3=ready_for_pickup, 4=completed, 5=cancelled, 6=refunded)',
+    enum: ORDER_STATUS_VALUES,
   })
   @IsOptional()
-  @IsEnum(OrderStatus)
-  status?: OrderStatus;
+  @Type(() => Number)
+  @IsInt()
+  @IsIn(ORDER_STATUS_VALUES)
+  status?: OrderStatusType;
 
   @ApiPropertyOptional({
-    description: 'Payment status',
-    enum: PaymentStatus,
+    description: 'Payment status (0=pending, 1=completed, 2=failed, 3=refunded)',
+    enum: PAYMENT_STATUS_VALUES,
   })
   @IsOptional()
-  @IsEnum(PaymentStatus)
-  paymentStatus?: PaymentStatus;
+  @Type(() => Number)
+  @IsInt()
+  @IsIn(PAYMENT_STATUS_VALUES)
+  paymentStatus?: PaymentStatusType;
 
   @ApiPropertyOptional({
-    description: 'Payment method',
-    enum: PaymentMethod,
+    description: 'Payment method (0=bank_transfer)',
+    enum: PAYMENT_METHOD_VALUES,
   })
   @IsOptional()
-  @IsEnum(PaymentMethod)
-  paymentMethod?: PaymentMethod;
+  @Type(() => Number)
+  @IsInt()
+  @IsIn(PAYMENT_METHOD_VALUES)
+  paymentMethod?: PaymentMethodType;
 
   @ApiPropertyOptional({ description: 'Shipping address ID' })
   @IsOptional()

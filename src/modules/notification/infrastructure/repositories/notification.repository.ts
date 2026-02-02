@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
 import { INotificationRepository } from '@modules/notification/domain/repositories/notification.repository.interface';
 import { Notification } from '@modules/notification/domain/entities/notification.entity';
-import { Prisma, NotificationType } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class NotificationRepository implements INotificationRepository {
@@ -10,7 +10,7 @@ export class NotificationRepository implements INotificationRepository {
 
   async create(data: {
     userId: number;
-    type: string;
+    type: number;
     title: string;
     message: string;
     actionUrl?: string;
@@ -20,7 +20,7 @@ export class NotificationRepository implements INotificationRepository {
     const notification = await this.prisma.notification.create({
       data: {
         userId: data.userId,
-        type: data.type as NotificationType,
+        type: data.type,
         title: data.title,
         message: data.message,
         actionUrl: data.actionUrl || null,
@@ -48,7 +48,7 @@ export class NotificationRepository implements INotificationRepository {
   async findByUserId(
     userId: number,
     filters?: {
-      type?: string;
+      type?: number;
       isRead?: boolean;
       page?: number;
       pageSize?: number;
@@ -131,7 +131,7 @@ export class NotificationRepository implements INotificationRepository {
   async createForUsers(
     userIds: number[],
     data: {
-      type: string;
+      type: number;
       title: string;
       message: string;
       actionUrl?: string;
@@ -142,7 +142,7 @@ export class NotificationRepository implements INotificationRepository {
     const now = BigInt(Date.now());
     const notifications = userIds.map((userId) => ({
       userId,
-      type: data.type as NotificationType,
+      type: data.type,
       title: data.title,
       message: data.message,
       actionUrl: data.actionUrl || null,
@@ -161,7 +161,7 @@ export class NotificationRepository implements INotificationRepository {
   private toDomainNotification(notification: {
     id: number;
     userId: number;
-    type: NotificationType;
+    type: number;
     title: string;
     message: string;
     isRead: boolean;

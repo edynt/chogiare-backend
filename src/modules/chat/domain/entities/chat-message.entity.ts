@@ -2,7 +2,7 @@ export class ChatMessage {
   id: number;
   conversationId: number;
   senderId: number;
-  messageType: string;
+  messageType: number;
   content: string;
   isRead: boolean;
   messageMetadata: Record<string, unknown>;

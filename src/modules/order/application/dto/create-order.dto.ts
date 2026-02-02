@@ -2,7 +2,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
-  IsEnum,
+  IsIn,
   MaxLength,
   IsArray,
   ValidateNested,
@@ -10,7 +10,7 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { VALIDATION_MESSAGES } from '@common/constants/messages.constants';
-import { PaymentMethod } from '@prisma/client';
+import { PAYMENT_METHOD_VALUES, PaymentMethodType } from '@common/constants/enum.constants';
 
 class OrderItemDto {
   @ApiProperty({
@@ -61,13 +61,15 @@ export class CreateOrderDto {
   billingAddressId?: number;
 
   @ApiProperty({
-    description: 'Payment method',
-    enum: PaymentMethod,
+    description: 'Payment method (0=bank_transfer)',
+    enum: PAYMENT_METHOD_VALUES,
     required: false,
   })
   @IsOptional()
-  @IsEnum(PaymentMethod, { message: VALIDATION_MESSAGES.IS_ENUM })
-  paymentMethod?: PaymentMethod;
+  @Type(() => Number)
+  @IsInt({ message: VALIDATION_MESSAGES.IS_NUMBER })
+  @IsIn(PAYMENT_METHOD_VALUES, { message: VALIDATION_MESSAGES.IS_ENUM })
+  paymentMethod?: PaymentMethodType;
 
   @ApiProperty({
     description: 'Order notes',

@@ -183,7 +183,7 @@ export class NotificationService {
    */
   async createAndEmitNotification(data: {
     userId: number;
-    type: string;
+    type: string | number;
     title: string;
     message: string;
     actionUrl?: string;
@@ -191,9 +191,11 @@ export class NotificationService {
   }) {
     const now = BigInt(Date.now());
 
+    const typeNum = typeof data.type === 'string' ? parseInt(data.type, 10) : data.type;
+
     const notification = await this.notificationRepository.create({
       userId: data.userId,
-      type: data.type,
+      type: typeNum,
       title: data.title,
       message: data.message,
       actionUrl: data.actionUrl,
@@ -204,7 +206,7 @@ export class NotificationService {
     // Emit via WebSocket for real-time delivery
     this.notificationGateway.sendNotificationToUser(data.userId, {
       id: notification.id.toString(),
-      type: notification.type,
+      type: notification.type.toString(),
       title: notification.title,
       message: notification.message,
       actionUrl: notification.actionUrl,

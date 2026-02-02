@@ -6,7 +6,7 @@ export class Product {
   description: string | null;
   price: number;
   originalPrice: number | null;
-  condition: string;
+  condition: number;
   location: string | null;
   stock: number;
   minStock: number;
@@ -19,7 +19,7 @@ export class Product {
   profitMargin: number | null;
   sku: string | null;
   barcode: string | null;
-  status: string;
+  status: number;
   rating: number;
   reviewCount: number;
   viewCount: number;
@@ -27,7 +27,7 @@ export class Product {
   isFeatured: boolean;
   isPromoted: boolean;
   tags: string[];
-  badges: string[];
+  badges: number[];
   warranty: string | null;
   returnPolicy: string | null;
   inventoryInfo: Record<string, unknown>;

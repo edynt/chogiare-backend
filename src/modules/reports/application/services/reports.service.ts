@@ -5,7 +5,7 @@ import {
   ORDER_REPOSITORY,
   IOrderRepository,
 } from '@modules/order/domain/repositories/order.repository.interface';
-import { OrderStatus, PaymentStatus } from '@prisma/client';
+import { ORDER_STATUS, PAYMENT_STATUS } from '@common/constants/enum.constants';
 
 @Injectable()
 export class ReportsService {
@@ -64,15 +64,15 @@ export class ReportsService {
 
     const whereCurrent = {
       createdAt: { gte: startBigInt, lte: endBigInt },
-      status: { not: OrderStatus.cancelled },
-      paymentStatus: PaymentStatus.completed,
+      status: { not: ORDER_STATUS.CANCELLED },
+      paymentStatus: PAYMENT_STATUS.COMPLETED,
       ...(storeId && { storeId }),
     };
 
     const wherePrevious = {
       createdAt: { gte: previousStartBigInt, lt: startBigInt },
-      status: { not: OrderStatus.cancelled },
-      paymentStatus: PaymentStatus.completed,
+      status: { not: ORDER_STATUS.CANCELLED },
+      paymentStatus: PAYMENT_STATUS.COMPLETED,
       ...(storeId && { storeId }),
     };
 
@@ -164,8 +164,8 @@ export class ReportsService {
     const orders = await this.prisma.order.findMany({
       where: {
         createdAt: { gte: startBigInt, lte: endBigInt },
-        status: { not: OrderStatus.cancelled },
-        paymentStatus: PaymentStatus.completed,
+        status: { not: ORDER_STATUS.CANCELLED },
+        paymentStatus: PAYMENT_STATUS.COMPLETED,
         ...(storeId && { storeId }),
       },
       include: {
@@ -215,8 +215,8 @@ export class ReportsService {
     const orders = await this.prisma.order.findMany({
       where: {
         createdAt: { gte: startBigInt, lte: endBigInt },
-        status: { not: OrderStatus.cancelled },
-        paymentStatus: PaymentStatus.completed,
+        status: { not: ORDER_STATUS.CANCELLED },
+        paymentStatus: PAYMENT_STATUS.COMPLETED,
         ...(storeId && { storeId }),
       },
       include: {
@@ -258,8 +258,8 @@ export class ReportsService {
     const previousOrders = await this.prisma.order.findMany({
       where: {
         createdAt: { gte: previousStartBigInt, lt: startBigInt },
-        status: { not: OrderStatus.cancelled },
-        paymentStatus: PaymentStatus.completed,
+        status: { not: ORDER_STATUS.CANCELLED },
+        paymentStatus: PAYMENT_STATUS.COMPLETED,
         ...(storeId && { storeId }),
       },
       include: {
@@ -311,8 +311,8 @@ export class ReportsService {
     const orders = await this.prisma.order.findMany({
       where: {
         createdAt: { gte: startBigInt, lte: endBigInt },
-        status: { not: OrderStatus.cancelled },
-        paymentStatus: PaymentStatus.completed,
+        status: { not: ORDER_STATUS.CANCELLED },
+        paymentStatus: PAYMENT_STATUS.COMPLETED,
         ...(storeId && { storeId }),
       },
       include: {

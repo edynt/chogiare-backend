@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, Inject } from '@nes
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
+import { ORDER_STATUS, PAYMENT_STATUS } from '@common/constants/enum.constants';
 import {
   ICustomerRepository,
   CUSTOMER_REPOSITORY,
@@ -262,13 +263,13 @@ export class CustomerService {
         this.prisma.order.count({
           where: {
             buyerId: customerId,
-            status: 'completed',
+            status: ORDER_STATUS.COMPLETED,
           },
         }),
         this.prisma.order.aggregate({
           where: {
             buyerId: customerId,
-            paymentStatus: 'completed',
+            paymentStatus: PAYMENT_STATUS.COMPLETED,
           },
           _sum: {
             total: true,

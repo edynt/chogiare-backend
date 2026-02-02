@@ -24,7 +24,7 @@ import { CreateConversationDto } from '../dto/create-conversation.dto';
 import { SendMessageDto } from '../dto/send-message.dto';
 import { QueryConversationsDto } from '../dto/query-conversations.dto';
 import { QueryMessagesDto } from '../dto/query-messages.dto';
-import { ConversationType, MessageType } from '@prisma/client';
+import { CONVERSATION_TYPE, MESSAGE_TYPE } from '@common/constants/enum.constants';
 
 @Injectable()
 export class ChatService {
@@ -72,7 +72,7 @@ export class ChatService {
 
     const now = BigInt(Date.now());
     conversation = await this.conversationRepository.create({
-      type: ConversationType.direct,
+      type: CONVERSATION_TYPE.DIRECT,
       title: createDto.title || null,
       metadata: {},
       createdAt: now,
@@ -264,7 +264,7 @@ export class ChatService {
     const message = await this.chatMessageRepository.create({
       conversationId,
       senderId: userId,
-      messageType: sendDto.messageType || MessageType.text,
+      messageType: sendDto.messageType || MESSAGE_TYPE.TEXT,
       content: sendDto.content,
       isRead: false,
       messageMetadata: {},

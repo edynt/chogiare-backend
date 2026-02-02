@@ -1,7 +1,7 @@
-import { IsOptional, IsNumber, IsString, IsEnum, Min } from 'class-validator';
+import { IsOptional, IsNumber, IsString, IsInt, IsIn, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { ProductStatus } from '@prisma/client';
+import { PRODUCT_STATUS_VALUES, ProductStatusType } from '@common/constants/enum.constants';
 
 export class QueryAdminProductDto {
   @ApiProperty({ description: 'Seller ID filter', required: false })
@@ -16,10 +16,16 @@ export class QueryAdminProductDto {
   @Type(() => Number)
   categoryId?: number;
 
-  @ApiProperty({ description: 'Product status filter', enum: ProductStatus, required: false })
+  @ApiProperty({
+    description: 'Product status filter (0=draft, 1=active, 2=out_of_stock)',
+    enum: PRODUCT_STATUS_VALUES,
+    required: false,
+  })
   @IsOptional()
-  @IsEnum(ProductStatus)
-  status?: ProductStatus;
+  @Type(() => Number)
+  @IsInt()
+  @IsIn(PRODUCT_STATUS_VALUES)
+  status?: ProductStatusType;
 
   @ApiProperty({ description: 'Search term', required: false })
   @IsOptional()

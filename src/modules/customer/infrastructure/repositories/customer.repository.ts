@@ -136,7 +136,7 @@ export class CustomerRepository implements ICustomerRepository {
     email: string;
     isVerified: boolean;
     status: boolean;
-    language: string;
+    language: number;
     fullName: string | null;
     avatarUrl: string | null;
     gender: string | null;

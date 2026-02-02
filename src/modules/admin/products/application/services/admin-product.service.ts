@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException, Inject } from '@nest
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
+import { PRODUCT_STATUS } from '@common/constants/enum.constants';
 import { isAdmin } from '@common/utils/admin.utils';
 import {
   IProductRepository,
@@ -29,7 +30,7 @@ export class AdminProductService {
     const options: {
       sellerId?: number;
       categoryId?: number;
-      status?: string;
+      status?: number;
       search?: string;
       page?: number;
       pageSize?: number;
@@ -76,7 +77,7 @@ export class AdminProductService {
       });
     }
 
-    if (product.status !== 'draft') {
+    if (product.status !== PRODUCT_STATUS.DRAFT) {
       throw new ForbiddenException({
         message: MESSAGES.PRODUCT.INVALID_STATUS_TRANSITION,
         errorCode: ERROR_CODES.PRODUCT_INVALID_STATUS_TRANSITION,
@@ -84,7 +85,7 @@ export class AdminProductService {
     }
 
     const updated = await this.productRepository.update(productId, {
-      status: 'active',
+      status: PRODUCT_STATUS.ACTIVE,
       updatedAt: BigInt(Date.now()),
     });
 
@@ -109,7 +110,7 @@ export class AdminProductService {
     }
 
     const updated = await this.productRepository.update(productId, {
-      status: 'suspended',
+      status: PRODUCT_STATUS.OUT_OF_STOCK,
       updatedAt: BigInt(Date.now()),
     });
 
@@ -133,7 +134,7 @@ export class AdminProductService {
       });
     }
 
-    if (product.status !== 'suspended') {
+    if (product.status !== PRODUCT_STATUS.OUT_OF_STOCK) {
       throw new ForbiddenException({
         message: MESSAGES.PRODUCT.INVALID_STATUS_TRANSITION,
         errorCode: ERROR_CODES.PRODUCT_INVALID_STATUS_TRANSITION,
@@ -141,7 +142,7 @@ export class AdminProductService {
     }
 
     const updated = await this.productRepository.update(productId, {
-      status: 'active',
+      status: PRODUCT_STATUS.ACTIVE,
       updatedAt: BigInt(Date.now()),
     });
 

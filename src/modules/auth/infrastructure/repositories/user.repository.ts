@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
 import { IUserRepository } from '@modules/auth/domain/repositories/user.repository.interface';
 import { User } from '@modules/auth/domain/entities/user.entity';
-import { User as PrismaUser } from '@prisma/client';
+import { User as PrismaUser, Prisma } from '@prisma/client';
 
 @Injectable()
 export class UserRepository implements IUserRepository {
@@ -30,7 +30,7 @@ export class UserRepository implements IUserRepository {
         hashedPassword: userData.hashedPassword!,
         isVerified: userData.isVerified ?? false,
         status: userData.status ?? true,
-        language: userData.language ?? 'vi',
+        language: userData.language ?? 0,
         fullName: userData.fullName ?? null,
         avatarUrl: userData.avatarUrl ?? null,
         gender: userData.gender ?? null,
@@ -38,7 +38,7 @@ export class UserRepository implements IUserRepository {
         phoneNumber: userData.phoneNumber ?? null,
         address: userData.address ?? null,
         country: userData.country ?? null,
-        profileMetadata: (userData.profileMetadata as Record<string, unknown>) ?? null,
+        profileMetadata: (userData.profileMetadata as Prisma.InputJsonValue) ?? null,
         createdAt: now,
         updatedAt: now,
       },
@@ -54,7 +54,7 @@ export class UserRepository implements IUserRepository {
         ...(userData.hashedPassword && { hashedPassword: userData.hashedPassword }),
         ...(userData.isVerified !== undefined && { isVerified: userData.isVerified }),
         ...(userData.status !== undefined && { status: userData.status }),
-        ...(userData.language && { language: userData.language }),
+        ...(userData.language !== undefined && { language: userData.language }),
         updatedAt: BigInt(Date.now()),
       },
     });

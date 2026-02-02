@@ -3,7 +3,7 @@ export class Customer {
   email: string;
   isVerified: boolean;
   status: boolean;
-  language: string;
+  language: number;
   createdAt: bigint;
   updatedAt: bigint;
   userInfo?: {

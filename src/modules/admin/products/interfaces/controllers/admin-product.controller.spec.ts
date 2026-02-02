@@ -83,7 +83,7 @@ describe('AdminProductController - Content-Type Validation (PUT endpoints)', () 
       .compile();
 
     app = moduleFixture.createNestApplication();
-    adminProductService = moduleFixture.get<AdminProductService>(AdminProductService);
+    _adminProductService = moduleFixture.get<AdminProductService>(AdminProductService);
     await app.init();
   });
 

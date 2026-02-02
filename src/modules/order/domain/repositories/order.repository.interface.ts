@@ -42,9 +42,9 @@ export interface IOrderRepository {
     orderNo: string;
     buyerId: number;
     sellerId: number;
-    status: string;
-    paymentStatus: string;
-    paymentMethod: string | null;
+    status: number;
+    paymentStatus: number;
+    paymentMethod: number | null;
     subtotal: number;
     tax: number;
     shipping: number;
@@ -62,8 +62,8 @@ export interface IOrderRepository {
   findByBuyerId(
     buyerId: number,
     options?: {
-      status?: string;
-      paymentStatus?: string;
+      status?: number;
+      paymentStatus?: number;
       page?: number;
       pageSize?: number;
     },
@@ -71,8 +71,8 @@ export interface IOrderRepository {
   findByBuyerIdWithRelations(
     buyerId: number,
     options?: {
-      status?: string;
-      paymentStatus?: string;
+      status?: number;
+      paymentStatus?: number;
       page?: number;
       pageSize?: number;
     },
@@ -80,8 +80,8 @@ export interface IOrderRepository {
   findBySellerId(
     sellerId: number,
     options?: {
-      status?: string;
-      paymentStatus?: string;
+      status?: number;
+      paymentStatus?: number;
       page?: number;
       pageSize?: number;
     },
@@ -89,14 +89,14 @@ export interface IOrderRepository {
   findBySellerIdWithRelations(
     sellerId: number,
     options?: {
-      status?: string;
-      paymentStatus?: string;
+      status?: number;
+      paymentStatus?: number;
       page?: number;
       pageSize?: number;
     },
   ): Promise<{ items: OrderWithRelations[]; total: number }>;
-  updateStatus(id: number, status: string): Promise<Order>;
-  updatePaymentStatus(id: number, paymentStatus: string): Promise<Order>;
+  updateStatus(id: number, status: number): Promise<Order>;
+  updatePaymentStatus(id: number, paymentStatus: number): Promise<Order>;
   update(id: number, data: Partial<Order>): Promise<Order>;
   createOrderItem(data: {
     orderId: number;

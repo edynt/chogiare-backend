@@ -14,7 +14,7 @@ import { SendMessageDto } from '@modules/chat/application/dto/send-message.dto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@common/database/prisma.service';
-import { MessageType } from '@prisma/client';
+import { MessageTypeValue } from '@common/constants/enum.constants';
 
 interface AuthenticatedSocket extends Socket {
   userId?: number;
@@ -118,7 +118,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('send_message')
   async handleSendMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { conversationId: number; content: string; messageType?: string },
+    @MessageBody() data: { conversationId: number; content: string; messageType?: MessageTypeValue },
   ) {
     if (!client.userId) {
       return { error: 'Unauthorized' };
@@ -127,7 +127,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const sendDto: SendMessageDto = {
         content: data.content,
-        messageType: data.messageType ? (data.messageType as MessageType) : undefined,
+        messageType: data.messageType,
       };
 
       const message = await this.chatService.sendMessage(

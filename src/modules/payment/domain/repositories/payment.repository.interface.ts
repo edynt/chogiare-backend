@@ -10,7 +10,7 @@ export interface IPaymentRepository {
   findTransactionsByUserId(
     userId: number,
     options?: {
-      type?: string;
+      type?: string | number;
       status?: string;
       page?: number;
       pageSize?: number;

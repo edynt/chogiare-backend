@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
+import { PAYMENT_STATUS, TRANSACTION_TYPE } from '@common/constants/enum.constants';
 import { isAdmin } from '@common/utils/admin.utils';
 import {
   IPaymentRepository,
@@ -140,6 +141,7 @@ export class AdminPaymentService {
       });
     }
 
+    // Note: Transaction.status is String, not Int
     if (transaction.status === 'refunded') {
       throw new BadRequestException({
         message: MESSAGES.PAYMENT.PAYMENT_FAILED,
@@ -174,7 +176,7 @@ export class AdminPaymentService {
       await this.prisma.transaction.create({
         data: {
           userId: transaction.userId,
-          type: 'refund',
+          type: TRANSACTION_TYPE.REFUND,
           amount: transaction.amount,
           currency: transaction.currency,
           status: 'completed',
@@ -221,12 +223,12 @@ export class AdminPaymentService {
       this.prisma.transaction.count({ where: { status: 'pending' } }),
       this.prisma.transaction.count({ where: { status: 'failed' } }),
       this.prisma.transaction.aggregate({
-        where: { type: 'sale', status: 'completed' },
+        where: { type: TRANSACTION_TYPE.SALE, status: 'completed' },
         _sum: { amount: true },
       }),
       this.prisma.transaction.aggregate({
         where: {
-          type: 'sale',
+          type: TRANSACTION_TYPE.SALE,
           status: 'completed',
           createdAt: {
             gte: BigInt(Date.now() - 24 * 60 * 60 * 1000),
@@ -243,8 +245,8 @@ export class AdminPaymentService {
         completedTransactions,
         pendingTransactions,
         failedTransactions,
-        totalRevenue: totalRevenue._sum.amount ? Number(totalRevenue._sum.amount) : 0,
-        todayRevenue: todayRevenue._sum.amount ? Number(todayRevenue._sum.amount) : 0,
+        totalRevenue: totalRevenue._sum?.amount ? Number(totalRevenue._sum.amount) : 0,
+        todayRevenue: todayRevenue._sum?.amount ? Number(todayRevenue._sum.amount) : 0,
       },
     };
   }

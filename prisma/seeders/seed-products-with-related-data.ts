@@ -1,5 +1,6 @@
-import { PrismaClient, ProductCondition, ProductStatus, ProductBadge } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { faker } from '@faker-js/faker/locale/vi';
+import { PRODUCT_CONDITION, PRODUCT_STATUS, PRODUCT_BADGE } from '../../src/common/constants/enum.constants';
 
 /**
  * Product template by category
@@ -10,7 +11,7 @@ interface ProductTemplate {
   priceRange: { min: number; max: number };
   descriptions: string[];
   tags: string[];
-  condition: ProductCondition[];
+  condition: number[];
 }
 
 /**
@@ -29,7 +30,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
       'Dễ dàng phối đồ với nhiều trang phục khác nhau',
     ],
     tags: ['thời trang nam', 'áo thun', 'áo sơ mi', 'áo khoác', 'cotton'],
-    condition: ['new', 'like_new', 'good'],
+    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW, PRODUCT_CONDITION.GOOD],
   },
   'quan-nam': {
     titlePrefix: 'Quần',
@@ -42,7 +43,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
       'Có nhiều màu sắc để lựa chọn',
     ],
     tags: ['thời trang nam', 'quần jean', 'quần kaki', 'quần short'],
-    condition: ['new', 'like_new', 'good'],
+    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW, PRODUCT_CONDITION.GOOD],
   },
   'giay-nam': {
     titlePrefix: 'Giày',
@@ -55,7 +56,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
       'Phù hợp cho cả đi làm và đi chơi',
     ],
     tags: ['giày nam', 'giày thể thao', 'giày da', 'sneaker'],
-    condition: ['new', 'like_new'],
+    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
   },
 
   // Thời trang nữ
@@ -70,7 +71,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
       'Phù hợp cho cả đi làm và đi chơi',
     ],
     tags: ['thời trang nữ', 'áo kiểu', 'áo thun', 'áo sơ mi'],
-    condition: ['new', 'like_new', 'good'],
+    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW, PRODUCT_CONDITION.GOOD],
   },
   'quan-nu': {
     titlePrefix: 'Quần',
@@ -83,7 +84,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
       'Dễ phối với nhiều loại áo',
     ],
     tags: ['thời trang nữ', 'quần jean', 'quần tây', 'quần short'],
-    condition: ['new', 'like_new', 'good'],
+    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW, PRODUCT_CONDITION.GOOD],
   },
   'vay-dam': {
     titlePrefix: 'Váy/Đầm',
@@ -96,7 +97,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
       'Form dáng tôn dáng, che khuyết điểm tốt',
     ],
     tags: ['thời trang nữ', 'váy', 'đầm', 'đầm công sở'],
-    condition: ['new', 'like_new'],
+    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
   },
 
   // Điện tử
@@ -111,7 +112,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
       'Bảo hành chính hãng, đầy đủ phụ kiện',
     ],
     tags: ['điện thoại', 'smartphone', 'di động', 'chính hãng'],
-    condition: ['new', 'like_new'],
+    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
   },
   'may-tinh-bang': {
     titlePrefix: 'Máy tính bảng',
@@ -124,7 +125,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
       'Phù hợp cho học tập và giải trí',
     ],
     tags: ['máy tính bảng', 'tablet', 'iPad', 'Android'],
-    condition: ['new', 'like_new'],
+    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
   },
   'laptop': {
     titlePrefix: 'Laptop',
@@ -137,7 +138,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
       'Bảo hành chính hãng, hỗ trợ tốt',
     ],
     tags: ['laptop', 'máy tính', 'gaming', 'văn phòng'],
-    condition: ['new', 'like_new'],
+    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
   },
 
   // Đồ gia dụng
@@ -152,7 +153,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
       'Thiết kế tiện lợi, tiết kiệm không gian',
     ],
     tags: ['nhà bếp', 'đồ dùng', 'nấu ăn', 'inox'],
-    condition: ['new', 'like_new', 'good'],
+    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW, PRODUCT_CONDITION.GOOD],
   },
   'thiet-bi-nha-bep': {
     titlePrefix: 'Thiết bị nhà bếp',
@@ -165,7 +166,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
       'Thiết kế hiện đại, sang trọng',
     ],
     tags: ['thiết bị nhà bếp', 'điện lạnh', 'gia dụng'],
-    condition: ['new', 'like_new'],
+    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
   },
 
   // Sức khỏe & làm đẹp
@@ -180,7 +181,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
       'Hàng chính hãng, tem phụ đầy đủ',
     ],
     tags: ['mỹ phẩm', 'làm đẹp', 'son', 'phấn'],
-    condition: ['new'],
+    condition: [PRODUCT_CONDITION.NEW],
   },
   'cham-soc-da': {
     titlePrefix: 'Sản phẩm chăm sóc da',
@@ -193,7 +194,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
       'Hấp thụ nhanh, không gây bết dính',
     ],
     tags: ['chăm sóc da', 'skincare', 'dưỡng da'],
-    condition: ['new'],
+    condition: [PRODUCT_CONDITION.NEW],
   },
 
   // Thể thao
@@ -208,7 +209,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
       'Bền bỉ, giữ form sau nhiều lần giặt',
     ],
     tags: ['thể thao', 'gym', 'running', 'fitness'],
-    condition: ['new', 'like_new'],
+    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
   },
 
   // Trẻ em
@@ -223,7 +224,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
       'Phù hợp với lứa tuổi, giáo dục',
     ],
     tags: ['đồ chơi', 'trẻ em', 'giáo dục'],
-    condition: ['new', 'like_new'],
+    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
   },
   'quan-ao-tre-em': {
     titlePrefix: 'Quần áo trẻ em',
@@ -236,7 +237,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
       'Dễ giặt, mau khô',
     ],
     tags: ['quần áo trẻ em', 'bé trai', 'bé gái'],
-    condition: ['new', 'like_new'],
+    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
   },
 
   // Sách
@@ -251,7 +252,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
       'Giao hàng cẩn thận, đóng gói kỹ',
     ],
     tags: ['sách', 'văn học', 'kỹ năng', 'kiến thức'],
-    condition: ['new', 'like_new'],
+    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
   },
   'van-phong-pham': {
     titlePrefix: 'Văn phòng phẩm',
@@ -264,7 +265,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
       'Phù hợp cho học sinh, sinh viên, văn phòng',
     ],
     tags: ['văn phòng phẩm', 'bút', 'vở', 'học tập'],
-    condition: ['new'],
+    condition: [PRODUCT_CONDITION.NEW],
   },
 };
 
@@ -318,11 +319,11 @@ function generateProductData(
   const stock = faker.number.int({ min: 10, max: 500 });
 
   // Generate badges
-  const badges: ProductBadge[] = [];
-  if (faker.datatype.boolean(0.1)) badges.push('NEW');
-  if (faker.datatype.boolean(0.1)) badges.push('FEATURED');
-  if (faker.datatype.boolean(0.1)) badges.push('HOT');
-  if (originalPrice && faker.datatype.boolean(0.3)) badges.push('SALE');
+  const badges: number[] = [];
+  if (faker.datatype.boolean(0.1)) badges.push(PRODUCT_BADGE.NEW);
+  if (faker.datatype.boolean(0.1)) badges.push(PRODUCT_BADGE.FEATURED);
+  if (faker.datatype.boolean(0.1)) badges.push(PRODUCT_BADGE.HOT);
+  if (originalPrice && faker.datatype.boolean(0.3)) badges.push(PRODUCT_BADGE.SALE);
 
   const now = BigInt(Date.now());
 
@@ -337,7 +338,7 @@ function generateProductData(
     location: faker.location.city(),
     stock,
     availableStock: stock,
-    status: faker.helpers.arrayElement<ProductStatus>(['active', 'active', 'active', 'draft']),
+    status: faker.helpers.arrayElement([PRODUCT_STATUS.ACTIVE, PRODUCT_STATUS.ACTIVE, PRODUCT_STATUS.ACTIVE, PRODUCT_STATUS.DRAFT]),
     rating: faker.number.float({ min: 3.5, max: 5, multipleOf: 0.1 }),
     reviewCount: faker.number.int({ min: 0, max: 200 }),
     viewCount: faker.number.int({ min: 0, max: 5000 }),
@@ -372,7 +373,7 @@ async function seedSellers(prisma: PrismaClient, count: number) {
           hashedPassword: '$2b$10$dummy.hash.for.seeding.purposes.only',
           isVerified: true,
           status: true,
-          language: 'vi',
+          language: 0,
           fullName,
           phoneNumber: faker.phone.number(),
           address: faker.location.streetAddress(),

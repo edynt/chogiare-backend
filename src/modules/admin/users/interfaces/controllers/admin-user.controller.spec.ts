@@ -92,7 +92,7 @@ describe('AdminUserController - Content-Type Validation (PUT endpoints)', () => 
       .compile();
 
     app = moduleFixture.createNestApplication();
-    adminUserService = moduleFixture.get<AdminUserService>(AdminUserService);
+    _adminUserService = moduleFixture.get<AdminUserService>(AdminUserService);
     await app.init();
   });
 

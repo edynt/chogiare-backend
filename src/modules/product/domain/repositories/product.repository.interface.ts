@@ -8,7 +8,7 @@ export interface IProductRepository {
   findAll(options?: {
     sellerId?: number;
     categoryId?: number;
-    status?: string;
+    status?: number;
     isActive?: boolean;
     search?: string;
     page?: number;

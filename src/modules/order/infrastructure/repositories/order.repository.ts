@@ -6,7 +6,7 @@ import {
 } from '@modules/order/domain/repositories/order.repository.interface';
 import { Order } from '@modules/order/domain/entities/order.entity';
 import { OrderItem } from '@modules/order/domain/entities/order-item.entity';
-import { OrderStatus, PaymentStatus, PaymentMethod, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 const ORDER_INCLUDE_RELATIONS = {
   seller: {
@@ -58,9 +58,9 @@ export class OrderRepository implements IOrderRepository {
     orderNo: string;
     buyerId: number;
     sellerId: number;
-    status: string;
-    paymentStatus: string;
-    paymentMethod: string | null;
+    status: number;
+    paymentStatus: number;
+    paymentMethod: number | null;
     subtotal: number;
     tax: number;
     shipping: number;
@@ -79,9 +79,9 @@ export class OrderRepository implements IOrderRepository {
         orderNo: data.orderNo,
         buyerId: data.buyerId,
         sellerId: data.sellerId,
-        status: data.status as OrderStatus,
-        paymentStatus: data.paymentStatus as PaymentStatus,
-        paymentMethod: data.paymentMethod as PaymentMethod | null,
+        status: data.status,
+        paymentStatus: data.paymentStatus,
+        paymentMethod: data.paymentMethod,
         subtotal: data.subtotal,
         tax: data.tax,
         shipping: data.shipping,
@@ -129,8 +129,8 @@ export class OrderRepository implements IOrderRepository {
   async findByBuyerId(
     buyerId: number,
     options?: {
-      status?: string;
-      paymentStatus?: string;
+      status?: number;
+      paymentStatus?: number;
       page?: number;
       pageSize?: number;
     },
@@ -138,11 +138,11 @@ export class OrderRepository implements IOrderRepository {
     const where: Prisma.OrderWhereInput = { buyerId };
 
     if (options?.status) {
-      where.status = options.status as OrderStatus;
+      where.status = options.status;
     }
 
     if (options?.paymentStatus) {
-      where.paymentStatus = options.paymentStatus as PaymentStatus;
+      where.paymentStatus = options.paymentStatus;
     }
 
     const page = options?.page || 1;
@@ -168,8 +168,8 @@ export class OrderRepository implements IOrderRepository {
   async findByBuyerIdWithRelations(
     buyerId: number,
     options?: {
-      status?: string;
-      paymentStatus?: string;
+      status?: number;
+      paymentStatus?: number;
       page?: number;
       pageSize?: number;
     },
@@ -177,11 +177,11 @@ export class OrderRepository implements IOrderRepository {
     const where: Prisma.OrderWhereInput = { buyerId };
 
     if (options?.status) {
-      where.status = options.status as OrderStatus;
+      where.status = options.status;
     }
 
     if (options?.paymentStatus) {
-      where.paymentStatus = options.paymentStatus as PaymentStatus;
+      where.paymentStatus = options.paymentStatus;
     }
 
     const page = options?.page || 1;
@@ -208,8 +208,8 @@ export class OrderRepository implements IOrderRepository {
   async findBySellerId(
     sellerId: number,
     options?: {
-      status?: string;
-      paymentStatus?: string;
+      status?: number;
+      paymentStatus?: number;
       page?: number;
       pageSize?: number;
     },
@@ -217,11 +217,11 @@ export class OrderRepository implements IOrderRepository {
     const where: Prisma.OrderWhereInput = { sellerId };
 
     if (options?.status) {
-      where.status = options.status as OrderStatus;
+      where.status = options.status;
     }
 
     if (options?.paymentStatus) {
-      where.paymentStatus = options.paymentStatus as PaymentStatus;
+      where.paymentStatus = options.paymentStatus;
     }
 
     const page = options?.page || 1;
@@ -247,8 +247,8 @@ export class OrderRepository implements IOrderRepository {
   async findBySellerIdWithRelations(
     sellerId: number,
     options?: {
-      status?: string;
-      paymentStatus?: string;
+      status?: number;
+      paymentStatus?: number;
       page?: number;
       pageSize?: number;
     },
@@ -256,11 +256,11 @@ export class OrderRepository implements IOrderRepository {
     const where: Prisma.OrderWhereInput = { sellerId };
 
     if (options?.status) {
-      where.status = options.status as OrderStatus;
+      where.status = options.status;
     }
 
     if (options?.paymentStatus) {
-      where.paymentStatus = options.paymentStatus as PaymentStatus;
+      where.paymentStatus = options.paymentStatus;
     }
 
     const page = options?.page || 1;
@@ -284,11 +284,11 @@ export class OrderRepository implements IOrderRepository {
     };
   }
 
-  async updateStatus(id: number, status: string): Promise<Order> {
+  async updateStatus(id: number, status: number): Promise<Order> {
     const order = await this.prisma.order.update({
       where: { id },
       data: {
-        status: status as OrderStatus,
+        status: status,
         updatedAt: BigInt(Date.now()),
       },
     });
@@ -296,11 +296,11 @@ export class OrderRepository implements IOrderRepository {
     return this.toDomainOrder(order);
   }
 
-  async updatePaymentStatus(id: number, paymentStatus: string): Promise<Order> {
+  async updatePaymentStatus(id: number, paymentStatus: number): Promise<Order> {
     const order = await this.prisma.order.update({
       where: { id },
       data: {
-        paymentStatus: paymentStatus as PaymentStatus,
+        paymentStatus: paymentStatus,
         updatedAt: BigInt(Date.now()),
       },
     });
@@ -313,11 +313,11 @@ export class OrderRepository implements IOrderRepository {
       updatedAt: BigInt(Date.now()),
     };
 
-    if (data.status !== undefined) updateData.status = data.status as OrderStatus;
+    if (data.status !== undefined) updateData.status = data.status;
     if (data.paymentStatus !== undefined)
-      updateData.paymentStatus = data.paymentStatus as PaymentStatus;
+      updateData.paymentStatus = data.paymentStatus;
     if (data.paymentMethod !== undefined)
-      updateData.paymentMethod = data.paymentMethod as PaymentMethod | null;
+      updateData.paymentMethod = data.paymentMethod;
     if (data.subtotal !== undefined) updateData.subtotal = data.subtotal;
     if (data.tax !== undefined) updateData.tax = data.tax;
     if (data.shipping !== undefined) updateData.shipping = data.shipping;
@@ -377,9 +377,9 @@ export class OrderRepository implements IOrderRepository {
     orderNo: string | null;
     buyerId: number;
     sellerId: number;
-    status: string;
-    paymentStatus: string;
-    paymentMethod: string | null;
+    status: number;
+    paymentStatus: number;
+    paymentMethod: number | null;
     subtotal: number | { toString(): string; toNumber(): number };
     tax: number | { toString(): string; toNumber(): number };
     shipping: number | { toString(): string; toNumber(): number };

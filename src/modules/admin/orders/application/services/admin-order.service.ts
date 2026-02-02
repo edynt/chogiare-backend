@@ -219,11 +219,11 @@ export class AdminOrderService {
       todayRevenue,
     ] = await Promise.all([
       this.prisma.order.count(),
-      this.prisma.order.count({ where: { status: 'pending' } }),
-      this.prisma.order.count({ where: { status: 'completed' } }),
-      this.prisma.order.count({ where: { status: 'cancelled' } }),
+      this.prisma.order.count({ where: { status: 0 } }), // PENDING
+      this.prisma.order.count({ where: { status: 4 } }), // COMPLETED
+      this.prisma.order.count({ where: { status: 5 } }), // CANCELLED
       this.prisma.order.aggregate({
-        where: { status: 'completed', paymentStatus: 'completed' },
+        where: { status: 4, paymentStatus: 1 }, // COMPLETED, COMPLETED
         _sum: { total: true },
       }),
       this.prisma.order.count({
@@ -235,8 +235,8 @@ export class AdminOrderService {
       }),
       this.prisma.order.aggregate({
         where: {
-          status: 'completed',
-          paymentStatus: 'completed',
+          status: 4, // COMPLETED
+          paymentStatus: 1, // COMPLETED
           createdAt: {
             gte: BigInt(Date.now() - 24 * 60 * 60 * 1000),
           },

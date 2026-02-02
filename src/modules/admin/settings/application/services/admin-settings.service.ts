@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
-import { SettingType } from '@prisma/client';
+import { SETTING_TYPE } from '@common/constants/enum.constants';
 
 export interface SystemSettingsData {
   general: Record<string, unknown>;
@@ -498,35 +498,35 @@ export class AdminSettingsService {
     }
   }
 
-  private parseValue(value: string, type: SettingType): unknown {
+  private parseValue(value: string, type: number): unknown {
     switch (type) {
-      case 'boolean':
+      case SETTING_TYPE.BOOLEAN:
         return value === 'true';
-      case 'number':
+      case SETTING_TYPE.NUMBER:
         return parseFloat(value);
-      case 'json':
+      case SETTING_TYPE.JSON:
         return JSON.parse(value);
-      case 'text':
+      case SETTING_TYPE.TEXT:
         return value;
       default:
         return value;
     }
   }
 
-  private serializeValue(value: unknown): { stringValue: string; type: SettingType } {
+  private serializeValue(value: unknown): { stringValue: string; type: number } {
     if (typeof value === 'boolean') {
-      return { stringValue: String(value), type: 'boolean' };
+      return { stringValue: String(value), type: SETTING_TYPE.BOOLEAN };
     }
     if (typeof value === 'number') {
-      return { stringValue: String(value), type: 'number' };
+      return { stringValue: String(value), type: SETTING_TYPE.NUMBER };
     }
     if (Array.isArray(value)) {
-      return { stringValue: JSON.stringify(value), type: 'json' };
+      return { stringValue: JSON.stringify(value), type: SETTING_TYPE.JSON };
     }
     if (typeof value === 'object' && value !== null) {
-      return { stringValue: JSON.stringify(value), type: 'json' };
+      return { stringValue: JSON.stringify(value), type: SETTING_TYPE.JSON };
     }
-    return { stringValue: String(value), type: 'string' };
+    return { stringValue: String(value), type: SETTING_TYPE.STRING };
   }
 
   private generateLabel(key: string): string {

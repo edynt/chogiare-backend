@@ -6,16 +6,22 @@ import {
   IsBoolean,
   IsUrl,
   MaxLength,
+  IsInt,
+  IsIn,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { NOTIFICATION_TYPE_VALUES, NotificationTypeValue } from '@common/constants/enum.constants';
 
 export class CreateNotificationDto {
   @ApiProperty({
-    enum: ['order', 'product', 'payment', 'system', 'promotion', 'message'],
-    description: 'Type of notification',
+    description: 'Type of notification (0=order, 1=product, 2=payment, 3=system, 4=promotion, 5=message)',
+    enum: NOTIFICATION_TYPE_VALUES,
   })
-  @IsEnum(['order', 'product', 'payment', 'system', 'promotion', 'message'])
-  type: 'order' | 'product' | 'payment' | 'system' | 'promotion' | 'message';
+  @Type(() => Number)
+  @IsInt()
+  @IsIn(NOTIFICATION_TYPE_VALUES)
+  type: NotificationTypeValue;
 
   @ApiProperty({ maxLength: 200, description: 'Notification title' })
   @IsString()

@@ -25,6 +25,7 @@ import {
   PAYMENT_REPOSITORY,
 } from '@modules/payment/domain/repositories/payment.repository.interface';
 import { UploadService } from '@modules/upload/application/services/upload.service';
+import { PRODUCT_CONDITION, PRODUCT_STATUS, PRODUCT_BADGE, ORDER_STATUS, TRANSACTION_TYPE } from '@common/constants/enum.constants';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { QueryProductDto } from '../dto/query-product.dto';
@@ -170,6 +171,13 @@ export class ProductService {
 
     // STEP 2: Create DB record in transaction
     return await this.prisma.$transaction(async (tx) => {
+      // Convert condition string to number
+      const conditionNum = this.convertConditionToNumber(createProductDto.condition as string);
+      // Convert status string to number
+      const statusNum = createProductDto.status ? this.convertStatusToNumber(createProductDto.status as string) : PRODUCT_STATUS.ACTIVE;
+      // Convert badges strings to numbers
+      const badgesNum = createProductDto.badges ? this.convertBadgesToNumbers(createProductDto.badges as string[]) : [];
+
       const product = await tx.product.create({
         data: {
           sellerId,
@@ -178,7 +186,7 @@ export class ProductService {
           description: createProductDto.description || null,
           price: createProductDto.price,
           originalPrice: createProductDto.originalPrice || null,
-          condition: createProductDto.condition as ProductCondition,
+          condition: conditionNum,
           location: createProductDto.location || null,
           stock: createProductDto.stock,
           minStock: createProductDto.minStock ?? 0,
@@ -191,7 +199,7 @@ export class ProductService {
           profitMargin,
           sku: createProductDto.sku || null,
           barcode: createProductDto.barcode || null,
-          status: (createProductDto.status || 'active') as ProductStatus,
+          status: statusNum,
           rating: 0,
           reviewCount: 0,
           viewCount: 0,
@@ -199,7 +207,7 @@ export class ProductService {
           isFeatured: false,
           isPromoted: false,
           tags: createProductDto.tags || [],
-          badges: (createProductDto.badges || []) as ProductBadge[],
+          badges: badgesNum,
           inventoryInfo: {},
           metadata: {},
           createdAt: now,
@@ -232,7 +240,7 @@ export class ProductService {
     const options: {
       sellerId?: number;
       categoryId?: number;
-      status?: string;
+      status?: number;
       search?: string;
       page: number;
       pageSize: number;
@@ -253,9 +261,12 @@ export class ProductService {
     }
 
     if (queryDto.status) {
-      options.status = queryDto.status;
+      const statusNum = typeof queryDto.status === 'string'
+        ? this.convertStatusToNumber(queryDto.status)
+        : queryDto.status;
+      options.status = statusNum;
     } else if (!userId) {
-      options.status = 'active';
+      options.status = PRODUCT_STATUS.ACTIVE;
     }
 
     if (queryDto.search) {
@@ -333,7 +344,7 @@ export class ProductService {
       });
     }
 
-    if (product.status !== 'active' && product.sellerId !== userId) {
+    if (product.status !== PRODUCT_STATUS.ACTIVE && product.sellerId !== userId) {
       const userRoles = userId
         ? await this.prisma.userRole.findMany({
             where: { userId },
@@ -437,14 +448,21 @@ export class ProductService {
     }
 
     // Only validate status transition if status is actually changing
-    if (updateProductDto.status && updateProductDto.status !== product.status) {
-      const validTransitions = this.getValidStatusTransitions(product.status);
-      if (!validTransitions.includes(updateProductDto.status)) {
-        throw new BadRequestException({
-          message: MESSAGES.PRODUCT.INVALID_STATUS_TRANSITION,
-          errorCode: ERROR_CODES.PRODUCT_INVALID_STATUS_TRANSITION,
-        });
+    if (updateProductDto.status !== undefined) {
+      const statusNum = typeof updateProductDto.status === 'string'
+        ? this.convertStatusToNumber(updateProductDto.status)
+        : updateProductDto.status;
+      if (statusNum !== product.status) {
+        const validTransitions = this.getValidStatusTransitions(product.status);
+        if (!validTransitions.includes(statusNum)) {
+          throw new BadRequestException({
+            message: MESSAGES.PRODUCT.INVALID_STATUS_TRANSITION,
+            errorCode: ERROR_CODES.PRODUCT_INVALID_STATUS_TRANSITION,
+          });
+        }
       }
+      // Update the status in updateProductDto to use the converted number
+      (updateProductDto as any).status = statusNum;
     }
 
     // Remove images from updateData to prevent it from being passed to Prisma update
@@ -584,7 +602,7 @@ export class ProductService {
     const result = await this.productRepository.findAll({
       page: 1,
       pageSize: limit,
-      status: 'active',
+      status: PRODUCT_STATUS.ACTIVE,
     });
 
     const featuredProducts = result.items.filter((p) => p.isFeatured);
@@ -662,7 +680,7 @@ export class ProductService {
       },
     });
 
-    const sales = orders.filter((oi) => oi.order.status === 'completed').length;
+    const sales = orders.filter((oi) => oi.order.status === ORDER_STATUS.COMPLETED).length;
     const views = product.viewCount;
     const rating = Number(product.rating);
 
@@ -711,14 +729,15 @@ export class ProductService {
     }
 
     const validTransitions = this.getValidStatusTransitions(product.status);
-    if (!validTransitions.includes(status)) {
+    const statusNum = typeof status === 'string' ? this.convertStatusToNumber(status) : status;
+    if (!validTransitions.includes(statusNum)) {
       throw new BadRequestException({
         message: MESSAGES.PRODUCT.INVALID_STATUS_TRANSITION,
         errorCode: ERROR_CODES.PRODUCT_INVALID_STATUS_TRANSITION,
       });
     }
 
-    return await this.update(id, { status } as UpdateProductDto, userId);
+    return await this.update(id, { status: statusNum as any } as UpdateProductDto, userId);
   }
 
   async updateStock(id: number, stock: number, userId: number) {
@@ -778,10 +797,41 @@ export class ProductService {
     return this.findAll({ ...queryDto, sellerId }, sellerId);
   }
 
-  private getValidStatusTransitions(currentStatus: string): string[] {
+  private getValidStatusTransitions(currentStatus: number): number[] {
     // Allow free transitions between draft, active, and out_of_stock
-    const allStatuses = ['draft', 'active', 'out_of_stock'];
+    const allStatuses = [PRODUCT_STATUS.DRAFT, PRODUCT_STATUS.ACTIVE, PRODUCT_STATUS.OUT_OF_STOCK];
     return allStatuses.filter((s) => s !== currentStatus);
+  }
+
+  private convertConditionToNumber(condition: string): number {
+    const conditionMap: Record<string, number> = {
+      new: PRODUCT_CONDITION.NEW,
+      like_new: PRODUCT_CONDITION.LIKE_NEW,
+      good: PRODUCT_CONDITION.GOOD,
+      fair: PRODUCT_CONDITION.FAIR,
+      poor: PRODUCT_CONDITION.POOR,
+    };
+    return conditionMap[condition?.toLowerCase()] ?? PRODUCT_CONDITION.NEW;
+  }
+
+  private convertStatusToNumber(status: string): number {
+    const statusMap: Record<string, number> = {
+      draft: PRODUCT_STATUS.DRAFT,
+      active: PRODUCT_STATUS.ACTIVE,
+      out_of_stock: PRODUCT_STATUS.OUT_OF_STOCK,
+    };
+    return statusMap[status?.toLowerCase()] ?? PRODUCT_STATUS.ACTIVE;
+  }
+
+  private convertBadgesToNumbers(badges: string[]): number[] {
+    const badgeMap: Record<string, number> = {
+      NEW: PRODUCT_BADGE.NEW,
+      FEATURED: PRODUCT_BADGE.FEATURED,
+      PROMO: PRODUCT_BADGE.PROMO,
+      HOT: PRODUCT_BADGE.HOT,
+      SALE: PRODUCT_BADGE.SALE,
+    };
+    return badges.map((badge) => badgeMap[badge?.toUpperCase()] ?? 0).filter((b) => b > 0);
   }
 
   async getBoostPackages() {
@@ -859,7 +909,7 @@ export class ProductService {
       await tx.transaction.create({
         data: {
           userId,
-          type: 'boost',
+          type: TRANSACTION_TYPE.BOOST,
           amount: packagePrice,
           currency: 'VND',
           status: 'completed',

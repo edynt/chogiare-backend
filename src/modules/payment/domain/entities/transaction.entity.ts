@@ -1,11 +1,11 @@
 export class Transaction {
   id: number;
   userId: number;
-  type: string;
+  type: number;
   amount: number;
   currency: string;
   status: string;
-  paymentMethod: string | null;
+  paymentMethod: number | null;
   reference: string | null;
   description: string | null;
   orderId: number | null;

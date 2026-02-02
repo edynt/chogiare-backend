@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, Inject, Logger } fr
 import { PrismaService } from '@common/database/prisma.service';
 import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
+import { TRANSACTION_TYPE, PAYMENT_METHOD } from '@common/constants/enum.constants';
 import {
   IPaymentRepository,
   PAYMENT_REPOSITORY,
@@ -22,13 +23,18 @@ export class PaymentService {
   async deposit(userId: number, depositDto: DepositDto) {
     const now = BigInt(Date.now());
 
+    // Convert paymentMethod string to number
+    const paymentMethodNum = depositDto.paymentMethod === 'bank_transfer'
+      ? PAYMENT_METHOD.BANK_TRANSFER
+      : null;
+
     const transaction = await this.paymentRepository.createTransaction({
       userId,
-      type: 'deposit',
+      type: TRANSACTION_TYPE.DEPOSIT,
       amount: depositDto.amount,
       currency: 'VND',
       status: 'pending',
-      paymentMethod: depositDto.paymentMethod,
+      paymentMethod: paymentMethodNum,
       reference: depositDto.reference || null,
       description: depositDto.description || 'Deposit to wallet',
       orderId: null,
@@ -119,7 +125,7 @@ export class PaymentService {
       });
     }
 
-    if (transaction.type !== 'deposit') {
+    if (transaction.type !== TRANSACTION_TYPE.DEPOSIT) {
       throw new BadRequestException({
         message: 'Transaction is not a deposit',
         errorCode: ERROR_CODES.PAYMENT_INVALID_TRANSACTION,

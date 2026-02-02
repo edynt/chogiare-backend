@@ -3,9 +3,9 @@ export class Order {
   orderNo: string | null;
   buyerId: number;
   sellerId: number;
-  status: string;
-  paymentStatus: string;
-  paymentMethod: string | null;
+  status: number;
+  paymentStatus: number;
+  paymentMethod: number | null;
   subtotal: number;
   tax: number;
   shipping: number;

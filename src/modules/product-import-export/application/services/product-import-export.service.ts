@@ -15,7 +15,7 @@ import {
 import { ExportProductsDto } from '../dto/export-products.dto';
 import { ImportProductsDto } from '../dto/import-products.dto';
 import { EXCEL_CONSTANTS } from '@common/constants/excel.constants';
-import { ProductCondition, ProductStatus, ProductBadge } from '@prisma/client';
+import { PRODUCT_CONDITION, PRODUCT_STATUS, PRODUCT_BADGE } from '@common/constants/enum.constants';
 
 export interface ImportResult {
   total: number;
@@ -42,7 +42,7 @@ export class ProductImportExportService {
     const options: {
       sellerId?: number;
       categoryId?: number;
-      status?: string;
+      status?: number;
       search?: string;
       page?: number;
       pageSize?: number;
@@ -57,7 +57,8 @@ export class ProductImportExportService {
     }
 
     if (exportDto.status) {
-      options.status = exportDto.status;
+      const statusNum = typeof exportDto.status === 'string' ? parseInt(exportDto.status, 10) : exportDto.status;
+      options.status = statusNum;
     }
 
     if (exportDto.search) {
@@ -267,8 +268,7 @@ export class ProductImportExportService {
                     price: this.parseNumber(data[EXCEL_CONSTANTS.HEADERS.PRICE]) || 0,
                     originalPrice:
                       this.parseNumber(data[EXCEL_CONSTANTS.HEADERS.ORIGINAL_PRICE]) || null,
-                    condition: (data[EXCEL_CONSTANTS.HEADERS.CONDITION]?.toString() ||
-                      'new') as ProductCondition,
+                    condition: this.parseCondition(data[EXCEL_CONSTANTS.HEADERS.CONDITION]?.toString()),
                     location: data[EXCEL_CONSTANTS.HEADERS.LOCATION]?.toString() || null,
                     stock: this.parseInt(data[EXCEL_CONSTANTS.HEADERS.STOCK]) || 0,
                     minStock: this.parseInt(data[EXCEL_CONSTANTS.HEADERS.MIN_STOCK]) || 0,
@@ -308,8 +308,7 @@ export class ProductImportExportService {
               description: data[EXCEL_CONSTANTS.HEADERS.DESCRIPTION]?.toString() || null,
               price: this.parseNumber(data[EXCEL_CONSTANTS.HEADERS.PRICE]) || 0,
               originalPrice: this.parseNumber(data[EXCEL_CONSTANTS.HEADERS.ORIGINAL_PRICE]) || null,
-              condition: (data[EXCEL_CONSTANTS.HEADERS.CONDITION]?.toString() ||
-                'new') as ProductCondition,
+              condition: this.parseCondition(data[EXCEL_CONSTANTS.HEADERS.CONDITION]?.toString()),
               location: data[EXCEL_CONSTANTS.HEADERS.LOCATION]?.toString() || null,
               stock: this.parseInt(data[EXCEL_CONSTANTS.HEADERS.STOCK]) || 0,
               minStock: this.parseInt(data[EXCEL_CONSTANTS.HEADERS.MIN_STOCK]) || 0,
@@ -322,7 +321,7 @@ export class ProductImportExportService {
               profitMargin,
               sku,
               barcode: data[EXCEL_CONSTANTS.HEADERS.BARCODE]?.toString().trim() || null,
-              status: ProductStatus.draft,
+              status: PRODUCT_STATUS.DRAFT,
               rating: 0,
               reviewCount: 0,
               viewCount: 0,
@@ -377,10 +376,7 @@ export class ProductImportExportService {
       errors.push('Price must be greater than or equal to 0');
     }
 
-    const condition = data[EXCEL_CONSTANTS.HEADERS.CONDITION]?.toString();
-    if (condition && !EXCEL_CONSTANTS.CONDITION_VALUES.includes(condition as ProductCondition)) {
-      errors.push(`Condition must be one of: ${EXCEL_CONSTANTS.CONDITION_VALUES.join(', ')}`);
-    }
+    // Condition validation is now handled by parseCondition helper
 
     const stock = this.parseInt(data[EXCEL_CONSTANTS.HEADERS.STOCK]);
     if (stock !== null && stock < 0) {
@@ -465,10 +461,28 @@ export class ProductImportExportService {
       .filter((v: string) => v);
   }
 
-  private parseBadges(value: unknown): ProductBadge[] {
+  private parseBadges(value: unknown): number[] {
     const badges = this.parseArray(value);
-    return badges.filter((badge) =>
-      EXCEL_CONSTANTS.BADGE_VALUES.includes(badge.toUpperCase() as ProductBadge),
-    ) as ProductBadge[];
+    const validBadges: number[] = [];
+    badges.forEach((badge) => {
+      const upper = badge.toUpperCase();
+      if (upper === 'NEW') validBadges.push(PRODUCT_BADGE.NEW);
+      else if (upper === 'FEATURED') validBadges.push(PRODUCT_BADGE.FEATURED);
+      else if (upper === 'PROMO') validBadges.push(PRODUCT_BADGE.PROMO);
+      else if (upper === 'HOT') validBadges.push(PRODUCT_BADGE.HOT);
+      else if (upper === 'SALE') validBadges.push(PRODUCT_BADGE.SALE);
+    });
+    return validBadges;
+  }
+
+  private parseCondition(value?: string): number {
+    if (!value) return PRODUCT_CONDITION.NEW;
+    const upper = value.toUpperCase();
+    if (upper === 'NEW') return PRODUCT_CONDITION.NEW;
+    if (upper === 'LIKE_NEW') return PRODUCT_CONDITION.LIKE_NEW;
+    if (upper === 'GOOD') return PRODUCT_CONDITION.GOOD;
+    if (upper === 'FAIR') return PRODUCT_CONDITION.FAIR;
+    if (upper === 'POOR') return PRODUCT_CONDITION.POOR;
+    return PRODUCT_CONDITION.NEW;
   }
 }

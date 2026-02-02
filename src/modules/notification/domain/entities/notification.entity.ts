@@ -1,7 +1,7 @@
 export class Notification {
   id: number;
   userId: number;
-  type: string;
+  type: number;
   title: string;
   message: string;
   isRead: boolean;

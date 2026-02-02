@@ -1,6 +1,6 @@
 export class Conversation {
   id: number;
-  type: string;
+  type: number;
   title: string | null;
   metadata: Record<string, unknown>;
   createdAt: bigint;

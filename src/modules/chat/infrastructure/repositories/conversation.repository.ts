@@ -2,7 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
 import { IConversationRepository } from '@modules/chat/domain/repositories/conversation.repository.interface';
 import { Conversation } from '@modules/chat/domain/entities/conversation.entity';
-import { Conversation as PrismaConversation, ConversationType } from '@prisma/client';
+import { CONVERSATION_TYPE } from '@common/constants/enum.constants';
+import { Conversation as PrismaConversation } from '@prisma/client';
 
 @Injectable()
 export class ConversationRepository implements IConversationRepository {
@@ -59,7 +60,7 @@ export class ConversationRepository implements IConversationRepository {
   async findByParticipants(userId1: number, userId2: number): Promise<Conversation | null> {
     const conversations = await this.prisma.conversation.findMany({
       where: {
-        type: ConversationType.direct,
+        type: CONVERSATION_TYPE.DIRECT,
         participants: {
           some: {
             userId: userId1,
@@ -88,7 +89,7 @@ export class ConversationRepository implements IConversationRepository {
   async create(conversation: Partial<Conversation>): Promise<Conversation> {
     const created = await this.prisma.conversation.create({
       data: {
-        type: (conversation.type as ConversationType) || ConversationType.direct,
+        type: conversation.type || CONVERSATION_TYPE.DIRECT,
         title: conversation.title || null,
         metadata: (conversation.metadata as object) || {},
         createdAt: conversation.createdAt!,

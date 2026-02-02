@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
-import { OrderStatus, PaymentStatus } from '@prisma/client';
+import { ORDER_STATUS, PAYMENT_STATUS } from '@common/constants/enum.constants';
 
 @Injectable()
 export class AdminAnalyticsService {
@@ -57,7 +57,7 @@ export class AdminAnalyticsService {
       this.prisma.order.count({
         where: {
           createdAt: { gte: startBigInt, lte: endBigInt },
-          status: { not: OrderStatus.cancelled },
+          status: { not: ORDER_STATUS.CANCELLED },
         },
       }),
       this.prisma.order.count({
@@ -66,14 +66,14 @@ export class AdminAnalyticsService {
             gte: previousStartBigInt,
             lt: startBigInt,
           },
-          status: { not: OrderStatus.cancelled },
+          status: { not: ORDER_STATUS.CANCELLED },
         },
       }),
       this.prisma.order.aggregate({
         where: {
           createdAt: { gte: startBigInt, lte: endBigInt },
-          status: { not: OrderStatus.cancelled },
-          paymentStatus: PaymentStatus.completed,
+          status: { not: ORDER_STATUS.CANCELLED },
+          paymentStatus: PAYMENT_STATUS.COMPLETED,
         },
         _sum: {
           total: true,
@@ -85,8 +85,8 @@ export class AdminAnalyticsService {
             gte: previousStartBigInt,
             lt: startBigInt,
           },
-          status: { not: OrderStatus.cancelled },
-          paymentStatus: PaymentStatus.completed,
+          status: { not: ORDER_STATUS.CANCELLED },
+          paymentStatus: PAYMENT_STATUS.COMPLETED,
         },
         _sum: {
           total: true,
@@ -162,8 +162,8 @@ export class AdminAnalyticsService {
       const completedOrderItems = product.orderItems.filter(
         (item) =>
           item.order &&
-          item.order.status !== OrderStatus.cancelled &&
-          item.order.paymentStatus === PaymentStatus.completed,
+          item.order.status !== ORDER_STATUS.CANCELLED &&
+          item.order.paymentStatus === PAYMENT_STATUS.COMPLETED,
       );
       const revenue = completedOrderItems.reduce(
         (sum, item) => sum + Number(item.price) * item.quantity,
@@ -191,8 +191,8 @@ export class AdminAnalyticsService {
       include: {
         sellerOrders: {
           where: {
-            status: { not: OrderStatus.cancelled },
-            paymentStatus: PaymentStatus.completed,
+            status: { not: ORDER_STATUS.CANCELLED },
+            paymentStatus: PAYMENT_STATUS.COMPLETED,
           },
         },
       },
@@ -239,8 +239,8 @@ export class AdminAnalyticsService {
         const completedOrderItems = product.orderItems.filter(
           (item) =>
             item.order &&
-            item.order.status !== OrderStatus.cancelled &&
-            item.order.paymentStatus === PaymentStatus.completed,
+            item.order.status !== ORDER_STATUS.CANCELLED &&
+            item.order.paymentStatus === PAYMENT_STATUS.COMPLETED,
         );
         return (
           sum +
@@ -255,8 +255,8 @@ export class AdminAnalyticsService {
             .filter(
               (item) =>
                 item.order &&
-                item.order.status !== OrderStatus.cancelled &&
-                item.order.paymentStatus === PaymentStatus.completed,
+                item.order.status !== ORDER_STATUS.CANCELLED &&
+                item.order.paymentStatus === PAYMENT_STATUS.COMPLETED,
             )
             .map((item) => item.orderId),
         ),

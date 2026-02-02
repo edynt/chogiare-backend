@@ -1,6 +1,7 @@
-import { ExecutionContext } from '@nestjs/common';
+import { ExecutionContext, BadRequestException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { HeaderValidationGuard } from './header-validation.guard';
+import { MESSAGES } from '../constants/messages.constants';
 
 describe('HeaderValidationGuard', () => {
   let guard: HeaderValidationGuard;
