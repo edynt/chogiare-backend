@@ -1,4 +1,4 @@
-import { IsOptional, IsNumber, IsString, IsEnum, Min } from 'class-validator';
+import { IsOptional, IsNumber, IsString, IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 

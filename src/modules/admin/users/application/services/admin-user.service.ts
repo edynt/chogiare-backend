@@ -632,7 +632,7 @@ export class AdminUserService {
     }
 
     // Prepare update data - only include provided fields
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       updatedAt: BigInt(Date.now()),
     };
     if (updateDto.fullName !== undefined) updateData.fullName = updateDto.fullName;

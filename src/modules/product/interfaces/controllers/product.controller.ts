@@ -19,8 +19,6 @@ import { UpdateProductDto } from '@modules/product/application/dto/update-produc
 import { QueryProductDto } from '@modules/product/application/dto/query-product.dto';
 import { BoostProductDto } from '@modules/product/application/dto/boost-product.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
-import { RolesGuard } from '@common/guards/roles.guard';
-import { Roles } from '@common/decorators/roles.decorator';
 import { CurrentUser, CurrentUserPayload } from '@common/decorators/current-user.decorator';
 import { Public } from '@common/decorators/public.decorator';
 import { MESSAGES } from '@common/constants/messages.constants';

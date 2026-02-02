@@ -123,7 +123,7 @@ export class AdminDepositPackagesService {
       }
     }
 
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       updatedAt: BigInt(Date.now()),
     };
     if (updateDto.name !== undefined) updateData.name = updateDto.name.trim();

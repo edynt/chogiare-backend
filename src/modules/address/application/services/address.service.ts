@@ -1,5 +1,4 @@
 import { Injectable, NotFoundException, ForbiddenException, Inject } from '@nestjs/common';
-import { MESSAGES } from '@common/constants/messages.constants';
 import { ERROR_CODES } from '@common/constants/error-codes.constants';
 import {
   IAddressRepository,

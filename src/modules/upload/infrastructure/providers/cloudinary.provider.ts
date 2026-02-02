@@ -210,16 +210,24 @@ export class CloudinaryProvider implements IStorageProvider {
         max_results: 100,
       });
 
-      const files: UploadResult[] = result.resources.map((resource: any) => ({
-        url: resource.secure_url,
-        key: resource.public_id,
-        fileName: resource.public_id.split('/').pop() || resource.public_id,
-        size: resource.bytes,
-        mimeType:
-          resource.resource_type === 'image'
-            ? `image/${resource.format}`
-            : 'application/octet-stream',
-      }));
+      const files: UploadResult[] = result.resources.map(
+        (resource: {
+          secure_url: string;
+          public_id: string;
+          bytes: number;
+          resource_type: string;
+          format: string;
+        }) => ({
+          url: resource.secure_url,
+          key: resource.public_id,
+          fileName: resource.public_id.split('/').pop() || resource.public_id,
+          size: resource.bytes,
+          mimeType:
+            resource.resource_type === 'image'
+              ? `image/${resource.format}`
+              : 'application/octet-stream',
+        }),
+      );
 
       return files;
     } catch (error) {

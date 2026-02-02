@@ -7,7 +7,6 @@ import {
   HttpStatus,
   UseGuards,
   ParseIntPipe,
-  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { SellerCustomerService } from '@modules/seller/application/services/seller-customer.service';

@@ -9,7 +9,7 @@ import { RolesGuard } from '@common/guards/roles.guard';
 
 describe('AdminProductController - Content-Type Validation (PUT endpoints)', () => {
   let app: INestApplication;
-  let adminProductService: AdminProductService;
+  let _adminProductService: AdminProductService;
 
   const mockAdminProductService = {
     approveProduct: jest.fn().mockResolvedValue({ id: 1, status: 'approved' }),

@@ -33,5 +33,5 @@ export class CreatePackageDto {
   features?: string[];
 
   @IsOptional()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }

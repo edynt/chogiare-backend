@@ -5,14 +5,12 @@ import {
   Delete,
   Param,
   Query,
-  Body,
   HttpCode,
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { NotificationService } from '@modules/notification/application/services/notification.service';
-import { CreateNotificationDto } from '@modules/notification/application/dto/create-notification.dto';
 import { QueryNotificationDto } from '@modules/notification/application/dto/query-notification.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '@common/decorators/current-user.decorator';

@@ -38,7 +38,7 @@ export class UserRepository implements IUserRepository {
         phoneNumber: userData.phoneNumber ?? null,
         address: userData.address ?? null,
         country: userData.country ?? null,
-        profileMetadata: (userData.profileMetadata as any) ?? null,
+        profileMetadata: (userData.profileMetadata as Record<string, unknown>) ?? null,
         createdAt: now,
         updatedAt: now,
       },

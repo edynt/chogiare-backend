@@ -45,7 +45,10 @@ export class AdminPackagesService {
     });
 
     const purchaseCountMap = new Map(
-      purchaseCounts.map((item: any) => [item.packageId, item._count.id]),
+      purchaseCounts.map((item: { packageId: number; _count: { id: number } }) => [
+        item.packageId,
+        item._count.id,
+      ]),
     );
 
     const items = packages.map((pkg: ServicePackage) => ({
@@ -105,7 +108,7 @@ export class AdminPackagesService {
       price: Number(pkg.price),
       features: typeof pkg.features === 'string' ? JSON.parse(pkg.features) : pkg.features,
       metadata: typeof pkg.metadata === 'string' ? JSON.parse(pkg.metadata) : pkg.metadata,
-      purchases: pkg.purchases.map((purchase: any) => ({
+      purchases: pkg.purchases.map((purchase: { pricePaid: bigint | number }) => ({
         ...purchase,
         pricePaid: Number(purchase.pricePaid),
       })),
@@ -281,15 +284,21 @@ export class AdminPackagesService {
     });
 
     const packageMap = new Map(
-      packages.map((p: { id: number; displayName: string; price: any }) => [p.id, p]),
+      packages.map((p: { id: number; displayName: string; price: bigint | number }) => [p.id, p]),
     );
 
-    const revenueStats = revenueByPackage.map((item: any) => ({
-      packageId: item.packageId,
-      packageName: packageMap.get(item.packageId)?.displayName || 'Unknown',
-      totalRevenue: Number(item._sum.pricePaid || 0),
-      totalPurchases: item._count.id,
-    }));
+    const revenueStats = revenueByPackage.map(
+      (item: {
+        packageId: number;
+        _sum: { pricePaid: bigint | null };
+        _count: { id: number };
+      }) => ({
+        packageId: item.packageId,
+        packageName: packageMap.get(item.packageId)?.displayName || 'Unknown',
+        totalRevenue: Number(item._sum.pricePaid || 0),
+        totalPurchases: item._count.id,
+      }),
+    );
 
     // Calculate total revenue
     const totalRevenue = revenueStats.reduce((sum, item) => sum + item.totalRevenue, 0);

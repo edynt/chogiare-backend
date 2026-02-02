@@ -178,7 +178,7 @@ export class ProductService {
           description: createProductDto.description || null,
           price: createProductDto.price,
           originalPrice: createProductDto.originalPrice || null,
-          condition: createProductDto.condition as any,
+          condition: createProductDto.condition as ProductCondition,
           location: createProductDto.location || null,
           stock: createProductDto.stock,
           minStock: createProductDto.minStock ?? 0,
@@ -191,7 +191,7 @@ export class ProductService {
           profitMargin,
           sku: createProductDto.sku || null,
           barcode: createProductDto.barcode || null,
-          status: (createProductDto.status || 'active') as any,
+          status: (createProductDto.status || 'active') as ProductStatus,
           rating: 0,
           reviewCount: 0,
           viewCount: 0,
@@ -199,7 +199,7 @@ export class ProductService {
           isFeatured: false,
           isPromoted: false,
           tags: createProductDto.tags || [],
-          badges: (createProductDto.badges || []) as any,
+          badges: (createProductDto.badges || []) as ProductBadge[],
           inventoryInfo: {},
           metadata: {},
           createdAt: now,
@@ -448,8 +448,8 @@ export class ProductService {
     }
 
     // Remove images from updateData to prevent it from being passed to Prisma update
-    const { images: _images, ...updateDtoWithoutImages } = updateProductDto;
-    const updateData: any = {
+    const { images: _unusedImages, ...updateDtoWithoutImages } = updateProductDto;
+    const updateData: Record<string, unknown> = {
       ...updateDtoWithoutImages,
       updatedAt: BigInt(Date.now()),
     };

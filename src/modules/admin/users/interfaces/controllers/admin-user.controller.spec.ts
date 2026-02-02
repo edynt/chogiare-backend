@@ -9,7 +9,7 @@ import { RolesGuard } from '@common/guards/roles.guard';
 
 describe('AdminUserController - Content-Type Validation (PUT endpoints)', () => {
   let app: INestApplication;
-  let adminUserService: AdminUserService;
+  let _adminUserService: AdminUserService;
 
   const mockAdminUserService = {
     approveUser: jest.fn().mockResolvedValue({ id: 1, status: 'approved' }),
@@ -44,7 +44,7 @@ describe('AdminUserController - Content-Type Validation (PUT endpoints)', () => 
       const { headers } = request;
 
       // Check if endpoint has @SkipHeaderValidation decorator
-      const skipValidation =
+      const _skipValidation =
         context.getClass().prototype.constructor.name === 'AdminUserController';
       const handlerName = context.getHandler().name;
 
@@ -194,7 +194,7 @@ describe('AdminUserController - Content-Type Validation (PUT endpoints)', () => 
 
   describe('Decorator presence verification', () => {
     it('should have @SkipHeaderValidation decorator on approveUser endpoint', () => {
-      const metadata = Reflect.getMetadata(
+      const _metadata = Reflect.getMetadata(
         'skipHeaderValidation',
         AdminUserController.prototype.approveUser,
       );

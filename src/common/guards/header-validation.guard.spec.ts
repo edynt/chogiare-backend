@@ -1,15 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, ExecutionContext, Injectable } from '@nestjs/common';
+import { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { HeaderValidationGuard } from './header-validation.guard';
-import { SKIP_HEADER_VALIDATION_KEY } from '../decorators/skip-header-validation.decorator';
-import { MESSAGES } from '../constants/messages.constants';
 
 describe('HeaderValidationGuard', () => {
   let guard: HeaderValidationGuard;
   let reflector: Reflector;
   let mockExecutionContext: ExecutionContext;
-  let mockRequest: any;
+  let mockRequest: Record<string, unknown>;
 
   beforeEach(async () => {
     reflector = new Reflector();
@@ -31,7 +28,7 @@ describe('HeaderValidationGuard', () => {
       }),
       getHandler: jest.fn().mockReturnValue(() => {}),
       getClass: jest.fn().mockReturnValue(class {}),
-    } as any;
+    } as unknown as ExecutionContext;
   });
 
   describe('Required headers validation', () => {

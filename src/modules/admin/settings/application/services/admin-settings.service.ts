@@ -341,8 +341,6 @@ export class AdminSettingsService {
   }
 
   async updateSettings(settings: Partial<SystemSettingsData>): Promise<SystemSettingsData> {
-    const now = BigInt(Date.now());
-
     for (const [category, categorySettings] of Object.entries(settings)) {
       if (categorySettings && typeof categorySettings === 'object') {
         await this.updateCategorySettings(category, categorySettings as Record<string, unknown>);

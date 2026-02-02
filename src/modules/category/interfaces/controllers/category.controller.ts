@@ -21,7 +21,6 @@ import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { Public } from '@common/decorators/public.decorator';
-import { MESSAGES } from '@common/constants/messages.constants';
 
 @ApiTags('Categories')
 @Controller('categories')

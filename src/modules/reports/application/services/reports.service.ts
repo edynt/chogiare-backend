@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
-import { QueryRevenueReportDto, TimeRange } from '../dto/query-revenue-report.dto';
+import { TimeRange } from '../dto/query-revenue-report.dto';
 import {
   ORDER_REPOSITORY,
   IOrderRepository,

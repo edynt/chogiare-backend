@@ -187,7 +187,7 @@ export class AdminModerationProductService {
     return updated;
   }
 
-  async rejectProduct(adminId: number, productId: number, reason?: string) {
+  async rejectProduct(adminId: number, productId: number, _reason?: string) {
     const admin = await isAdmin(adminId, this.prisma);
     if (!admin) {
       throw new ForbiddenException({

@@ -371,11 +371,11 @@ export class InventoryService {
       pageSize: 10000,
     });
 
-    const productIds = products.items.map((p) => p.id);
+    const _productIds = products.items.map((p) => p.id);
 
     const startDate = dateFrom ? new Date(dateFrom) : new Date();
     startDate.setDate(startDate.getDate() - 30);
-    const endDate = dateTo ? new Date(dateTo) : new Date();
+    const _endDate = dateTo ? new Date(dateTo) : new Date();
 
     const [stockInRecords, stockMovements, lowStockProducts] = await Promise.all([
       this.inventoryRepository.getStockInRecords({
@@ -405,7 +405,7 @@ export class InventoryService {
       const productStockInRecords = stockInRecords.items.filter(
         (record) => record.productId === product.id,
       );
-      const productMovements = stockMovements.items.filter(
+      const _productMovements = stockMovements.items.filter(
         (movement) => movement.productId === product.id,
       );
 

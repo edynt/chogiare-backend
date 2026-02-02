@@ -57,7 +57,7 @@ export class AdminAnalyticsController {
 
   @Get('category-stats')
   @ApiOperation({ summary: 'Get category statistics' })
-  async getCategoryStats(@CurrentUser('id') adminId: number) {
+  async getCategoryStats(@CurrentUser('id') _adminId: number) {
     return {
       success: true,
       data: await this.adminAnalyticsService.getCategoryStats(),
