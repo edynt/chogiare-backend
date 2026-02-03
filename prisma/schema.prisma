@@ -30,7 +30,7 @@ model User {
   profileMetadata Json?   @default("{}") @map("profile_metadata")
 
   // Seller fields (moved from Store model)
-  isSeller          Boolean @default(false) @map("is_seller")
+  // Note: All users can become sellers, so no isSeller flag needed
   sellerName        String? @map("seller_name") @db.VarChar(255)
   sellerSlug        String? @unique @map("seller_slug") @db.VarChar(255)
   sellerDescription String? @map("seller_description") @db.Text
@@ -73,7 +73,6 @@ model User {
 
   @@index([email])
   @@index([status])
-  @@index([isSeller])
   @@index([sellerSlug])
   @@map("users")
 }

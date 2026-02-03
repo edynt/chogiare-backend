@@ -275,9 +275,12 @@ export class AdminDashboardService {
     lastMonth.setMonth(lastMonth.getMonth() - 1);
     const lastMonthBigInt = BigInt(lastMonth.getTime());
 
+    // Get users who have seller orders (i.e., users who have sold products)
     const sellers = await this.prisma.user.findMany({
       where: {
-        isSeller: true,
+        sellerOrders: {
+          some: {},
+        },
       },
       include: {
         sellerOrders: {

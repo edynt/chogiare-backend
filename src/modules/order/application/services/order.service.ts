@@ -27,6 +27,43 @@ import { QueryOrderDto } from '../dto/query-order.dto';
 import { UpdateOrderDto } from '../dto/update-order.dto';
 import { ORDER_STATUS, PAYMENT_STATUS, PRODUCT_STATUS } from '@common/constants/enum.constants';
 
+// String mappings for API responses (number -> string)
+const ORDER_STATUS_STRINGS: Record<number, string> = {
+  [ORDER_STATUS.PENDING]: 'pending',
+  [ORDER_STATUS.CONFIRMED]: 'confirmed',
+  [ORDER_STATUS.PREPARING]: 'preparing',
+  [ORDER_STATUS.READY_FOR_PICKUP]: 'ready',
+  [ORDER_STATUS.COMPLETED]: 'completed',
+  [ORDER_STATUS.CANCELLED]: 'cancelled',
+  6: 'refunded', // ORDER_STATUS.REFUNDED
+};
+
+const PAYMENT_STATUS_STRINGS: Record<number, string> = {
+  [PAYMENT_STATUS.PENDING]: 'pending',
+  [PAYMENT_STATUS.COMPLETED]: 'completed',
+  [PAYMENT_STATUS.FAILED]: 'failed',
+  [PAYMENT_STATUS.REFUNDED]: 'refunded',
+};
+
+// Reverse mappings for API requests (string -> number)
+const ORDER_STATUS_FROM_STRING: Record<string, number> = {
+  pending: ORDER_STATUS.PENDING,
+  confirmed: ORDER_STATUS.CONFIRMED,
+  preparing: ORDER_STATUS.PREPARING,
+  ready: ORDER_STATUS.READY_FOR_PICKUP,
+  completed: ORDER_STATUS.COMPLETED,
+  cancelled: ORDER_STATUS.CANCELLED,
+  refunded: 6, // ORDER_STATUS.REFUNDED
+};
+
+const PAYMENT_STATUS_FROM_STRING: Record<string, number> = {
+  pending: PAYMENT_STATUS.PENDING,
+  completed: PAYMENT_STATUS.COMPLETED,
+  paid: PAYMENT_STATUS.COMPLETED, // Alias
+  failed: PAYMENT_STATUS.FAILED,
+  refunded: PAYMENT_STATUS.REFUNDED,
+};
+
 @Injectable()
 export class OrderService {
   private readonly logger = new Logger(OrderService.name);
@@ -119,12 +156,12 @@ export class OrderService {
       });
     }
 
-    // Verify seller exists and is active
+    // Verify seller exists
     const seller = await this.prisma.user.findUnique({
       where: { id: createOrderDto.sellerId },
     });
 
-    if (!seller || !seller.isSeller) {
+    if (!seller) {
       throw new NotFoundException({
         message: MESSAGES.ORDER.SELLER_NOT_FOUND,
         errorCode: ERROR_CODES.ORDER_SELLER_NOT_FOUND,
@@ -247,12 +284,12 @@ export class OrderService {
   }
 
   async createOrder(userId: number, createOrderDto: CreateOrderDto) {
-    // Verify seller exists and is active
+    // Verify seller exists
     const seller = await this.prisma.user.findUnique({
       where: { id: createOrderDto.sellerId },
     });
 
-    if (!seller || !seller.isSeller) {
+    if (!seller) {
       throw new NotFoundException({
         message: MESSAGES.ORDER.SELLER_NOT_FOUND,
         errorCode: ERROR_CODES.ORDER_SELLER_NOT_FOUND,
@@ -508,10 +545,10 @@ export class OrderService {
       orderNo: order.orderNo,
       buyerId: order.buyerId,
       sellerId: order.sellerId.toString(),
-      status: order.status,
-      paymentStatus: order.paymentStatus,
+      status: ORDER_STATUS_STRINGS[order.status] || 'pending',
+      paymentStatus: PAYMENT_STATUS_STRINGS[order.paymentStatus] || 'pending',
       paymentMethod: order.paymentMethod || '',
-      paymentImage: order.paymentImage || undefined,
+      paymentProofUrl: order.paymentImage || undefined,
       subtotal: Number(order.subtotal) || 0,
       tax: Number(order.tax) || 0,
       shipping: Number(order.shipping) || 0,
@@ -527,8 +564,11 @@ export class OrderService {
       notes: order.notes || undefined,
       sellerName: order.seller?.sellerName || order.seller?.fullName,
       sellerLogo: order.seller?.sellerLogo || undefined,
+      // Buyer info - use both naming conventions for compatibility
       buyerEmail: order.buyer?.email,
       buyerName: order.buyer?.fullName || undefined,
+      userEmail: order.buyer?.email, // Alias for frontend compatibility
+      userName: order.buyer?.fullName || undefined, // Alias for frontend compatibility
       items: order.items.map((item) => ({
         id: item.id.toString(),
         orderId: order.id.toString(),
@@ -609,7 +649,23 @@ export class OrderService {
       });
     }
 
-    const statusNum = typeof status === 'string' ? parseInt(status, 10) : status;
+    // Convert string status to number using mapping
+    let statusNum: number;
+    if (typeof status === 'string') {
+      // First try to use mapping, fallback to parseInt for numeric strings
+      statusNum = ORDER_STATUS_FROM_STRING[status.toLowerCase()] ?? parseInt(status, 10);
+    } else {
+      statusNum = status;
+    }
+
+    // Validate statusNum is a valid number
+    if (isNaN(statusNum)) {
+      throw new BadRequestException({
+        message: `Invalid order status: ${status}`,
+        errorCode: 'INVALID_ORDER_STATUS',
+      });
+    }
+
     await this.orderRepository.updateStatus(orderId, statusNum);
     const updatedOrder = await this.orderRepository.findByIdWithRelations(orderId);
     return this.formatOrder(updatedOrder!);
@@ -707,7 +763,23 @@ export class OrderService {
     }
 
     // Update payment status and payment image in single atomic operation
-    const paymentStatusNum = typeof paymentStatus === 'string' ? parseInt(paymentStatus, 10) : paymentStatus;
+    // Convert string status to number using mapping
+    let paymentStatusNum: number;
+    if (typeof paymentStatus === 'string') {
+      // First try to use mapping, fallback to parseInt for numeric strings
+      paymentStatusNum = PAYMENT_STATUS_FROM_STRING[paymentStatus.toLowerCase()] ?? parseInt(paymentStatus, 10);
+    } else {
+      paymentStatusNum = paymentStatus;
+    }
+
+    // Validate paymentStatusNum is a valid number
+    if (isNaN(paymentStatusNum)) {
+      throw new BadRequestException({
+        message: `Invalid payment status: ${paymentStatus}`,
+        errorCode: 'INVALID_PAYMENT_STATUS',
+      });
+    }
+
     await this.orderRepository.update(orderId, {
       paymentStatus: paymentStatusNum,
       ...(paymentProofUrl && { paymentImage: paymentProofUrl }),

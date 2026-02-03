@@ -33,9 +33,6 @@ export interface CustomerStats {
 export class SellerCustomerService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // Removed getStoreIdByUserId - Store model no longer exists
-  // Users with isSeller=true can be queried directly
-
   async getCustomers(sellerId: number, queryDto: QuerySellerCustomerDto) {
     const page = queryDto.page || 1;
     const pageSize = queryDto.pageSize || 10;

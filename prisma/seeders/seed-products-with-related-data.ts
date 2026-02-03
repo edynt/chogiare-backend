@@ -354,14 +354,28 @@ function generateProductData(
 
 /**
  * Seed users (sellers) for products
+ * Returns existing sellers if available, otherwise creates new ones
+ * Note: All users can become sellers, we just need users with sellerName set
  */
 async function seedSellers(prisma: PrismaClient, count: number) {
   console.log(`👥 Seeding ${count} sellers...`);
 
-  const now = BigInt(Date.now());
-  const sellers = [];
+  // First, check for existing sellers (users with sellerName)
+  const existingSellers = await prisma.user.findMany({
+    where: { sellerName: { not: null } },
+    take: count,
+  });
 
-  for (let i = 0; i < count; i++) {
+  if (existingSellers.length >= count) {
+    console.log(`  ✓ Using ${existingSellers.length} existing sellers`);
+    return existingSellers;
+  }
+
+  const now = BigInt(Date.now());
+  const sellers = [...existingSellers];
+  const neededCount = count - existingSellers.length;
+
+  for (let i = 0; i < neededCount; i++) {
     const email = faker.internet.email();
     const existing = await prisma.user.findUnique({ where: { email } });
 
@@ -378,8 +392,7 @@ async function seedSellers(prisma: PrismaClient, count: number) {
           phoneNumber: faker.phone.number(),
           address: faker.location.streetAddress(),
           country: 'Vietnam',
-          // Seller fields - REQUIRED for order creation
-          isSeller: true,
+          // Seller profile fields
           sellerName: fullName,
           sellerSlug: faker.helpers.slugify(fullName.toLowerCase()) + '-' + faker.string.alphanumeric(6),
           sellerDescription: faker.company.catchPhrase(),
@@ -392,7 +405,7 @@ async function seedSellers(prisma: PrismaClient, count: number) {
     }
   }
 
-  console.log(`  ✓ Created ${sellers.length} sellers`);
+  console.log(`  ✓ Total ${sellers.length} sellers available (${existingSellers.length} existing + ${sellers.length - existingSellers.length} new)`);
   return sellers;
 }
 

@@ -184,9 +184,12 @@ export class AdminAnalyticsService {
   }
 
   async getTopSellers(limit: number = 5) {
+    // Get users who have seller orders (i.e., users who have sold products)
     const sellers = await this.prisma.user.findMany({
       where: {
-        isSeller: true,
+        sellerOrders: {
+          some: {},
+        },
       },
       include: {
         sellerOrders: {
