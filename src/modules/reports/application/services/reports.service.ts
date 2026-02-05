@@ -62,16 +62,17 @@ export class ReportsService {
     previousStart.setTime(start.getTime() - (end.getTime() - start.getTime()));
     const previousStartBigInt = BigInt(previousStart.getTime());
 
+    // Only count COMPLETED orders for revenue calculation
     const whereCurrent = {
       createdAt: { gte: startBigInt, lte: endBigInt },
-      status: { not: ORDER_STATUS.CANCELLED },
+      status: ORDER_STATUS.COMPLETED,
       paymentStatus: PAYMENT_STATUS.COMPLETED,
       ...(storeId && { storeId }),
     };
 
     const wherePrevious = {
       createdAt: { gte: previousStartBigInt, lt: startBigInt },
-      status: { not: ORDER_STATUS.CANCELLED },
+      status: ORDER_STATUS.COMPLETED,
       paymentStatus: PAYMENT_STATUS.COMPLETED,
       ...(storeId && { storeId }),
     };
@@ -161,10 +162,11 @@ export class ReportsService {
     const startBigInt = BigInt(start.getTime());
     const endBigInt = BigInt(end.getTime());
 
+    // Only count COMPLETED orders for revenue data
     const orders = await this.prisma.order.findMany({
       where: {
         createdAt: { gte: startBigInt, lte: endBigInt },
-        status: { not: ORDER_STATUS.CANCELLED },
+        status: ORDER_STATUS.COMPLETED,
         paymentStatus: PAYMENT_STATUS.COMPLETED,
         ...(storeId && { storeId }),
       },
@@ -212,10 +214,11 @@ export class ReportsService {
     const startBigInt = BigInt(start.getTime());
     const endBigInt = BigInt(end.getTime());
 
+    // Only count COMPLETED orders for top products
     const orders = await this.prisma.order.findMany({
       where: {
         createdAt: { gte: startBigInt, lte: endBigInt },
-        status: { not: ORDER_STATUS.CANCELLED },
+        status: ORDER_STATUS.COMPLETED,
         paymentStatus: PAYMENT_STATUS.COMPLETED,
         ...(storeId && { storeId }),
       },
@@ -258,7 +261,7 @@ export class ReportsService {
     const previousOrders = await this.prisma.order.findMany({
       where: {
         createdAt: { gte: previousStartBigInt, lt: startBigInt },
-        status: { not: ORDER_STATUS.CANCELLED },
+        status: ORDER_STATUS.COMPLETED,
         paymentStatus: PAYMENT_STATUS.COMPLETED,
         ...(storeId && { storeId }),
       },
@@ -308,10 +311,11 @@ export class ReportsService {
     const startBigInt = BigInt(start.getTime());
     const endBigInt = BigInt(end.getTime());
 
+    // Only count COMPLETED orders for category revenue
     const orders = await this.prisma.order.findMany({
       where: {
         createdAt: { gte: startBigInt, lte: endBigInt },
-        status: { not: ORDER_STATUS.CANCELLED },
+        status: ORDER_STATUS.COMPLETED,
         paymentStatus: PAYMENT_STATUS.COMPLETED,
         ...(storeId && { storeId }),
       },
