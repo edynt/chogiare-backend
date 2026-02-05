@@ -51,6 +51,7 @@ const ORDER_STATUS_FROM_STRING: Record<string, number> = {
   confirmed: ORDER_STATUS.CONFIRMED,
   preparing: ORDER_STATUS.PREPARING,
   ready: ORDER_STATUS.READY_FOR_PICKUP,
+  ready_for_pickup: ORDER_STATUS.READY_FOR_PICKUP, // Alias
   completed: ORDER_STATUS.COMPLETED,
   cancelled: ORDER_STATUS.CANCELLED,
   refunded: 6, // ORDER_STATUS.REFUNDED

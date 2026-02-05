@@ -37,6 +37,23 @@ import { CurrentUser, CurrentUserPayload } from '@common/decorators/current-user
 export class SellerProductController {
   constructor(private readonly productService: ProductService) {}
 
+  @Get('boosted')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get seller boosted products' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
+  async getMyBoostedProducts(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query('page') page?: number,
+    @Query('pageSize') pageSize?: number,
+  ) {
+    return await this.productService.getSellerBoostedProducts(user.id, {
+      page: page || 1,
+      pageSize: pageSize || 50,
+    });
+  }
+
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')
@@ -129,5 +146,17 @@ export class SellerProductController {
     // ProductService.remove already checks ownership
     await this.productService.remove(id, user.id);
     return { deleted: true };
+  }
+
+  @Delete(':id/boost')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Remove boost from product' })
+  @ApiParam({ name: 'id', type: Number, description: 'Product ID' })
+  async removeBoost(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return await this.productService.removeProductBoost(id, user.id);
   }
 }

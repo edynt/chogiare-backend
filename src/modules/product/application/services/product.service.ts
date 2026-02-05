@@ -880,7 +880,7 @@ export class ProductService {
 
     const packagePrice = Number(boostPackage.price);
     const now = BigInt(Date.now());
-    const boostEndAt = BigInt(Date.now() + boostPackage.durationDays * 24 * 60 * 60 * 1000);
+    const additionalMs = boostPackage.durationDays * 24 * 60 * 60 * 1000;
 
     // Use transaction with atomic balance check and deduction
     const result = await this.prisma.$transaction(async (tx) => {
@@ -895,6 +895,20 @@ export class ProductService {
           errorCode: ERROR_CODES.PAYMENT_INSUFFICIENT_BALANCE,
         });
       }
+
+      // Check for existing active boost to calculate cumulative end time
+      const existingBoost = await tx.productBoost.findFirst({
+        where: {
+          productId,
+          isActive: true,
+          endAt: { gt: now }, // Only consider non-expired boosts
+        },
+        orderBy: { endAt: 'desc' },
+      });
+
+      // Calculate new end time: if active boost exists, add to its endAt; otherwise start from now
+      const baseTime = existingBoost ? Number(existingBoost.endAt) : Date.now();
+      const boostEndAt = BigInt(baseTime + additionalMs);
 
       // Deduct balance atomically
       const updatedBalance = await tx.userBalance.update({
@@ -929,7 +943,7 @@ export class ProductService {
         data: { isActive: false },
       });
 
-      // Create boost record
+      // Create boost record with cumulative end time
       const boost = await tx.productBoost.create({
         data: {
           productId,
@@ -1014,6 +1028,117 @@ export class ProductService {
         endAt: activeBoost.endAt.toString(),
         remainingDays: Math.ceil((Number(activeBoost.endAt) - Date.now()) / (24 * 60 * 60 * 1000)),
       },
+    };
+  }
+
+  /**
+   * Remove boost from a product (deactivate it)
+   */
+  async removeProductBoost(productId: number, userId: number) {
+    const product = await this.productRepository.findById(productId);
+    if (!product) {
+      throw new NotFoundException({
+        message: MESSAGES.PRODUCT.NOT_FOUND,
+        errorCode: ERROR_CODES.PRODUCT_NOT_FOUND,
+      });
+    }
+
+    if (product.sellerId !== userId) {
+      throw new UnauthorizedException({
+        message: MESSAGES.PRODUCT.UNAUTHORIZED_ACCESS,
+        errorCode: ERROR_CODES.PRODUCT_UNAUTHORIZED_ACCESS,
+      });
+    }
+
+    const now = BigInt(Date.now());
+
+    // Deactivate all boosts for this product
+    await this.prisma.$transaction(async (tx) => {
+      await tx.productBoost.updateMany({
+        where: { productId, isActive: true },
+        data: { isActive: false },
+      });
+
+      await tx.product.update({
+        where: { id: productId },
+        data: {
+          isPromoted: false,
+          boostEndAt: null,
+          updatedAt: now,
+        },
+      });
+    });
+
+    return { removed: true };
+  }
+
+  /**
+   * Get all boosted products for a seller
+   * Returns products from product_boosts table with active boosts
+   */
+  async getSellerBoostedProducts(sellerId: number, options: { page: number; pageSize: number }) {
+    const { page, pageSize } = options;
+    const skip = (page - 1) * pageSize;
+    const now = BigInt(Date.now());
+
+    // Get boosted products for this seller
+    const [boosts, total] = await Promise.all([
+      this.prisma.productBoost.findMany({
+        where: {
+          product: { sellerId },
+          isActive: true,
+          endAt: { gt: now },
+        },
+        include: {
+          package: true,
+          product: {
+            include: {
+              images: {
+                orderBy: { displayOrder: 'asc' },
+                take: 1,
+              },
+            },
+          },
+        },
+        orderBy: { endAt: 'asc' },
+        skip,
+        take: pageSize,
+      }),
+      this.prisma.productBoost.count({
+        where: {
+          product: { sellerId },
+          isActive: true,
+          endAt: { gt: now },
+        },
+      }),
+    ]);
+
+    const items = boosts.map((boost) => ({
+      id: boost.id.toString(),
+      productId: boost.productId,
+      product: {
+        id: boost.product.id.toString(),
+        title: boost.product.title,
+        name: boost.product.title,
+        price: Number(boost.product.price),
+        images: boost.product.images.map((img) => this.getImageUrl(img.imageUrl)),
+        viewCount: boost.product.viewCount,
+      },
+      packageId: boost.packageId,
+      packageName: boost.package.displayName,
+      pricePaid: Number(boost.pricePaid),
+      durationDays: boost.durationDays,
+      startAt: boost.startAt.toString(),
+      endAt: boost.endAt.toString(),
+      isActive: boost.isActive,
+    }));
+
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
     };
   }
 }

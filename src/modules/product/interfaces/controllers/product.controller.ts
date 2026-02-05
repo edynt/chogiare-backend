@@ -86,11 +86,8 @@ export class ProductController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get available boost packages' })
   async getBoostPackages() {
-    const packages = await this.productService.getBoostPackages();
-    return {
-      message: MESSAGES.SUCCESS,
-      data: packages,
-    };
+    // Return result directly - TransformInterceptor will wrap it
+    return await this.productService.getBoostPackages();
   }
 
   // ============================================================
@@ -127,11 +124,8 @@ export class ProductController {
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    const status = await this.productService.getProductBoostStatus(id, user.id);
-    return {
-      message: MESSAGES.SUCCESS,
-      data: status,
-    };
+    // Return result directly - TransformInterceptor will wrap it
+    return await this.productService.getProductBoostStatus(id, user.id);
   }
 
   // ============================================================
@@ -165,11 +159,8 @@ export class ProductController {
     @Body() boostDto: BoostProductDto,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    const result = await this.productService.boostProduct(id, boostDto, user.id);
-    return {
-      message: MESSAGES.PRODUCT.BOOST_SUCCESS,
-      data: result,
-    };
+    // Return result directly - TransformInterceptor will wrap it
+    return await this.productService.boostProduct(id, boostDto, user.id);
   }
 
   @Public()
