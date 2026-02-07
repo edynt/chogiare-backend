@@ -13,6 +13,10 @@ export interface IProductRepository {
     search?: string;
     page?: number;
     pageSize?: number;
+    /** When true, prioritize boosted products (higher package duration first) */
+    prioritizeBoosted?: boolean;
+    /** Filter by promoted/boosted status */
+    isPromoted?: boolean;
   }): Promise<{ items: Product[]; total: number }>;
   create(product: Partial<Product>): Promise<Product>;
   update(id: number, product: Partial<Product>): Promise<Product>;

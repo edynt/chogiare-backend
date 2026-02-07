@@ -244,6 +244,8 @@ export class ProductService {
       search?: string;
       page: number;
       pageSize: number;
+      prioritizeBoosted?: boolean;
+      isPromoted?: boolean;
     } = {
       page,
       pageSize,
@@ -271,6 +273,17 @@ export class ProductService {
 
     if (queryDto.search) {
       options.search = queryDto.search;
+    }
+
+    // Filter by promoted status if requested
+    if (queryDto.isPromoted !== undefined) {
+      options.isPromoted = queryDto.isPromoted;
+    }
+
+    // Prioritize boosted products for public (non-authenticated) requests
+    // This shows boosted products first, sorted by package duration (higher duration = higher priority)
+    if (!userId) {
+      options.prioritizeBoosted = true;
     }
 
     const result = await this.productRepository.findAll(options);
@@ -599,13 +612,15 @@ export class ProductService {
   }
 
   async getFeaturedProducts(limit: number = 10) {
+    // Use prioritizeBoosted to show boosted products first
     const result = await this.productRepository.findAll({
       page: 1,
-      pageSize: limit,
+      pageSize: limit * 2, // Fetch more to filter featured products
       status: PRODUCT_STATUS.ACTIVE,
+      prioritizeBoosted: true,
     });
 
-    const featuredProducts = result.items.filter((p) => p.isFeatured);
+    const featuredProducts = result.items.filter((p) => p.isFeatured).slice(0, limit);
     const products = await Promise.all(
       featuredProducts.map(async (product) => {
         const [category, images, seller] = await Promise.all([

@@ -60,6 +60,8 @@ export class ProductRepository implements IProductRepository {
     search?: string;
     page?: number;
     pageSize?: number;
+    prioritizeBoosted?: boolean;
+    isPromoted?: boolean;
   }): Promise<{ items: Product[]; total: number }> {
     const where: Prisma.ProductWhereInput = {};
 
@@ -82,9 +84,23 @@ export class ProductRepository implements IProductRepository {
       ];
     }
 
+    // Filter by promoted status - only show active boosted products
+    if (options?.isPromoted !== undefined) {
+      where.isPromoted = options.isPromoted;
+      if (options.isPromoted) {
+        // Only show products with active boost (boostEndAt > now)
+        where.boostEndAt = { gt: BigInt(Date.now()) };
+      }
+    }
+
     const page = options?.page || 1;
     const pageSize = options?.pageSize || 10;
     const skip = (page - 1) * pageSize;
+
+    // If prioritizeBoosted is true, use custom sorting with boost priority
+    if (options?.prioritizeBoosted) {
+      return this.findAllWithBoostPriority(where, skip, pageSize);
+    }
 
     const [products, total] = await Promise.all([
       this.prisma.product.findMany({
@@ -98,6 +114,77 @@ export class ProductRepository implements IProductRepository {
 
     return {
       items: products.map((p) => this.toDomain(p)),
+      total,
+    };
+  }
+
+  /**
+   * Find products with boost priority sorting:
+   * 1. Active boosted products first (isPromoted=true AND boostEndAt > now)
+   * 2. Among boosted: sort by durationDays DESC (higher package = higher priority)
+   * 3. Non-boosted products: sort by createdAt DESC
+   *
+   * Note: This fetches a limited set from DB and sorts in memory.
+   * For large datasets, consider using raw SQL for better performance.
+   */
+  private async findAllWithBoostPriority(
+    where: Prisma.ProductWhereInput,
+    skip: number,
+    take: number,
+  ): Promise<{ items: Product[]; total: number }> {
+    const now = BigInt(Date.now());
+    // Limit in-memory sorting to a reasonable amount for pagination
+    const maxFetch = Math.max(skip + take, 200);
+
+    // Get products with their active boost info, ordered by createdAt as base
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where,
+        take: maxFetch,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          boosts: {
+            where: {
+              isActive: true,
+              endAt: { gt: now },
+            },
+            orderBy: { durationDays: 'desc' },
+            take: 1,
+          },
+        },
+      }),
+      this.prisma.product.count({ where }),
+    ]);
+
+    // Sort: boosted products first by durationDays DESC, then non-boosted by createdAt DESC
+    const sortedProducts = products.sort((a, b) => {
+      const aBoost = a.boosts[0];
+      const bBoost = b.boosts[0];
+      const aIsBoosted = aBoost && a.isPromoted && a.boostEndAt && a.boostEndAt > now;
+      const bIsBoosted = bBoost && b.isPromoted && b.boostEndAt && b.boostEndAt > now;
+
+      // Boosted products come first
+      if (aIsBoosted && !bIsBoosted) return -1;
+      if (!aIsBoosted && bIsBoosted) return 1;
+
+      // Both are boosted: sort by durationDays DESC
+      if (aIsBoosted && bIsBoosted) {
+        const aDays = aBoost?.durationDays || 0;
+        const bDays = bBoost?.durationDays || 0;
+        if (bDays !== aDays) return bDays - aDays;
+        // Same durationDays: sort by boostEndAt DESC (more time remaining)
+        return Number(b.boostEndAt) - Number(a.boostEndAt);
+      }
+
+      // Both non-boosted: sort by createdAt DESC
+      return Number(b.createdAt) - Number(a.createdAt);
+    });
+
+    // Apply pagination after sorting
+    const paginatedProducts = sortedProducts.slice(skip, skip + take);
+
+    return {
+      items: paginatedProducts.map((p) => this.toDomain(p)),
       total,
     };
   }
