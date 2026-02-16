@@ -226,7 +226,6 @@ if (quantity >= MOQ) {
 
 ### 7.2. Shipping Providers
 - Viettel Post API
-- GHN (Giao Hàng Nhanh) API
 - GHTK (Giao Hàng Tiết Kiệm) API
 
 ### 7.3. Storage

@@ -44,20 +44,18 @@ type SerializableValue =
   | SerializableValue[]
   | { [key: string]: SerializableValue };
 
+// Only removes top-level 'message' key from controller response.
+// Does NOT recurse into nested objects to preserve data fields like reply.message.
 function removeMessageFromData(obj: unknown): unknown {
   if (obj === null || obj === undefined) {
     return obj;
   }
 
-  if (Array.isArray(obj)) {
-    return obj.map(removeMessageFromData);
-  }
-
-  if (typeof obj === 'object') {
+  if (typeof obj === 'object' && !Array.isArray(obj)) {
     const cleaned: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
       if (key !== 'message') {
-        cleaned[key] = removeMessageFromData(value);
+        cleaned[key] = value;
       }
     }
     return cleaned;

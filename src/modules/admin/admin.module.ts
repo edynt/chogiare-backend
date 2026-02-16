@@ -8,6 +8,7 @@ import { AdminUsersModule } from './users/admin-users.module';
 import { AdminSettingsModule } from './settings/admin-settings.module';
 import { AdminPackagesModule } from './packages/admin-packages.module';
 import { AdminDepositPackagesModule } from './deposit-packages/admin-deposit-packages.module';
+import { AdminTicketsModule } from './tickets/admin-tickets.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AdminDepositPackagesModule } from './deposit-packages/admin-deposit-pac
     AdminSettingsModule,
     AdminPackagesModule,
     AdminDepositPackagesModule,
+    AdminTicketsModule,
   ],
   exports: [
     AdminOrdersModule,
@@ -31,6 +33,7 @@ import { AdminDepositPackagesModule } from './deposit-packages/admin-deposit-pac
     AdminSettingsModule,
     AdminPackagesModule,
     AdminDepositPackagesModule,
+    AdminTicketsModule,
   ],
 })
 export class AdminModule {}

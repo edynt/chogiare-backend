@@ -88,4 +88,15 @@ export class QueryProductDto {
   @IsOptional()
   @Type(() => Boolean)
   isPromoted?: boolean;
+
+  @ApiProperty({
+    description: 'Cursor for cursor-based pagination (product ID to start after)',
+    example: 100,
+    required: false,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: VALIDATION_MESSAGES.IS_NUMBER })
+  @Min(1, { message: VALIDATION_MESSAGES.MIN(1) })
+  cursor?: number;
 }

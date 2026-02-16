@@ -17,7 +17,9 @@ export interface IProductRepository {
     prioritizeBoosted?: boolean;
     /** Filter by promoted/boosted status */
     isPromoted?: boolean;
-  }): Promise<{ items: Product[]; total: number }>;
+    /** Cursor for cursor-based pagination (product ID to start after) */
+    cursor?: number;
+  }): Promise<{ items: Product[]; total: number; nextCursor?: number | null }>;
   create(product: Partial<Product>): Promise<Product>;
   update(id: number, product: Partial<Product>): Promise<Product>;
   delete(id: number): Promise<void>;

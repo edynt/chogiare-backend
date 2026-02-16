@@ -103,7 +103,7 @@ modules/
 
 ### 4.4. External Services
 - **Payment**: MoMo, ZaloPay, Stripe, PayPal
-- **Shipping**: Viettel Post, GHN, GHTK
+- **Shipping**: Viettel Post, GHTK
 - **Email**: SendGrid / AWS SES
 - **SMS**: Twilio / AWS SNS
 

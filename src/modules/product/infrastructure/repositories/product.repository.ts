@@ -62,7 +62,8 @@ export class ProductRepository implements IProductRepository {
     pageSize?: number;
     prioritizeBoosted?: boolean;
     isPromoted?: boolean;
-  }): Promise<{ items: Product[]; total: number }> {
+    cursor?: number;
+  }): Promise<{ items: Product[]; total: number; nextCursor?: number | null }> {
     const where: Prisma.ProductWhereInput = {};
 
     if (options?.sellerId) {
@@ -93,8 +94,24 @@ export class ProductRepository implements IProductRepository {
       }
     }
 
-    const page = options?.page || 1;
     const pageSize = options?.pageSize || 10;
+
+    // Cursor-based pagination: use Prisma cursor API for efficient pagination
+    if (options?.cursor) {
+      const products = await this.prisma.product.findMany({
+        where,
+        take: pageSize,
+        skip: 1, // skip the cursor item itself
+        cursor: { id: options.cursor },
+        orderBy: { id: 'desc' },
+      });
+      const total = await this.prisma.product.count({ where });
+      const items = products.map((p) => this.toDomain(p));
+      const nextCursor = items.length === pageSize ? items[items.length - 1].id : null;
+      return { items, total, nextCursor };
+    }
+
+    const page = options?.page || 1;
     const skip = (page - 1) * pageSize;
 
     // If prioritizeBoosted is true, use custom sorting with boost priority
@@ -112,9 +129,13 @@ export class ProductRepository implements IProductRepository {
       this.prisma.product.count({ where }),
     ]);
 
+    const items = products.map((p) => this.toDomain(p));
+    const nextCursor = items.length === pageSize ? items[items.length - 1].id : null;
+
     return {
-      items: products.map((p) => this.toDomain(p)),
+      items,
       total,
+      nextCursor,
     };
   }
 

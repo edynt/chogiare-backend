@@ -25,6 +25,7 @@ import { AddressModule } from '@modules/address/address.module';
 import { ReportsModule } from '@modules/reports/reports.module';
 import { NotificationModule } from '@modules/notification/notification.module';
 import { SellerModule } from '@modules/seller/seller.module';
+import { SupportTicketModule } from '@modules/support-ticket/support-ticket.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { SellerModule } from '@modules/seller/seller.module';
     ReportsModule,
     NotificationModule,
     SellerModule,
+    SupportTicketModule,
   ],
   providers: [
     {

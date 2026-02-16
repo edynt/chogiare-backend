@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@common/database/prisma.service';
-import { ORDER_STATUS, PAYMENT_STATUS, PRODUCT_STATUS } from '@common/constants/enum.constants';
+import {
+  ORDER_STATUS,
+  PAYMENT_STATUS,
+  PRODUCT_STATUS,
+  TICKET_STATUS,
+} from '@common/constants/enum.constants';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
@@ -14,13 +19,24 @@ export class AdminDashboardService {
     const nowBigInt = BigInt(now.getTime());
     const lastMonthBigInt = BigInt(lastMonth.getTime());
 
-    const [totalUsers, lastMonthUsers, regularUsers] = await Promise.all([
+    const [totalUsers, lastMonthUsers, sellers, buyers] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.user.count({
         where: {
           createdAt: {
             gte: lastMonthBigInt,
             lt: nowBigInt,
+          },
+        },
+      }),
+      this.prisma.user.count({
+        where: {
+          userRoles: {
+            some: {
+              role: {
+                name: 'seller',
+              },
+            },
           },
         },
       }),
@@ -132,7 +148,8 @@ export class AdminDashboardService {
         value: totalUsers,
         change: userChange,
         changeType: userChange >= 0 ? 'positive' : 'negative',
-        regularUsers,
+        sellers,
+        buyers,
       },
       totalProducts: {
         value: totalProducts,
@@ -159,22 +176,7 @@ export class AdminDashboardService {
   }
 
   async getRecentActivities(limit: number = 10) {
-    const [recentUsers, recentProducts, recentOrders, recentPayments] = await Promise.all([
-      this.prisma.user.findMany({
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          email: true,
-          fullName: true,
-          userRoles: {
-            include: {
-              role: true,
-            },
-          },
-          createdAt: true,
-        },
-      }),
+    const [recentProducts, recentOrders, recentPayments, recentTickets] = await Promise.all([
       this.prisma.product.findMany({
         take: limit,
         orderBy: { createdAt: 'desc' },
@@ -221,20 +223,24 @@ export class AdminDashboardService {
           },
         },
       }),
+      this.prisma.supportTicket.findMany({
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        where: {
+          status: { in: [TICKET_STATUS.OPEN, TICKET_STATUS.IN_PROGRESS] },
+        },
+        select: {
+          id: true,
+          title: true,
+          category: true,
+          priority: true,
+          createdAt: true,
+          user: { select: { fullName: true, email: true } },
+        },
+      }),
     ]);
 
     const activities = [
-      ...recentUsers.map((user) => {
-        const userName = user.fullName || user.email;
-        return {
-          id: `user-${user.id}`,
-          type: 'user_registration',
-          title: 'Người dùng mới đăng ký',
-          description: `${userName} đã đăng ký tài khoản`,
-          time: this.getTimeAgo(user.createdAt),
-          status: 'pending',
-        };
-      }),
       ...recentProducts.map((product) => ({
         id: `product-${product.id}`,
         type: 'product_approval',
@@ -258,6 +264,14 @@ export class AdminDashboardService {
         description: `Nhận thanh toán ${payment.total} VNĐ từ ${payment.seller?.sellerName || payment.seller?.fullName || payment.seller?.email || 'N/A'}`,
         time: this.getTimeAgo(payment.createdAt),
         status: 'success',
+      })),
+      ...recentTickets.map((ticket) => ({
+        id: `ticket-${ticket.id}`,
+        type: 'support_ticket',
+        title: 'Phiếu hỗ trợ mới',
+        description: `${ticket.user.fullName || ticket.user.email}: ${ticket.title}`,
+        time: this.getTimeAgo(ticket.createdAt),
+        status: 'warning',
       })),
     ]
       .sort((a, b) => {
@@ -363,24 +377,6 @@ export class AdminDashboardService {
     const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const last24HoursBigInt = BigInt(last24Hours.getTime());
 
-    // Get pending users (unverified users that need approval)
-    const pendingUsers = await this.prisma.user.findMany({
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-      where: {
-        isVerified: false,
-        createdAt: {
-          gte: last24HoursBigInt,
-        },
-      },
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        createdAt: true,
-      },
-    });
-
     // Get pending products (need moderation)
     const pendingProducts = await this.prisma.product.findMany({
       take: limit,
@@ -395,6 +391,25 @@ export class AdminDashboardService {
         id: true,
         title: true,
         createdAt: true,
+      },
+    });
+
+    // Get open support tickets
+    const openTickets = await this.prisma.supportTicket.findMany({
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      where: {
+        status: { in: [TICKET_STATUS.OPEN, TICKET_STATUS.IN_PROGRESS] },
+        createdAt: {
+          gte: last24HoursBigInt,
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        priority: true,
+        createdAt: true,
+        user: { select: { fullName: true, email: true } },
       },
     });
 
@@ -416,13 +431,13 @@ export class AdminDashboardService {
     });
 
     const notifications = [
-      ...pendingUsers.map((user) => ({
-        id: `user-${user.id}`,
-        title: `Tài khoản mới cần duyệt: ${user.fullName || user.email}`,
-        time: this.getTimeAgo(user.createdAt),
+      ...openTickets.map((ticket) => ({
+        id: `ticket-${ticket.id}`,
+        title: `Phiếu hỗ trợ mới: ${ticket.user.fullName || ticket.user.email} - ${ticket.title}`,
+        time: this.getTimeAgo(ticket.createdAt),
         unread: true,
-        type: 'user' as const,
-        link: `/admin/users?id=${user.id}`,
+        type: 'ticket' as const,
+        link: `/admin/support?id=${ticket.id}`,
       })),
       ...pendingProducts.map((product) => ({
         id: `product-${product.id}`,

@@ -14,7 +14,6 @@ import { NotificationService } from '@modules/notification/application/services/
 import { QueryNotificationDto } from '@modules/notification/application/dto/query-notification.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '@common/decorators/current-user.decorator';
-import { MESSAGES } from '@common/constants/messages.constants';
 
 @ApiTags('Notifications')
 @Controller('notifications')
@@ -40,7 +39,7 @@ export class NotificationController {
   ) {
     const result = await this.notificationService.getNotifications(user.id, queryDto);
     return {
-      message: MESSAGES.SUCCESS,
+      success: true,
       data: result,
     };
   }
@@ -52,7 +51,7 @@ export class NotificationController {
   async getUnreadCount(@CurrentUser() user: CurrentUserPayload) {
     const result = await this.notificationService.getUnreadCount(user.id);
     return {
-      message: MESSAGES.SUCCESS,
+      success: true,
       data: result,
     };
   }
@@ -65,7 +64,7 @@ export class NotificationController {
   async markAsRead(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     const result = await this.notificationService.markAsRead(parseInt(id, 10), user.id);
     return {
-      message: MESSAGES.SUCCESS,
+      success: true,
       data: result,
     };
   }
@@ -77,7 +76,7 @@ export class NotificationController {
   async markAllAsRead(@CurrentUser() user: CurrentUserPayload) {
     const result = await this.notificationService.markAllAsRead(user.id);
     return {
-      message: MESSAGES.SUCCESS,
+      success: true,
       data: result,
     };
   }
@@ -90,7 +89,8 @@ export class NotificationController {
   async delete(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     await this.notificationService.delete(parseInt(id, 10), user.id);
     return {
-      message: MESSAGES.DELETED,
+      success: true,
+      data: { deleted: true },
     };
   }
 }

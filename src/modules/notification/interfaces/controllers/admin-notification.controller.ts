@@ -6,7 +6,6 @@ import { JwtAdminAuthGuard } from '@common/guards/jwt-admin-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { AdminAuth } from '@common/decorators/admin-auth.decorator';
-import { MESSAGES } from '@common/constants/messages.constants';
 
 @ApiTags('Admin Notifications')
 @Controller('admin/notifications')
@@ -23,7 +22,7 @@ export class AdminNotificationController {
   async createNotification(@Body() createNotificationDto: CreateNotificationDto) {
     const result = await this.notificationService.createNotification(createNotificationDto);
     return {
-      message: MESSAGES.SUCCESS,
+      success: true,
       data: result,
     };
   }

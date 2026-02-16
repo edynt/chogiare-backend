@@ -9,6 +9,16 @@ import {
 import { NotificationGateway } from '../../interfaces/gateways/notification.gateway';
 import { CreateNotificationDto } from '../dto/create-notification.dto';
 import { QueryNotificationDto } from '../dto/query-notification.dto';
+import { NOTIFICATION_TYPE } from '@common/constants/enum.constants';
+
+const NOTIFICATION_TYPE_MAP: Record<number, string> = {
+  [NOTIFICATION_TYPE.ORDER]: 'order',
+  [NOTIFICATION_TYPE.PRODUCT]: 'product',
+  [NOTIFICATION_TYPE.PAYMENT]: 'payment',
+  [NOTIFICATION_TYPE.SYSTEM]: 'system',
+  [NOTIFICATION_TYPE.PROMOTION]: 'promotion',
+  [NOTIFICATION_TYPE.MESSAGE]: 'message',
+};
 
 @Injectable()
 export class NotificationService {
@@ -35,7 +45,7 @@ export class NotificationService {
     return {
       items: result.items.map((notification) => ({
         id: notification.id.toString(),
-        type: notification.type,
+        type: NOTIFICATION_TYPE_MAP[notification.type] || 'system',
         title: notification.title,
         message: notification.message,
         isRead: notification.isRead,
@@ -170,7 +180,7 @@ export class NotificationService {
 
     return {
       id: 'bulk',
-      type: createNotificationDto.type,
+      type: NOTIFICATION_TYPE_MAP[createNotificationDto.type] || 'system',
       title: createNotificationDto.title,
       message: createNotificationDto.message,
       createdAt: now.toString(),
@@ -216,7 +226,7 @@ export class NotificationService {
 
     return {
       id: notification.id.toString(),
-      type: notification.type,
+      type: NOTIFICATION_TYPE_MAP[notification.type] || 'system',
       title: notification.title,
       message: notification.message,
       isRead: notification.isRead,

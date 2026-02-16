@@ -282,8 +282,13 @@ export class ProductService {
 
     // Prioritize boosted products for public (non-authenticated) requests
     // This shows boosted products first, sorted by package duration (higher duration = higher priority)
-    if (!userId) {
+    if (!userId && !queryDto.cursor) {
       options.prioritizeBoosted = true;
+    }
+
+    // Cursor-based pagination support
+    if (queryDto.cursor) {
+      (options as Record<string, unknown>).cursor = queryDto.cursor;
     }
 
     const result = await this.productRepository.findAll(options);
@@ -345,6 +350,7 @@ export class ProductService {
       page,
       pageSize,
       totalPages: Math.ceil(result.total / pageSize),
+      nextCursor: result.nextCursor ?? null,
     };
   }
 
