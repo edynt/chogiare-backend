@@ -20,6 +20,16 @@ const NOTIFICATION_TYPE_MAP: Record<number, string> = {
   [NOTIFICATION_TYPE.MESSAGE]: 'message',
 };
 
+// Reverse mapping: string name → numeric enum value
+const NOTIFICATION_TYPE_FROM_STRING: Record<string, number> = {
+  order: NOTIFICATION_TYPE.ORDER,
+  product: NOTIFICATION_TYPE.PRODUCT,
+  payment: NOTIFICATION_TYPE.PAYMENT,
+  system: NOTIFICATION_TYPE.SYSTEM,
+  promotion: NOTIFICATION_TYPE.PROMOTION,
+  message: NOTIFICATION_TYPE.MESSAGE,
+};
+
 @Injectable()
 export class NotificationService {
   constructor(
@@ -201,7 +211,17 @@ export class NotificationService {
   }) {
     const now = BigInt(Date.now());
 
-    const typeNum = typeof data.type === 'string' ? parseInt(data.type, 10) : data.type;
+    // Convert string type name to numeric enum value (e.g. 'order' → 0)
+    let typeNum: number;
+    if (typeof data.type === 'string') {
+      typeNum = NOTIFICATION_TYPE_FROM_STRING[data.type.toLowerCase()] ?? parseInt(data.type, 10);
+    } else {
+      typeNum = data.type;
+    }
+    // Fallback to SYSTEM type if invalid
+    if (isNaN(typeNum)) {
+      typeNum = NOTIFICATION_TYPE.SYSTEM;
+    }
 
     const notification = await this.notificationRepository.create({
       userId: data.userId,

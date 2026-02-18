@@ -950,7 +950,7 @@ export class OrderService {
         type: 'order',
         title: 'Đơn hàng mới',
         message: `${buyerName} vừa đặt ${itemCount} sản phẩm với tổng giá trị ${formattedTotal}`,
-        actionUrl: `/seller/orders/${orderId}`,
+        actionUrl: `/orders/${orderId}`,
         metadata: {
           orderId,
           buyerName,
