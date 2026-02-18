@@ -125,9 +125,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     try {
+      // Convert messageType to number (client may send string like "text")
+      let messageType: MessageTypeValue | undefined = undefined;
+      if (data.messageType !== undefined) {
+        const parsed = typeof data.messageType === 'number' ? data.messageType : parseInt(String(data.messageType), 10);
+        if (!isNaN(parsed)) messageType = parsed as MessageTypeValue;
+      }
+
       const sendDto: SendMessageDto = {
         content: data.content,
-        messageType: data.messageType,
+        messageType,
       };
 
       const message = await this.chatService.sendMessage(

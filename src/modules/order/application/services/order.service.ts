@@ -80,12 +80,16 @@ export class OrderService {
   ) {}
 
   /**
-   * Generate unique order number: ORD-YYYYMMDD-XXXXX
+   * Generate unique order number: NO.DDMMYYXXX
+   * Example: NO.180226001 (18 Feb 2026, 1st order of the day)
    */
   private async generateOrderNo(): Promise<string> {
     const today = new Date();
-    const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-    const prefix = `ORD-${dateStr}-`;
+    const dd = today.getDate().toString().padStart(2, '0');
+    const mm = (today.getMonth() + 1).toString().padStart(2, '0');
+    const yy = today.getFullYear().toString().slice(-2);
+    const dateStr = `${dd}${mm}${yy}`;
+    const prefix = `NO.${dateStr}`;
 
     // Get last order number of today
     const lastOrder = await this.prisma.order.findFirst({
@@ -104,11 +108,13 @@ export class OrderService {
 
     let sequence = 1;
     if (lastOrder?.orderNo) {
-      const lastSequence = parseInt(lastOrder.orderNo.split('-').pop() || '0', 10);
+      // Extract sequence after the date part (e.g. "NO.180226001" → "001")
+      const seqStr = lastOrder.orderNo.slice(prefix.length);
+      const lastSequence = parseInt(seqStr || '0', 10);
       sequence = lastSequence + 1;
     }
 
-    return `${prefix}${sequence.toString().padStart(5, '0')}`;
+    return `${prefix}${sequence.toString().padStart(3, '0')}`;
   }
 
   async createOrderFromCart(userId: number, createOrderDto: CreateOrderFromCartDto) {
