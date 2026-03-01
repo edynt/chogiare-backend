@@ -178,6 +178,32 @@ export class PaymentRepository implements IPaymentRepository {
     };
   }
 
+  async completeDepositTransaction(transactionId: number, userId: number, amount: number): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      // Atomically update only if still pending — prevents double-credit
+      const result = await tx.transaction.updateMany({
+        where: { id: transactionId, status: 'pending' },
+        data: { status: 'completed', updatedAt: BigInt(Date.now()) },
+      });
+      if (result.count === 0) return false; // Already processed
+
+      // Ensure user balance exists
+      const existing = await tx.userBalance.findUnique({ where: { userId } });
+      if (!existing) {
+        await tx.userBalance.create({
+          data: { userId, balance: amount, updatedAt: BigInt(Date.now()) },
+        });
+      } else {
+        await tx.userBalance.update({
+          where: { userId },
+          data: { balance: { increment: amount }, updatedAt: BigInt(Date.now()) },
+        });
+      }
+
+      return true;
+    });
+  }
+
   async findActiveDepositPackages(): Promise<DepositPackage[]> {
     const packages = await this.prisma.depositPackage.findMany({
       where: { isActive: true },

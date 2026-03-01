@@ -26,4 +26,9 @@ export interface IPaymentRepository {
   ): Promise<UserBalance>;
   checkBalance(userId: number, amount: number): Promise<boolean>;
   findActiveDepositPackages(): Promise<DepositPackage[]>;
+  /**
+   * Atomically confirm a pending deposit: set status to 'completed' and increment user balance.
+   * Returns true if the deposit was confirmed, false if already processed (idempotent).
+   */
+  completeDepositTransaction(transactionId: number, userId: number, amount: number): Promise<boolean>;
 }

@@ -7,6 +7,7 @@ import {
   IPaymentRepository,
   PAYMENT_REPOSITORY,
 } from '@modules/payment/domain/repositories/payment.repository.interface';
+import { SepayService } from './sepay.service';
 import { DepositDto } from '../dto/deposit.dto';
 import { QueryTransactionDto } from '../dto/query-transaction.dto';
 
@@ -18,6 +19,7 @@ export class PaymentService {
     @Inject(PAYMENT_REPOSITORY)
     private readonly paymentRepository: IPaymentRepository,
     private readonly prisma: PrismaService,
+    private readonly sepayService: SepayService,
   ) {}
 
   async deposit(userId: number, depositDto: DepositDto) {
@@ -43,12 +45,15 @@ export class PaymentService {
       updatedAt: now,
     });
 
-    // For bank_transfer, return pending transaction (user confirms later)
+    // For bank_transfer, return pending transaction with SePay QR data
     if (depositDto.paymentMethod === 'bank_transfer') {
       let userBalance = await this.paymentRepository.getUserBalance(userId);
       if (!userBalance) {
         userBalance = await this.paymentRepository.createUserBalance(userId, 0);
       }
+
+      // Generate SePay QR payment data
+      const sepayData = this.sepayService.generateQrData(transaction.id, depositDto.amount);
 
       return {
         transaction: {
@@ -63,6 +68,7 @@ export class PaymentService {
           previousBalance: Number(userBalance.balance),
           newBalance: Number(userBalance.balance),
         },
+        sepay: sepayData,
       };
     }
 
@@ -146,10 +152,19 @@ export class PaymentService {
 
     const previousBalance = Number(userBalance.balance);
 
-    await this.paymentRepository.updateBalance(userId, transaction.amount, 'add');
-    await this.paymentRepository.updateTransactionStatus(transactionId, 'completed');
+    // Use atomic operation to prevent race conditions
+    const confirmed = await this.paymentRepository.completeDepositTransaction(
+      transactionId,
+      userId,
+      transaction.amount,
+    );
 
-    const updatedBalance = await this.paymentRepository.getUserBalance(userId);
+    if (!confirmed) {
+      throw new BadRequestException({
+        message: 'Transaction is not pending',
+        errorCode: ERROR_CODES.PAYMENT_INVALID_TRANSACTION,
+      });
+    }
 
     return {
       transaction: {
@@ -162,9 +177,7 @@ export class PaymentService {
       },
       balance: {
         previousBalance,
-        newBalance: updatedBalance
-          ? Number(updatedBalance.balance)
-          : previousBalance + transaction.amount,
+        newBalance: previousBalance + transaction.amount,
       },
     };
   }

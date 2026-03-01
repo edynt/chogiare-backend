@@ -95,6 +95,8 @@ export const MESSAGES = {
     UNAUTHORIZED_ACCESS: 'Unauthorized to access this transaction',
     INVALID_PAYMENT_METHOD: 'Invalid payment method',
     INVALID_TRANSACTION: 'Invalid transaction',
+    SEPAY_WEBHOOK_INVALID_KEY: 'Invalid SePay API key',
+    SEPAY_WEBHOOK_PROCESSED: 'Webhook processed successfully',
   },
   BOOST: {
     PACKAGE_NOT_FOUND: 'Boost package not found',

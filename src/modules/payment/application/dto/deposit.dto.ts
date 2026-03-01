@@ -15,12 +15,12 @@ export class DepositDto {
   @ApiProperty({
     description: 'Deposit amount',
     example: 100000,
-    minimum: 1000,
+    minimum: 2000,
   })
   @Type(() => Number)
   @IsNumber({}, { message: VALIDATION_MESSAGES.IS_NUMBER })
   @IsNotEmpty({ message: VALIDATION_MESSAGES.IS_NOT_EMPTY })
-  @Min(1000, { message: VALIDATION_MESSAGES.MIN(1000) })
+  @Min(2000, { message: VALIDATION_MESSAGES.MIN(2000) })
   amount: number;
 
   @ApiProperty({
