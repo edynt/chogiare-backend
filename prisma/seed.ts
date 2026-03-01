@@ -45,12 +45,13 @@ async function main() {
   console.log('🌱 Starting database seeding...\n');
 
   try {
-    // Run seeders in order
-    await seedAdminUser(prisma);
+    // Seed users first (admin, seller, buyer) - returns user map
+    const users = await seedAdminUser(prisma);
     await seedCategories(prisma);
     await seedServicePackages(prisma);
     await seedDepositPackages(prisma);
-    await seedProductsWithRelatedData(prisma);
+    // Pass users so products are assigned to the seller
+    await seedProductsWithRelatedData(prisma, users);
 
     console.log('\n✅ Seeding completed successfully');
   } catch (error) {

@@ -1,6 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 import { faker } from '@faker-js/faker/locale/vi';
-import { PRODUCT_CONDITION, PRODUCT_STATUS, PRODUCT_BADGE } from '../../src/common/constants/enum.constants';
+import {
+  PRODUCT_CONDITION,
+  PRODUCT_STATUS,
+  PRODUCT_BADGE,
+} from '../../src/common/constants/enum.constants';
 
 /**
  * Product template by category
@@ -18,7 +22,6 @@ interface ProductTemplate {
  * Product templates organized by category slug
  */
 const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
-  // Thời trang nam
   'ao-nam': {
     titlePrefix: 'Áo',
     brands: ['Polo', 'Lacoste', 'Nike', 'Adidas', 'Uniqlo', 'H&M', 'Zara', 'Routine', 'Coolmate'],
@@ -34,7 +37,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
   },
   'quan-nam': {
     titlePrefix: 'Quần',
-    brands: ['Levi\'s', 'Dockers', 'Uniqlo', 'H&M', 'Zara', 'ASOS', 'Topman'],
+    brands: ["Levi's", 'Dockers', 'Uniqlo', 'H&M', 'Zara', 'ASOS', 'Topman'],
     priceRange: { min: 200000, max: 1200000 },
     descriptions: [
       'Chất liệu bền bỉ, giữ form tốt sau nhiều lần giặt',
@@ -47,7 +50,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
   },
   'giay-nam': {
     titlePrefix: 'Giày',
-    brands: ['Nike', 'Adidas', 'Converse', 'Vans', 'Puma', 'New Balance', 'Fila', 'Biti\'s Hunter'],
+    brands: ['Nike', 'Adidas', 'Converse', 'Vans', 'Puma', 'New Balance', 'Fila', "Biti's Hunter"],
     priceRange: { min: 300000, max: 3000000 },
     descriptions: [
       'Đế giày êm ái, hỗ trợ tốt khi di chuyển',
@@ -58,8 +61,6 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
     tags: ['giày nam', 'giày thể thao', 'giày da', 'sneaker'],
     condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
   },
-
-  // Thời trang nữ
   'ao-nu': {
     titlePrefix: 'Áo',
     brands: ['Zara', 'H&M', 'Mango', 'Uniqlo', 'Canifa', 'IVY moda', 'Elise'],
@@ -78,7 +79,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
     brands: ['Zara', 'H&M', 'Mango', 'Uniqlo', 'Canifa', 'IVY moda'],
     priceRange: { min: 200000, max: 1000000 },
     descriptions: [
-      'Form dáng đẹp,ôm dáng vừa vặn',
+      'Form dáng đẹp, ôm dáng vừa vặn',
       'Chất liệu co giãn tốt, thoải mái',
       'Thiết kế hiện đại, thời trang',
       'Dễ phối với nhiều loại áo',
@@ -99,8 +100,6 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
     tags: ['thời trang nữ', 'váy', 'đầm', 'đầm công sở'],
     condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
   },
-
-  // Điện tử
   'dien-thoai': {
     titlePrefix: 'Điện thoại',
     brands: ['iPhone', 'Samsung', 'Xiaomi', 'OPPO', 'Vivo', 'Realme', 'Nokia'],
@@ -127,7 +126,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
     tags: ['máy tính bảng', 'tablet', 'iPad', 'Android'],
     condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
   },
-  'laptop': {
+  laptop: {
     titlePrefix: 'Laptop',
     brands: ['Dell', 'HP', 'Lenovo', 'Asus', 'Acer', 'MSI', 'MacBook'],
     priceRange: { min: 8000000, max: 45000000 },
@@ -140,8 +139,6 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
     tags: ['laptop', 'máy tính', 'gaming', 'văn phòng'],
     condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
   },
-
-  // Đồ gia dụng
   'do-dung-nha-bep': {
     titlePrefix: 'Đồ dùng nhà bếp',
     brands: ['Lock&Lock', 'Tupperware', 'Inox 304', 'Tefal', 'Elmich'],
@@ -168,11 +165,9 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
     tags: ['thiết bị nhà bếp', 'điện lạnh', 'gia dụng'],
     condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
   },
-
-  // Sức khỏe & làm đẹp
   'my-pham': {
     titlePrefix: 'Mỹ phẩm',
-    brands: ['MAC', '3CE', 'Maybelline', 'L\'Oreal', 'Innisfree', 'The Face Shop', 'Cocoon'],
+    brands: ['MAC', '3CE', 'Maybelline', "L'Oreal", 'Innisfree', 'The Face Shop', 'Cocoon'],
     priceRange: { min: 100000, max: 2000000 },
     descriptions: [
       'Thành phần lành tính, an toàn cho da',
@@ -196,8 +191,6 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
     tags: ['chăm sóc da', 'skincare', 'dưỡng da'],
     condition: [PRODUCT_CONDITION.NEW],
   },
-
-  // Thể thao
   'do-the-thao': {
     titlePrefix: 'Đồ thể thao',
     brands: ['Nike', 'Adidas', 'Puma', 'Under Armour', 'Lululemon', 'Decathlon'],
@@ -211,8 +204,6 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
     tags: ['thể thao', 'gym', 'running', 'fitness'],
     condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
   },
-
-  // Trẻ em
   'do-choi': {
     titlePrefix: 'Đồ chơi',
     brands: ['LEGO', 'Disney', 'Playmobil', 'Fisher-Price', 'VTech'],
@@ -228,7 +219,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
   },
   'quan-ao-tre-em': {
     titlePrefix: 'Quần áo trẻ em',
-    brands: ['Carter\'s', 'Uniqlo Kids', 'H&M Kids', 'Zara Kids', 'Canifa Kids'],
+    brands: ["Carter's", 'Uniqlo Kids', 'H&M Kids', 'Zara Kids', 'Canifa Kids'],
     priceRange: { min: 100000, max: 500000 },
     descriptions: [
       'Chất liệu cotton mềm mại, an toàn',
@@ -239,9 +230,7 @@ const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
     tags: ['quần áo trẻ em', 'bé trai', 'bé gái'],
     condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
   },
-
-  // Sách
-  'sach': {
+  sach: {
     titlePrefix: 'Sách',
     brands: ['NXB Trẻ', 'NXB Kim Đồng', 'NXB Văn học', 'NXB Lao Động', 'First News'],
     priceRange: { min: 50000, max: 300000 },
@@ -281,7 +270,7 @@ const PRODUCT_NAMES: Record<string, string[]> = {
   'vay-dam': ['Váy Midi', 'Đầm Công Sở', 'Váy Maxi', 'Đầm Dự Tiệc', 'Váy Xòe'],
   'dien-thoai': ['11 Pro Max', 'Galaxy S21', 'Redmi Note 11', 'OPPO Reno', 'Vivo V21'],
   'may-tinh-bang': ['Pro 11', 'Galaxy Tab S8', 'Pad 5', 'MatePad Pro'],
-  'laptop': ['Latitude', 'ThinkPad', 'VivoBook', 'Aspire', 'MacBook Air', 'Pavilion'],
+  laptop: ['Latitude', 'ThinkPad', 'VivoBook', 'Aspire', 'MacBook Air', 'Pavilion'],
   'do-dung-nha-bep': ['Nồi Inox', 'Chảo Chống Dính', 'Bộ Dao', 'Thớt Gỗ', 'Hộp Đựng'],
   'thiet-bi-nha-bep': ['Nồi Cơm Điện', 'Lò Vi Sóng', 'Máy Xay', 'Bếp Điện', 'Ấm Siêu Tốc'],
   'my-pham': ['Son Thỏi', 'Phấn Nước', 'Mascara', 'Kem Nền', 'Má Hồng'],
@@ -289,32 +278,27 @@ const PRODUCT_NAMES: Record<string, string[]> = {
   'do-the-thao': ['Quần Short Thể Thao', 'Áo Tập Gym', 'Quần Legging', 'Bộ Đồ Tập'],
   'do-choi': ['Bộ Lego', 'Búp Bê', 'Xe Điều Khiển', 'Robot', 'Xếp Hình'],
   'quan-ao-tre-em': ['Bộ Đồ Bé Trai', 'Váy Bé Gái', 'Áo Thun Trẻ Em', 'Quần Short Bé'],
-  'sach': ['Văn Học', 'Kỹ Năng Sống', 'Tiểu Thuyết', 'Sách Thiếu Nhi', 'Sách Kinh Tế'],
+  sach: ['Văn Học', 'Kỹ Năng Sống', 'Tiểu Thuyết', 'Sách Thiếu Nhi', 'Sách Kinh Tế'],
   'van-phong-pham': ['Bút Bi', 'Vở Kẻ Ngang', 'Bút Chì', 'Tẩy', 'Thước Kẻ'],
 };
 
 /**
- * Generate random product data based on category
+ * Generate random product data for a category, assigned to the seller
  */
-function generateProductData(
-  categorySlug: string,
-  categoryId: number,
-  sellerId: number,
-  _storeId: number | null, // Deprecated: Store model no longer exists
-): any {
+function generateProductData(categorySlug: string, categoryId: number, sellerId: number): any {
   const template = PRODUCT_TEMPLATES[categorySlug];
   const names = PRODUCT_NAMES[categorySlug];
 
-  if (!template || !names) {
-    return null;
-  }
+  if (!template || !names) return null;
 
   const brand = faker.helpers.arrayElement(template.brands);
   const productName = faker.helpers.arrayElement(names);
   const title = `${template.titlePrefix} ${productName} ${brand}`;
 
   const price = faker.number.int(template.priceRange);
-  const originalPrice = faker.datatype.boolean(0.3) ? price * faker.number.float({ min: 1.1, max: 1.5 }) : null;
+  const originalPrice = faker.datatype.boolean(0.3)
+    ? price * faker.number.float({ min: 1.1, max: 1.5 })
+    : null;
   const condition = faker.helpers.arrayElement(template.condition);
   const stock = faker.number.int({ min: 10, max: 500 });
 
@@ -338,7 +322,12 @@ function generateProductData(
     location: faker.location.city(),
     stock,
     availableStock: stock,
-    status: faker.helpers.arrayElement([PRODUCT_STATUS.ACTIVE, PRODUCT_STATUS.ACTIVE, PRODUCT_STATUS.ACTIVE, PRODUCT_STATUS.DRAFT]),
+    status: faker.helpers.arrayElement([
+      PRODUCT_STATUS.ACTIVE,
+      PRODUCT_STATUS.ACTIVE,
+      PRODUCT_STATUS.ACTIVE,
+      PRODUCT_STATUS.DRAFT,
+    ]),
     rating: faker.number.float({ min: 3.5, max: 5, multipleOf: 0.1 }),
     reviewCount: faker.number.int({ min: 0, max: 200 }),
     viewCount: faker.number.int({ min: 0, max: 5000 }),
@@ -353,134 +342,66 @@ function generateProductData(
 }
 
 /**
- * Seed users (sellers) for products
- * Returns existing sellers if available, otherwise creates new ones
- * Note: All users can become sellers, we just need users with sellerName set
+ * Seed products with images and reviews
+ * All products belong to the seller user (tringuyen@yopmail.com)
+ * Reviews are written by the buyer user (edyn@yopmail.com)
  */
-async function seedSellers(prisma: PrismaClient, count: number) {
-  console.log(`👥 Seeding ${count} sellers...`);
-
-  // First, check for existing sellers (users with sellerName)
-  const existingSellers = await prisma.user.findMany({
-    where: { sellerName: { not: null } },
-    take: count,
-  });
-
-  if (existingSellers.length >= count) {
-    console.log(`  ✓ Using ${existingSellers.length} existing sellers`);
-    return existingSellers;
-  }
-
-  const now = BigInt(Date.now());
-  const sellers = [...existingSellers];
-  const neededCount = count - existingSellers.length;
-
-  for (let i = 0; i < neededCount; i++) {
-    const email = faker.internet.email();
-    const existing = await prisma.user.findUnique({ where: { email } });
-
-    if (!existing) {
-      const fullName = faker.person.fullName();
-      const seller = await prisma.user.create({
-        data: {
-          email,
-          hashedPassword: '$2b$10$dummy.hash.for.seeding.purposes.only',
-          isVerified: true,
-          status: true,
-          language: 0,
-          fullName,
-          phoneNumber: faker.phone.number(),
-          address: faker.location.streetAddress(),
-          country: 'Vietnam',
-          // Seller profile fields
-          sellerName: fullName,
-          sellerSlug: faker.helpers.slugify(fullName.toLowerCase()) + '-' + faker.string.alphanumeric(6),
-          sellerDescription: faker.company.catchPhrase(),
-          sellerIsVerified: faker.datatype.boolean(0.3),
-          createdAt: now,
-          updatedAt: now,
-        },
-      });
-      sellers.push(seller);
-    }
-  }
-
-  console.log(`  ✓ Total ${sellers.length} sellers available (${existingSellers.length} existing + ${sellers.length - existingSellers.length} new)`);
-  return sellers;
-}
-
-/**
- * Seed stores
- */
-// Removed seedStores function - Store model no longer exists
-// Store data is now merged into User model with seller fields
-
-/**
- * Seed products with related data
- */
-export async function seedProductsWithRelatedData(prisma: PrismaClient): Promise<void> {
+export async function seedProductsWithRelatedData(
+  prisma: PrismaClient,
+  users: Record<string, { id: number; email: string }>,
+): Promise<void> {
   console.log('🛍️ Seeding products with related data...');
 
   const TARGET_PRODUCTS = 300;
-  const SELLERS_COUNT = 20;
+  const seller = users['tringuyen@yopmail.com'];
+  const buyer = users['edyn@yopmail.com'];
+
+  if (!seller) {
+    console.log('  ⚠️ Seller user not found. Skipping products.');
+    return;
+  }
 
   try {
-    // Get all categories (excluding parents without specific templates)
+    // Get categories matching our templates
     const categories = await prisma.category.findMany({
-      where: {
-        slug: {
-          in: Object.keys(PRODUCT_TEMPLATES),
-        },
-      },
+      where: { slug: { in: Object.keys(PRODUCT_TEMPLATES) } },
     });
 
     if (categories.length === 0) {
-      console.log('  ⚠️  No categories found. Please seed categories first.');
+      console.log('  ⚠️ No categories found. Please seed categories first.');
       return;
     }
 
     console.log(`  📋 Found ${categories.length} categories`);
-
-    // Seed sellers
-    const sellers = await seedSellers(prisma, SELLERS_COUNT);
-    if (sellers.length === 0) {
-      console.log('  ⚠️  No sellers created');
-      return;
-    }
+    console.log(`  👤 Seller: ${seller.email} (id: ${seller.id})`);
 
     // Calculate products per category
     const productsPerCategory = Math.floor(TARGET_PRODUCTS / categories.length);
     let totalCreated = 0;
 
-    // Seed products
     console.log(`📦 Seeding products (${productsPerCategory} per category)...`);
 
     for (const category of categories) {
       const productsInCategory = [];
 
       for (let i = 0; i < productsPerCategory; i++) {
-        const seller = faker.helpers.arrayElement(sellers);
-
-        const productData = generateProductData(category.slug, category.id, seller.id, null);
-
+        const productData = generateProductData(category.slug, category.id, seller.id);
         if (productData) {
           productsInCategory.push(productData);
         }
       }
 
-      // Bulk create products for this category
       if (productsInCategory.length > 0) {
         await prisma.product.createMany({
           data: productsInCategory,
           skipDuplicates: true,
         });
-
         totalCreated += productsInCategory.length;
         console.log(`  ✓ Created ${productsInCategory.length} products for "${category.name}"`);
       }
     }
 
-    // Get all created products for adding images and reviews
+    // Get created products for images and reviews
     const products = await prisma.product.findMany({
       take: TARGET_PRODUCTS,
       orderBy: { createdAt: 'desc' },
@@ -509,25 +430,23 @@ export async function seedProductsWithRelatedData(prisma: PrismaClient): Promise
 
     console.log(`  ✓ Created ${imagesCreated} product images`);
 
-    // Seed reviews
+    // Seed reviews from buyer user
     console.log(`⭐ Seeding product reviews...`);
     let reviewsCreated = 0;
 
-    // Get some users for reviews (reuse sellers as reviewers)
-    const reviewers = sellers.slice(0, 10);
+    if (buyer) {
+      // Buyer reviews a random selection of products
+      const productsToReview = faker.helpers.arrayElements(products, {
+        min: 30,
+        max: Math.min(80, products.length),
+      });
 
-    for (const product of products) {
-      // Random number of reviews per product
-      const reviewCount = faker.number.int({ min: 0, max: 5 });
-
-      for (let i = 0; i < reviewCount; i++) {
-        const reviewer = faker.helpers.arrayElement(reviewers);
-
+      for (const product of productsToReview) {
         try {
           await prisma.review.create({
             data: {
               productId: product.id,
-              userId: reviewer.id,
+              userId: buyer.id,
               rating: faker.number.int({ min: 3, max: 5 }),
               title: faker.lorem.sentence(),
               comment: faker.lorem.paragraph(),
@@ -537,8 +456,8 @@ export async function seedProductsWithRelatedData(prisma: PrismaClient): Promise
             },
           });
           reviewsCreated++;
-        } catch (error) {
-          // Skip duplicates
+        } catch {
+          // Skip duplicates (unique constraint on productId+userId+orderId)
         }
       }
     }
@@ -546,7 +465,7 @@ export async function seedProductsWithRelatedData(prisma: PrismaClient): Promise
     console.log(`  ✓ Created ${reviewsCreated} reviews`);
 
     console.log(`\n  📊 Summary:`);
-    console.log(`     - ${sellers.length} sellers created`);
+    console.log(`     - 1 seller (${seller.email})`);
     console.log(`     - ${totalCreated} products created`);
     console.log(`     - ${imagesCreated} product images created`);
     console.log(`     - ${reviewsCreated} reviews created`);

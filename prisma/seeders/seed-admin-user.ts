@@ -1,8 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
-const ADMIN_EMAIL = 'admin@chogiare.com';
-const ADMIN_PASSWORD = 'Abc@1234';
+const PASSWORD = 'Abc@1234';
 const SALT_ROUNDS = 10;
 
 // Role IDs must match database
@@ -11,100 +10,122 @@ const ROLE_IDS = {
   USER: 2,
 };
 
+// All 3 users to seed
+const USERS = [
+  {
+    email: 'admin@chogiare.com',
+    fullName: 'Administrator',
+    roles: [ROLE_IDS.ADMIN, ROLE_IDS.USER],
+    // No seller fields for admin
+  },
+  {
+    email: 'tringuyen@yopmail.com',
+    fullName: 'Tri Nguyen',
+    roles: [ROLE_IDS.USER],
+    // Seller profile
+    sellerName: 'Tri Nguyen Store',
+    sellerSlug: 'tri-nguyen-store',
+    sellerDescription: 'Cửa hàng bán sỉ chuyên nghiệp - Giá tốt nhất thị trường',
+    sellerIsVerified: true,
+  },
+  {
+    email: 'edyn@yopmail.com',
+    fullName: 'Edyn Buyer',
+    roles: [ROLE_IDS.USER],
+    // Regular buyer, no seller fields
+  },
+];
+
 /**
- * Seed admin user
- * Creates admin@chogiare.com with admin role if not exists
+ * Seed all users: admin, seller (tringuyen), buyer (edyn)
+ * Returns the created/existing users keyed by email
  */
-export async function seedAdminUser(prisma: PrismaClient): Promise<void> {
-  console.log('👤 Seeding admin user...');
+export async function seedAdminUser(
+  prisma: PrismaClient,
+): Promise<Record<string, { id: number; email: string }>> {
+  console.log('👤 Seeding users...');
 
   const now = BigInt(Date.now());
+  const hashedPassword = await bcrypt.hash(PASSWORD, SALT_ROUNDS);
 
-  // Check if admin role exists, create if not
-  const adminRole = await prisma.role.upsert({
+  // Ensure roles exist
+  await prisma.role.upsert({
     where: { id: ROLE_IDS.ADMIN },
     update: {},
-    create: {
-      id: ROLE_IDS.ADMIN,
-      name: 'admin',
-      description: 'Administrator with full system access',
-      createdAt: now,
-    },
+    create: { id: ROLE_IDS.ADMIN, name: 'admin', description: 'Administrator with full system access', createdAt: now },
   });
-  console.log(`  ✓ Admin role ready (id: ${adminRole.id})`);
-
-  // Ensure user role exists too
   await prisma.role.upsert({
     where: { id: ROLE_IDS.USER },
     update: {},
-    create: {
-      id: ROLE_IDS.USER,
-      name: 'user',
-      description: 'Regular user',
-      createdAt: now,
-    },
+    create: { id: ROLE_IDS.USER, name: 'user', description: 'Regular user', createdAt: now },
   });
-  console.log(`  ✓ User role ready (id: ${ROLE_IDS.USER})`);
+  console.log('  ✓ Roles ready');
 
-  // Check if admin user exists
-  const existingUser = await prisma.user.findUnique({
-    where: { email: ADMIN_EMAIL },
-  });
+  const result: Record<string, { id: number; email: string }> = {};
 
-  if (existingUser) {
-    console.log(`  ⚠ Admin user already exists (id: ${existingUser.id})`);
+  for (const userData of USERS) {
+    const existing = await prisma.user.findUnique({ where: { email: userData.email } });
 
-    // Ensure admin has admin role
-    const userRole = await prisma.userRole.findUnique({
-      where: {
-        userId_roleId: {
-          userId: existingUser.id,
-          roleId: ROLE_IDS.ADMIN,
-        },
-      },
-    });
+    let userId: number;
 
-    if (!userRole) {
-      await prisma.userRole.create({
+    if (existing) {
+      userId = existing.id;
+      console.log(`  ⚠ "${userData.fullName}" already exists (id: ${userId})`);
+    } else {
+      const user = await prisma.user.create({
         data: {
-          userId: existingUser.id,
-          roleId: ROLE_IDS.ADMIN,
+          email: userData.email,
+          hashedPassword,
+          isVerified: true,
+          status: true,
+          language: 0,
+          fullName: userData.fullName,
+          country: 'Vietnam',
+          // Seller fields (only if provided)
+          ...(userData.sellerName && {
+            sellerName: userData.sellerName,
+            sellerSlug: userData.sellerSlug,
+            sellerDescription: userData.sellerDescription,
+            sellerIsVerified: userData.sellerIsVerified ?? false,
+          }),
+          createdAt: now,
+          updatedAt: now,
         },
       });
-      console.log('  ✓ Admin role assigned to existing user');
+      userId = user.id;
+      console.log(`  ✓ Created "${userData.fullName}" (id: ${userId})`);
     }
 
-    return;
+    // Assign roles
+    for (const roleId of userData.roles) {
+      const existingRole = await prisma.userRole.findUnique({
+        where: { userId_roleId: { userId, roleId } },
+      });
+      if (!existingRole) {
+        await prisma.userRole.create({ data: { userId, roleId } });
+      }
+    }
+
+    result[userData.email] = { id: userId, email: userData.email };
   }
 
-  // Hash password
-  const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, SALT_ROUNDS);
+  // Seed wallet balance for the seller (tringuyen@yopmail.com)
+  const seller = result['tringuyen@yopmail.com'];
+  if (seller) {
+    await prisma.userBalance.upsert({
+      where: { userId: seller.id },
+      update: {},
+      create: {
+        userId: seller.id,
+        balance: 5000000, // 5,000,000 VND
+        updatedAt: now,
+      },
+    });
+    console.log(`  💰 Seller wallet: 5,000,000 VND`);
+  }
 
-  // Create admin user
-  const adminUser = await prisma.user.create({
-    data: {
-      email: ADMIN_EMAIL,
-      hashedPassword,
-      isVerified: true,
-      status: true,
-      language: 0,
-      fullName: 'Administrator',
-      createdAt: now,
-      updatedAt: now,
-    },
-  });
+  console.log(`  📧 All passwords: ${PASSWORD}`);
+  console.log(`  📊 ${Object.keys(result).length} users seeded`);
 
-  console.log(`  ✓ Admin user created (id: ${adminUser.id})`);
-
-  // Assign admin role
-  await prisma.userRole.create({
-    data: {
-      userId: adminUser.id,
-      roleId: ROLE_IDS.ADMIN,
-    },
-  });
-
-  console.log('  ✓ Admin role assigned');
-  console.log(`  📧 Email: ${ADMIN_EMAIL}`);
-  console.log(`  🔑 Password: ${ADMIN_PASSWORD}`);
+  return result;
 }
