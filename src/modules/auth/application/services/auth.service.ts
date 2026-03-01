@@ -105,14 +105,15 @@ export class AuthService {
       },
     });
 
-    try {
-      await this.emailService.sendOTPEmail(user.email, registerDto.fullName, verificationCode);
-    } catch (error) {
-      this.logger.error(
-        'Failed to send OTP email',
-        error instanceof Error ? error.stack : undefined,
-      );
-    }
+    // Fire-and-forget: send email in background so API responds immediately
+    this.emailService
+      .sendOTPEmail(user.email, registerDto.fullName, verificationCode)
+      .catch((error) => {
+        this.logger.error(
+          'Failed to send OTP email',
+          error instanceof Error ? error.stack : undefined,
+        );
+      });
 
     return {
       message: MESSAGES.AUTH.EMAIL_VERIFICATION_SENT,
@@ -923,9 +924,10 @@ export class AuthService {
     });
 
     if (updateProfileDto.language !== undefined) {
-      const languageNum = typeof updateProfileDto.language === 'string'
-        ? parseInt(updateProfileDto.language, 10)
-        : updateProfileDto.language;
+      const languageNum =
+        typeof updateProfileDto.language === 'string'
+          ? parseInt(updateProfileDto.language, 10)
+          : updateProfileDto.language;
       await this.userRepository.update(userId, { language: languageNum });
     }
   }

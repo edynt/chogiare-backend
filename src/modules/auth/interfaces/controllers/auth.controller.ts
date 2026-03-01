@@ -524,8 +524,36 @@ export class AuthController {
       required: ['accessToken'],
     },
   })
-  async googleAuth(@Body() body: { accessToken: string; providerId?: string }) {
-    return await this.authService.oauthLogin('google', body.accessToken);
+  async googleAuth(
+    @Body() body: { accessToken: string; providerId?: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.oauthLogin('google', body.accessToken);
+
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // Set HttpOnly cookies (same as login)
+    res.cookie('accessToken', result.tokens.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      maxAge: result.tokens.expiresIn * 1000,
+      path: '/',
+    });
+
+    res.cookie('refreshToken', result.tokens.refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+    });
+
+    return {
+      user: result.user,
+      tokens: result.tokens,
+      roles: result.roles,
+    };
   }
 
   @Public()
@@ -551,7 +579,34 @@ export class AuthController {
       required: ['accessToken'],
     },
   })
-  async facebookAuth(@Body() body: { accessToken: string; providerId?: string }) {
-    return await this.authService.oauthLogin('facebook', body.accessToken);
+  async facebookAuth(
+    @Body() body: { accessToken: string; providerId?: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.oauthLogin('facebook', body.accessToken);
+
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    res.cookie('accessToken', result.tokens.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      maxAge: result.tokens.expiresIn * 1000,
+      path: '/',
+    });
+
+    res.cookie('refreshToken', result.tokens.refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+    });
+
+    return {
+      user: result.user,
+      tokens: result.tokens,
+      roles: result.roles,
+    };
   }
 }
