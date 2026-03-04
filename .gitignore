@@ -154,7 +154,6 @@ prisma/migrations/
 # Build
 dist/
 build/
-/docs
 CLAUDE.md
 /plans
 /.claude
