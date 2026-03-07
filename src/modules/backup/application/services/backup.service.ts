@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { execFileSync, execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -14,6 +15,7 @@ interface BackupResult {
   zipPath?: string;
   fileName?: string;
   sizeBytes?: number;
+  s3Key?: string;
   error?: string;
 }
 
@@ -22,6 +24,9 @@ export class BackupService {
   private readonly logger = new Logger(BackupService.name);
   private readonly transporter: Transporter;
   private readonly recipientEmail: string;
+  private readonly s3Client: S3Client;
+  private readonly s3Bucket: string;
+  private readonly s3Prefix: string;
 
   constructor(private readonly configService: ConfigService) {
     const mailConfig = this.configService.get('mail');
@@ -41,10 +46,17 @@ export class BackupService {
       throw new Error('BACKUP_RECIPIENT_EMAIL env var is required');
     }
     this.recipientEmail = recipientEmail;
+
+    // S3 client — on EC2, auto-detects IAM instance role if keys are empty
+    this.s3Client = new S3Client({
+      region: this.configService.get<string>('AWS_REGION', 'ap-southeast-1'),
+    });
+    this.s3Bucket = this.configService.get<string>('AWS_S3_BUCKET', '');
+    this.s3Prefix = this.configService.get<string>('AWS_S3_BACKUP_PREFIX', 'backups/');
   }
 
   /**
-   * Run full backup pipeline: pg_dump → zip → email → cleanup
+   * Run full backup pipeline: pg_dump → zip → S3 upload → email notification → cleanup
    */
   async runBackupAndNotify(): Promise<BackupResult> {
     this.logger.log('Starting database backup...');
@@ -56,10 +68,7 @@ export class BackupService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(`Backup failed: ${errorMessage}`);
-
-      // Send error notification email
       await this.sendErrorEmail(errorMessage);
-
       return { success: false, error: errorMessage };
     }
 
@@ -68,21 +77,59 @@ export class BackupService {
       return result;
     }
 
+    // Upload to S3
     try {
-      await this.sendBackupEmail(result.zipPath, result.fileName!, result.sizeBytes!);
-      this.logger.log('Backup email sent successfully');
+      const s3Key = await this.uploadToS3(result.zipPath, result.fileName!);
+      result.s3Key = s3Key;
+      this.logger.log(`Backup uploaded to S3: ${s3Key}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Failed to send backup email: ${errorMessage}`);
-      await this.sendErrorEmail(`Backup created but email failed: ${errorMessage}`);
-      result.success = false;
-      result.error = errorMessage;
+      this.logger.error(`S3 upload failed: ${errorMessage}`);
+      await this.sendErrorEmail(`Backup created but S3 upload failed: ${errorMessage}`);
+      this.cleanupFile(result.zipPath!);
+      return { ...result, success: false, error: errorMessage };
+    }
+
+    // Send success notification email (no attachment)
+    try {
+      await this.sendSuccessEmail(result.s3Key!, result.fileName!, result.sizeBytes!);
+      this.logger.log('Backup notification email sent');
+    } catch (error) {
+      // Non-fatal: backup is already on S3
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to send notification email: ${errorMessage}`);
     } finally {
-      // Cleanup temp files
       this.cleanupFile(result.zipPath!);
     }
 
     return result;
+  }
+
+  /**
+   * Upload zip file to S3
+   */
+  private async uploadToS3(zipPath: string, fileName: string): Promise<string> {
+    if (!this.s3Bucket) {
+      throw new Error('AWS_S3_BUCKET env var is not configured');
+    }
+
+    const s3Key = `${this.s3Prefix}${fileName}`;
+    const fileStream = fs.createReadStream(zipPath);
+
+    try {
+      await this.s3Client.send(
+        new PutObjectCommand({
+          Bucket: this.s3Bucket,
+          Key: s3Key,
+          Body: fileStream,
+          ContentType: 'application/zip',
+        }),
+      );
+    } finally {
+      fileStream.destroy();
+    }
+
+    return s3Key;
   }
 
   /**
@@ -205,10 +252,10 @@ export class BackupService {
   }
 
   /**
-   * Send backup zip file via email
+   * Send success notification email with S3 location (no attachment)
    */
-  private async sendBackupEmail(
-    zipPath: string,
+  private async sendSuccessEmail(
+    s3Key: string,
     fileName: string,
     sizeBytes: number,
   ): Promise<void> {
@@ -220,13 +267,7 @@ export class BackupService {
       from: `"${mailConfig.from.name}" <${mailConfig.from.email}>`,
       to: this.recipientEmail,
       subject: `[${APP_NAME}] Backup thành công - ${now}`,
-      html: this.getSuccessEmailTemplate(now, fileName, sizeMB),
-      attachments: [
-        {
-          filename: fileName,
-          path: zipPath,
-        },
-      ],
+      html: this.getSuccessEmailTemplate(now, fileName, sizeMB, s3Key),
     });
   }
 
@@ -327,7 +368,17 @@ export class BackupService {
 
   // -- Email Templates --
 
-  private getSuccessEmailTemplate(dateTime: string, fileName: string, sizeMB: string): string {
+  private getSuccessEmailTemplate(
+    dateTime: string,
+    fileName: string,
+    sizeMB: string,
+    s3Key: string,
+  ): string {
+    const safeDateTime = this.escapeHtml(dateTime);
+    const safeFileName = this.escapeHtml(fileName);
+    const safeSizeMB = this.escapeHtml(sizeMB);
+    const safeS3Key = this.escapeHtml(s3Key);
+    const safeBucket = this.escapeHtml(this.s3Bucket);
     return `
 <!DOCTYPE html>
 <html lang="vi">
@@ -350,19 +401,21 @@ export class BackupService {
           <tr>
             <td style="padding: 40px;">
               <p style="margin: 0 0 20px; color: #4a5568; font-size: 16px; line-height: 1.6;">
-                Database backup đã được thực hiện thành công. File backup được đính kèm trong email này.
+                Database backup đã được thực hiện thành công và upload lên S3.
               </p>
               <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f0fdf4; border-radius: 8px; margin: 20px 0;">
                 <tr>
                   <td style="padding: 20px;">
-                    <p style="margin: 0 0 8px; color: #166534; font-size: 14px;"><strong>Thời gian:</strong> ${dateTime}</p>
-                    <p style="margin: 0 0 8px; color: #166534; font-size: 14px;"><strong>File:</strong> ${fileName}</p>
-                    <p style="margin: 0; color: #166534; font-size: 14px;"><strong>Dung lượng:</strong> ${sizeMB} MB</p>
+                    <p style="margin: 0 0 8px; color: #166534; font-size: 14px;"><strong>Thời gian:</strong> ${safeDateTime}</p>
+                    <p style="margin: 0 0 8px; color: #166534; font-size: 14px;"><strong>File:</strong> ${safeFileName}</p>
+                    <p style="margin: 0 0 8px; color: #166534; font-size: 14px;"><strong>Dung lượng:</strong> ${safeSizeMB} MB</p>
+                    <p style="margin: 0 0 8px; color: #166534; font-size: 14px;"><strong>S3 Bucket:</strong> ${safeBucket}</p>
+                    <p style="margin: 0; color: #166534; font-size: 14px;"><strong>S3 Key:</strong> ${safeS3Key}</p>
                   </td>
                 </tr>
               </table>
               <p style="margin: 20px 0 0; color: #718096; font-size: 13px;">
-                Vui lòng lưu trữ file backup ở nơi an toàn.
+                File backup đã được lưu trữ an toàn trên Amazon S3.
               </p>
             </td>
           </tr>

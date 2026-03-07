@@ -12,17 +12,18 @@ export class BackupController {
   constructor(private readonly backupService: BackupService) {}
 
   /**
-   * Trigger backup manually and send email notification.
-   * Usage: GET /api/backup/trigger
+   * Trigger backup manually: pg_dump → zip → S3 upload → email notification.
+   * Usage: GET /api/backup/trigger (no authentication required)
    */
   @Get('trigger')
   @Public()
   @SkipHeaderValidation()
   @ApiOperation({
     summary: 'Trigger manual backup',
-    description: 'Trigger a database backup manually and send email notification.',
+    description:
+      'Trigger database backup, upload to S3, and send email notification. No authentication required.',
   })
-  @ApiResponse({ status: 200, description: 'Backup triggered successfully' })
+  @ApiResponse({ status: 200, description: 'Backup triggered and uploaded to S3' })
   async triggerBackup() {
     this.logger.log('Manual backup triggered via API');
     const result = await this.backupService.runBackupAndNotify();
@@ -31,6 +32,7 @@ export class BackupController {
       success: result.success,
       fileName: result.fileName,
       sizeBytes: result.sizeBytes,
+      s3Key: result.s3Key,
       error: result.error,
     };
   }
