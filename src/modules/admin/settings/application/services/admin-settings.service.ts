@@ -228,12 +228,7 @@ const DEFAULT_SETTINGS: SystemSettingsData = {
   },
   cache: {
     enabled: true,
-    driver: 'redis',
-    redisHost: 'localhost',
-    redisPort: 6379,
-    redisPassword: '',
-    memcachedHost: 'localhost',
-    memcachedPort: 11211,
+    driver: 'memory',
     ttl: 3600,
     prefix: 'chogiare_',
     pageCache: true,

@@ -815,31 +815,6 @@ export class CacheSettingsDto {
   @IsString()
   driver: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  redisHost?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsNumber()
-  redisPort?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  redisPassword?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  memcachedHost?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsNumber()
-  memcachedPort?: number;
-
   @ApiProperty()
   @IsNumber()
   ttl: number;

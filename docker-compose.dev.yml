@@ -16,7 +16,6 @@ services:
     environment:
       - NODE_ENV=development
       - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/chogiare?schema=public}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
       - JWT_SECRET=${JWT_SECRET:-dev-secret-key-change-in-production}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-1h}
       - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET:-dev-refresh-secret}
@@ -26,23 +25,10 @@ services:
       - /app/node_modules
       - /app/dist
     depends_on:
-      - redis
       - postgres
     networks:
       - chogiare-network
     command: npm run start:dev
-
-  # Redis
-  redis:
-    image: redis:7-alpine
-    container_name: chogiare-redis-dev
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-dev-data:/data
-    networks:
-      - chogiare-network
 
   # PostgreSQL (Local development)
   postgres:
@@ -61,7 +47,6 @@ services:
       - chogiare-network
 
 volumes:
-  redis-dev-data:
   postgres-dev-data:
 
 networks:

@@ -14,7 +14,6 @@ services:
     env_file:
       - .env
     depends_on:
-      - redis
       - postgres
     networks:
       - chogiare-network
@@ -26,24 +25,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-
-  # Redis (Cache & Queue)
-  redis:
-    image: redis:7-alpine
-    container_name: chogiare-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
-    networks:
-      - chogiare-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
 
   # PostgreSQL Local Database
   postgres:
@@ -67,8 +48,6 @@ services:
       retries: 5
 
 volumes:
-  redis-data:
-    driver: local
   postgres-data:
     driver: local
 
