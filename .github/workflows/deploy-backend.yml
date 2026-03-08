@@ -1,0 +1,53 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'prisma/**'
+      - 'Dockerfile'
+      - 'package*.json'
+      - 'tsconfig*.json'
+      - 'nest-cli.json'
+
+# Only one deployment at a time; cancel in-progress if new push arrives
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 15
+
+    steps:
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
+          command_timeout: 10m
+          script: |
+            set -e
+            echo "=== Backend Deployment Started ($(date)) ==="
+
+            # Pull latest code on server
+            cd /opt/chogiare/backend
+            git fetch origin main
+            git reset --hard origin/main
+            echo "Code: $(git log --oneline -1)"
+
+            # Run blue/green deployment script (skip git pull, already done above)
+            SKIP_GIT_PULL=1 /opt/chogiare/scripts/deploy.sh
+
+            echo "=== Backend Deployment Complete ==="
+
+      - name: Report failure
+        if: failure()
+        run: |
+          echo "::error::Backend deployment FAILED!"
+          echo "Check server logs: ssh deploy@EC2 'tail -100 /opt/chogiare/logs/deploy.log'"
