@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'chogiare-backend',
-      script: 'dist/main.js',
+      script: 'dist/src/main.js',
       cwd: __dirname,
       instances: 'max',
       exec_mode: 'cluster',
