@@ -131,7 +131,7 @@ const DEFAULT_SETTINGS: SystemSettingsData = {
     sslEnabled: true,
     forceHttps: true,
     corsEnabled: true,
-    corsOrigins: ['https://chogiare.online', 'https://api.chogiare.online'],
+    corsOrigins: ['https://chogiare.online'],
     rateLimiting: true,
     rateLimit: 100,
     rateLimitWindow: 60,
