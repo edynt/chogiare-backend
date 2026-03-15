@@ -27,12 +27,12 @@ interface AuthenticatedSocket extends Socket {
       'http://localhost:3000',
       'http://127.0.0.1:5173',
       'http://127.0.0.1:3000',
-      process.env.CORS_ORIGIN || '',
+      ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map(o => o.trim()) : []),
     ].filter(Boolean),
     credentials: true,
   },
   namespace: '/chat',
-  transports: ['polling', 'websocket'],
+  transports: ['websocket'],
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
