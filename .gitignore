@@ -148,8 +148,6 @@ dist
 .DS_Store
 Thumbs.db
 
-# Prisma
-prisma/migrations/
 
 # Build
 dist/
