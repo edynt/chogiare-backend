@@ -16,7 +16,6 @@ import { DepositDto } from '@modules/payment/application/dto/deposit.dto';
 import { QueryTransactionDto } from '@modules/payment/application/dto/query-transaction.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '@common/decorators/current-user.decorator';
-import { MESSAGES } from '@common/constants/messages.constants';
 
 @ApiTags('Payments')
 @Controller('payments')
@@ -29,11 +28,7 @@ export class PaymentController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Deposit money to wallet' })
   async deposit(@CurrentUser() user: CurrentUserPayload, @Body() depositDto: DepositDto) {
-    const result = await this.paymentService.deposit(user.id, depositDto);
-    return {
-      message: MESSAGES.PAYMENT.DEPOSIT_SUCCESS,
-      data: result,
-    };
+    return await this.paymentService.deposit(user.id, depositDto);
   }
 
   @Post('deposit/:id/confirm')
@@ -45,11 +40,7 @@ export class PaymentController {
     @CurrentUser() user: CurrentUserPayload,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    const result = await this.paymentService.confirmDeposit(user.id, id);
-    return {
-      message: MESSAGES.PAYMENT.DEPOSIT_CONFIRMED,
-      data: result,
-    };
+    return await this.paymentService.confirmDeposit(user.id, id);
   }
 
   @Get('balance')
