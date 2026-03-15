@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import { faker } from '@faker-js/faker/locale/vi';
 import {
   PRODUCT_CONDITION,
   PRODUCT_STATUS,
@@ -7,352 +6,100 @@ import {
 } from '../../src/common/constants/enum.constants';
 
 /**
- * Product template by category
+ * Small set of realistic product seed data
+ * Each product maps to a category slug
  */
-interface ProductTemplate {
-  titlePrefix: string;
-  brands: string[];
-  priceRange: { min: number; max: number };
-  descriptions: string[];
-  tags: string[];
-  condition: number[];
-}
+const SEED_PRODUCTS = [
+  {
+    categorySlug: 'ao-nam',
+    title: 'Áo Polo Nam Lacoste Classic Fit',
+    description: 'Chất liệu cotton pique cao cấp, thấm hút mồ hôi tốt. Form dáng classic fit thoải mái. Logo thêu tinh xảo.',
+    price: 450000,
+    originalPrice: 650000,
+    condition: PRODUCT_CONDITION.LIKE_NEW,
+    location: 'TP. Hồ Chí Minh',
+    stock: 20,
+    tags: ['thời trang nam', 'áo polo', 'lacoste'],
+    badges: [PRODUCT_BADGE.SALE],
+    images: 3,
+  },
+  {
+    categorySlug: 'giay-nam',
+    title: 'Giày Sneaker Nike Air Force 1 White',
+    description: 'Giày Nike AF1 trắng nguyên bản. Đế Air êm ái, da tổng hợp bền đẹp. Size 42, mới 99%.',
+    price: 1800000,
+    originalPrice: 2500000,
+    condition: PRODUCT_CONDITION.LIKE_NEW,
+    location: 'Hà Nội',
+    stock: 5,
+    tags: ['giày nam', 'sneaker', 'nike'],
+    badges: [PRODUCT_BADGE.HOT, PRODUCT_BADGE.SALE],
+    images: 4,
+  },
+  {
+    categorySlug: 'dien-thoai',
+    title: 'iPhone 14 Pro Max 256GB Deep Purple',
+    description: 'Máy đẹp 99%, pin 95%. Đầy đủ phụ kiện, bảo hành còn 6 tháng. Camera 48MP, chip A16 Bionic.',
+    price: 22000000,
+    originalPrice: 28000000,
+    condition: PRODUCT_CONDITION.LIKE_NEW,
+    location: 'TP. Hồ Chí Minh',
+    stock: 3,
+    tags: ['điện thoại', 'iphone', 'apple'],
+    badges: [PRODUCT_BADGE.FEATURED],
+    images: 5,
+  },
+  {
+    categorySlug: 'laptop',
+    title: 'MacBook Air M2 2022 8GB/256GB Midnight',
+    description: 'MacBook Air M2 màu Midnight, sử dụng 6 tháng. Pin cycle count 45. Fullbox, bảo hành Apple Care+.',
+    price: 18500000,
+    originalPrice: 27990000,
+    condition: PRODUCT_CONDITION.LIKE_NEW,
+    location: 'Đà Nẵng',
+    stock: 2,
+    tags: ['laptop', 'macbook', 'apple'],
+    badges: [PRODUCT_BADGE.FEATURED, PRODUCT_BADGE.SALE],
+    images: 4,
+  },
+  {
+    categorySlug: 'vay-dam',
+    title: 'Đầm Công Sở Zara Midi Đen',
+    description: 'Đầm midi màu đen thanh lịch, chất liệu polyester cao cấp. Form A tôn dáng, phù hợp đi làm và sự kiện.',
+    price: 550000,
+    originalPrice: null,
+    condition: PRODUCT_CONDITION.NEW,
+    location: 'TP. Hồ Chí Minh',
+    stock: 10,
+    tags: ['thời trang nữ', 'đầm', 'công sở'],
+    badges: [PRODUCT_BADGE.NEW],
+    images: 3,
+  },
+  {
+    categorySlug: 'cham-soc-da',
+    title: 'Serum La Roche-Posay Vitamin C 30ml',
+    description: 'Serum dưỡng sáng da, chống oxy hóa. Hàng chính hãng, date mới, còn nguyên seal. Phù hợp mọi loại da.',
+    price: 680000,
+    originalPrice: 850000,
+    condition: PRODUCT_CONDITION.NEW,
+    location: 'Hà Nội',
+    stock: 15,
+    tags: ['skincare', 'serum', 'chăm sóc da'],
+    badges: [PRODUCT_BADGE.NEW, PRODUCT_BADGE.SALE],
+    images: 2,
+  },
+];
 
 /**
- * Product templates organized by category slug
- */
-const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
-  'ao-nam': {
-    titlePrefix: 'Áo',
-    brands: ['Polo', 'Lacoste', 'Nike', 'Adidas', 'Uniqlo', 'H&M', 'Zara', 'Routine', 'Coolmate'],
-    priceRange: { min: 150000, max: 800000 },
-    descriptions: [
-      'Chất liệu cotton cao cấp, thấm hút mồ hôi tốt',
-      'Thiết kế trẻ trung, năng động, phù hợp nhiều dịp',
-      'Form dáng regular fit, thoải mái khi vận động',
-      'Dễ dàng phối đồ với nhiều trang phục khác nhau',
-    ],
-    tags: ['thời trang nam', 'áo thun', 'áo sơ mi', 'áo khoác', 'cotton'],
-    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW, PRODUCT_CONDITION.GOOD],
-  },
-  'quan-nam': {
-    titlePrefix: 'Quần',
-    brands: ["Levi's", 'Dockers', 'Uniqlo', 'H&M', 'Zara', 'ASOS', 'Topman'],
-    priceRange: { min: 200000, max: 1200000 },
-    descriptions: [
-      'Chất liệu bền bỉ, giữ form tốt sau nhiều lần giặt',
-      'Thiết kế hiện đại, phong cách trẻ trung',
-      'Thoải mái, dễ dàng vận động cả ngày',
-      'Có nhiều màu sắc để lựa chọn',
-    ],
-    tags: ['thời trang nam', 'quần jean', 'quần kaki', 'quần short'],
-    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW, PRODUCT_CONDITION.GOOD],
-  },
-  'giay-nam': {
-    titlePrefix: 'Giày',
-    brands: ['Nike', 'Adidas', 'Converse', 'Vans', 'Puma', 'New Balance', 'Fila', "Biti's Hunter"],
-    priceRange: { min: 300000, max: 3000000 },
-    descriptions: [
-      'Đế giày êm ái, hỗ trợ tốt khi di chuyển',
-      'Thiết kế thời trang, dễ phối đồ',
-      'Chất liệu cao cấp, bền đẹp theo thời gian',
-      'Phù hợp cho cả đi làm và đi chơi',
-    ],
-    tags: ['giày nam', 'giày thể thao', 'giày da', 'sneaker'],
-    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
-  },
-  'ao-nu': {
-    titlePrefix: 'Áo',
-    brands: ['Zara', 'H&M', 'Mango', 'Uniqlo', 'Canifa', 'IVY moda', 'Elise'],
-    priceRange: { min: 150000, max: 900000 },
-    descriptions: [
-      'Thiết kế nữ tính, thanh lịch',
-      'Chất liệu mềm mại, thoáng mát',
-      'Dễ dàng mix-match với nhiều trang phục',
-      'Phù hợp cho cả đi làm và đi chơi',
-    ],
-    tags: ['thời trang nữ', 'áo kiểu', 'áo thun', 'áo sơ mi'],
-    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW, PRODUCT_CONDITION.GOOD],
-  },
-  'quan-nu': {
-    titlePrefix: 'Quần',
-    brands: ['Zara', 'H&M', 'Mango', 'Uniqlo', 'Canifa', 'IVY moda'],
-    priceRange: { min: 200000, max: 1000000 },
-    descriptions: [
-      'Form dáng đẹp, ôm dáng vừa vặn',
-      'Chất liệu co giãn tốt, thoải mái',
-      'Thiết kế hiện đại, thời trang',
-      'Dễ phối với nhiều loại áo',
-    ],
-    tags: ['thời trang nữ', 'quần jean', 'quần tây', 'quần short'],
-    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW, PRODUCT_CONDITION.GOOD],
-  },
-  'vay-dam': {
-    titlePrefix: 'Váy/Đầm',
-    brands: ['Zara', 'H&M', 'Mango', 'IVY moda', 'Elise', 'Bella'],
-    priceRange: { min: 250000, max: 1500000 },
-    descriptions: [
-      'Thiết kế sang trọng, nữ tính',
-      'Chất liệu cao cấp, mặc thoải mái',
-      'Phù hợp cho nhiều dịp khác nhau',
-      'Form dáng tôn dáng, che khuyết điểm tốt',
-    ],
-    tags: ['thời trang nữ', 'váy', 'đầm', 'đầm công sở'],
-    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
-  },
-  'dien-thoai': {
-    titlePrefix: 'Điện thoại',
-    brands: ['iPhone', 'Samsung', 'Xiaomi', 'OPPO', 'Vivo', 'Realme', 'Nokia'],
-    priceRange: { min: 2000000, max: 30000000 },
-    descriptions: [
-      'Hiệu năng mạnh mẽ, đa nhiệm mượt mà',
-      'Camera chất lượng cao, chụp ảnh đẹp',
-      'Pin trâu, sử dụng cả ngày',
-      'Bảo hành chính hãng, đầy đủ phụ kiện',
-    ],
-    tags: ['điện thoại', 'smartphone', 'di động', 'chính hãng'],
-    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
-  },
-  'may-tinh-bang': {
-    titlePrefix: 'Máy tính bảng',
-    brands: ['iPad', 'Samsung Galaxy Tab', 'Xiaomi Pad', 'Huawei MatePad'],
-    priceRange: { min: 3000000, max: 25000000 },
-    descriptions: [
-      'Màn hình lớn, hiển thị sắc nét',
-      'Hiệu năng cao, xử lý mượt mà',
-      'Pin lâu, sử dụng cả ngày',
-      'Phù hợp cho học tập và giải trí',
-    ],
-    tags: ['máy tính bảng', 'tablet', 'iPad', 'Android'],
-    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
-  },
-  laptop: {
-    titlePrefix: 'Laptop',
-    brands: ['Dell', 'HP', 'Lenovo', 'Asus', 'Acer', 'MSI', 'MacBook'],
-    priceRange: { min: 8000000, max: 45000000 },
-    descriptions: [
-      'Cấu hình mạnh mẽ, xử lý đa tác vụ tốt',
-      'Thiết kế sang trọng, nhẹ, mỏng',
-      'Pin trâu, sử dụng liên tục nhiều giờ',
-      'Bảo hành chính hãng, hỗ trợ tốt',
-    ],
-    tags: ['laptop', 'máy tính', 'gaming', 'văn phòng'],
-    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
-  },
-  'do-dung-nha-bep': {
-    titlePrefix: 'Đồ dùng nhà bếp',
-    brands: ['Lock&Lock', 'Tupperware', 'Inox 304', 'Tefal', 'Elmich'],
-    priceRange: { min: 50000, max: 500000 },
-    descriptions: [
-      'Chất liệu an toàn, không độc hại',
-      'Bền bỉ, sử dụng lâu dài',
-      'Dễ dàng vệ sinh, bảo quản',
-      'Thiết kế tiện lợi, tiết kiệm không gian',
-    ],
-    tags: ['nhà bếp', 'đồ dùng', 'nấu ăn', 'inox'],
-    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW, PRODUCT_CONDITION.GOOD],
-  },
-  'thiet-bi-nha-bep': {
-    titlePrefix: 'Thiết bị nhà bếp',
-    brands: ['Panasonic', 'Philips', 'Sharp', 'Sunhouse', 'Kangaroo', 'Midea'],
-    priceRange: { min: 500000, max: 8000000 },
-    descriptions: [
-      'Công suất mạnh, tiết kiệm điện',
-      'Dễ dàng sử dụng, vận hành êm ái',
-      'Bảo hành chính hãng, hỗ trợ tốt',
-      'Thiết kế hiện đại, sang trọng',
-    ],
-    tags: ['thiết bị nhà bếp', 'điện lạnh', 'gia dụng'],
-    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
-  },
-  'my-pham': {
-    titlePrefix: 'Mỹ phẩm',
-    brands: ['MAC', '3CE', 'Maybelline', "L'Oreal", 'Innisfree', 'The Face Shop', 'Cocoon'],
-    priceRange: { min: 100000, max: 2000000 },
-    descriptions: [
-      'Thành phần lành tính, an toàn cho da',
-      'Màu sắc đẹp, lên màu chuẩn',
-      'Lâu trôi, giữ màu tốt cả ngày',
-      'Hàng chính hãng, tem phụ đầy đủ',
-    ],
-    tags: ['mỹ phẩm', 'làm đẹp', 'son', 'phấn'],
-    condition: [PRODUCT_CONDITION.NEW],
-  },
-  'cham-soc-da': {
-    titlePrefix: 'Sản phẩm chăm sóc da',
-    brands: ['Cetaphil', 'La Roche-Posay', 'Innisfree', 'Some By Mi', 'Cocoon', 'Garnier'],
-    priceRange: { min: 150000, max: 1500000 },
-    descriptions: [
-      'Dưỡng ẩm sâu, làm mềm da',
-      'Thành phần tự nhiên, lành tính',
-      'Phù hợp cho mọi loại da',
-      'Hấp thụ nhanh, không gây bết dính',
-    ],
-    tags: ['chăm sóc da', 'skincare', 'dưỡng da'],
-    condition: [PRODUCT_CONDITION.NEW],
-  },
-  'do-the-thao': {
-    titlePrefix: 'Đồ thể thao',
-    brands: ['Nike', 'Adidas', 'Puma', 'Under Armour', 'Lululemon', 'Decathlon'],
-    priceRange: { min: 200000, max: 1500000 },
-    descriptions: [
-      'Chất liệu thông thoáng, thấm hút mồ hôi',
-      'Co giãn 4 chiều, thoải mái vận động',
-      'Thiết kế năng động, thể thao',
-      'Bền bỉ, giữ form sau nhiều lần giặt',
-    ],
-    tags: ['thể thao', 'gym', 'running', 'fitness'],
-    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
-  },
-  'do-choi': {
-    titlePrefix: 'Đồ chơi',
-    brands: ['LEGO', 'Disney', 'Playmobil', 'Fisher-Price', 'VTech'],
-    priceRange: { min: 100000, max: 3000000 },
-    descriptions: [
-      'An toàn cho trẻ, không chứa chất độc hại',
-      'Kích thích trí tưởng tượng và sáng tạo',
-      'Chất lượng tốt, bền bỉ',
-      'Phù hợp với lứa tuổi, giáo dục',
-    ],
-    tags: ['đồ chơi', 'trẻ em', 'giáo dục'],
-    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
-  },
-  'quan-ao-tre-em': {
-    titlePrefix: 'Quần áo trẻ em',
-    brands: ["Carter's", 'Uniqlo Kids', 'H&M Kids', 'Zara Kids', 'Canifa Kids'],
-    priceRange: { min: 100000, max: 500000 },
-    descriptions: [
-      'Chất liệu cotton mềm mại, an toàn',
-      'Thiết kế dễ thương, đáng yêu',
-      'Thoải mái cho bé vận động',
-      'Dễ giặt, mau khô',
-    ],
-    tags: ['quần áo trẻ em', 'bé trai', 'bé gái'],
-    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
-  },
-  sach: {
-    titlePrefix: 'Sách',
-    brands: ['NXB Trẻ', 'NXB Kim Đồng', 'NXB Văn học', 'NXB Lao Động', 'First News'],
-    priceRange: { min: 50000, max: 300000 },
-    descriptions: [
-      'Nội dung hay, bổ ích',
-      'In ấn đẹp, giấy tốt',
-      'Sách mới, còn nguyên seal',
-      'Giao hàng cẩn thận, đóng gói kỹ',
-    ],
-    tags: ['sách', 'văn học', 'kỹ năng', 'kiến thức'],
-    condition: [PRODUCT_CONDITION.NEW, PRODUCT_CONDITION.LIKE_NEW],
-  },
-  'van-phong-pham': {
-    titlePrefix: 'Văn phòng phẩm',
-    brands: ['Thiên Long', 'BIC', 'Staedtler', 'Pentel', 'Deli'],
-    priceRange: { min: 10000, max: 200000 },
-    descriptions: [
-      'Chất lượng tốt, bền bỉ',
-      'Dễ sử dụng, tiện lợi',
-      'Giá cả phải chăng',
-      'Phù hợp cho học sinh, sinh viên, văn phòng',
-    ],
-    tags: ['văn phòng phẩm', 'bút', 'vở', 'học tập'],
-    condition: [PRODUCT_CONDITION.NEW],
-  },
-};
-
-/**
- * Product name variations
- */
-const PRODUCT_NAMES: Record<string, string[]> = {
-  'ao-nam': ['Thun Nam', 'Sơ Mi Nam', 'Polo Nam', 'Khoác Nam', 'Hoodie Nam', 'Len Nam'],
-  'quan-nam': ['Jean Nam', 'Kaki Nam', 'Short Nam', 'Tây Nam', 'Thể Thao Nam'],
-  'giay-nam': ['Sneaker Nam', 'Giày Da Nam', 'Dép Nam', 'Giày Thể Thao Nam', 'Giày Tây Nam'],
-  'ao-nu': ['Thun Nữ', 'Sơ Mi Nữ', 'Kiểu Nữ', 'Khoác Nữ', 'Len Nữ'],
-  'quan-nu': ['Jean Nữ', 'Tây Nữ', 'Short Nữ', 'Legging Nữ', 'Culottes'],
-  'vay-dam': ['Váy Midi', 'Đầm Công Sở', 'Váy Maxi', 'Đầm Dự Tiệc', 'Váy Xòe'],
-  'dien-thoai': ['11 Pro Max', 'Galaxy S21', 'Redmi Note 11', 'OPPO Reno', 'Vivo V21'],
-  'may-tinh-bang': ['Pro 11', 'Galaxy Tab S8', 'Pad 5', 'MatePad Pro'],
-  laptop: ['Latitude', 'ThinkPad', 'VivoBook', 'Aspire', 'MacBook Air', 'Pavilion'],
-  'do-dung-nha-bep': ['Nồi Inox', 'Chảo Chống Dính', 'Bộ Dao', 'Thớt Gỗ', 'Hộp Đựng'],
-  'thiet-bi-nha-bep': ['Nồi Cơm Điện', 'Lò Vi Sóng', 'Máy Xay', 'Bếp Điện', 'Ấm Siêu Tốc'],
-  'my-pham': ['Son Thỏi', 'Phấn Nước', 'Mascara', 'Kem Nền', 'Má Hồng'],
-  'cham-soc-da': ['Sữa Rửa Mặt', 'Kem Dưỡng', 'Serum', 'Toner', 'Mặt Nạ'],
-  'do-the-thao': ['Quần Short Thể Thao', 'Áo Tập Gym', 'Quần Legging', 'Bộ Đồ Tập'],
-  'do-choi': ['Bộ Lego', 'Búp Bê', 'Xe Điều Khiển', 'Robot', 'Xếp Hình'],
-  'quan-ao-tre-em': ['Bộ Đồ Bé Trai', 'Váy Bé Gái', 'Áo Thun Trẻ Em', 'Quần Short Bé'],
-  sach: ['Văn Học', 'Kỹ Năng Sống', 'Tiểu Thuyết', 'Sách Thiếu Nhi', 'Sách Kinh Tế'],
-  'van-phong-pham': ['Bút Bi', 'Vở Kẻ Ngang', 'Bút Chì', 'Tẩy', 'Thước Kẻ'],
-};
-
-/**
- * Generate random product data for a category, assigned to the seller
- */
-function generateProductData(categorySlug: string, categoryId: number, sellerId: number): any {
-  const template = PRODUCT_TEMPLATES[categorySlug];
-  const names = PRODUCT_NAMES[categorySlug];
-
-  if (!template || !names) return null;
-
-  const brand = faker.helpers.arrayElement(template.brands);
-  const productName = faker.helpers.arrayElement(names);
-  const title = `${template.titlePrefix} ${productName} ${brand}`;
-
-  const price = faker.number.int(template.priceRange);
-  const originalPrice = faker.datatype.boolean(0.3)
-    ? price * faker.number.float({ min: 1.1, max: 1.5 })
-    : null;
-  const condition = faker.helpers.arrayElement(template.condition);
-  const stock = faker.number.int({ min: 10, max: 500 });
-
-  // Generate badges
-  const badges: number[] = [];
-  if (faker.datatype.boolean(0.1)) badges.push(PRODUCT_BADGE.NEW);
-  if (faker.datatype.boolean(0.1)) badges.push(PRODUCT_BADGE.FEATURED);
-  if (faker.datatype.boolean(0.1)) badges.push(PRODUCT_BADGE.HOT);
-  if (originalPrice && faker.datatype.boolean(0.3)) badges.push(PRODUCT_BADGE.SALE);
-
-  const now = BigInt(Date.now());
-
-  return {
-    sellerId,
-    categoryId,
-    title,
-    description: template.descriptions.join('. ') + '.',
-    price,
-    originalPrice,
-    condition,
-    location: faker.location.city(),
-    stock,
-    availableStock: stock,
-    status: faker.helpers.arrayElement([
-      PRODUCT_STATUS.ACTIVE,
-      PRODUCT_STATUS.ACTIVE,
-      PRODUCT_STATUS.ACTIVE,
-      PRODUCT_STATUS.DRAFT,
-    ]),
-    rating: faker.number.float({ min: 3.5, max: 5, multipleOf: 0.1 }),
-    reviewCount: faker.number.int({ min: 0, max: 200 }),
-    viewCount: faker.number.int({ min: 0, max: 5000 }),
-    salesCount: faker.number.int({ min: 0, max: 500 }),
-    isFeatured: faker.datatype.boolean(0.1),
-    isPromoted: faker.datatype.boolean(0.15),
-    tags: faker.helpers.arrayElements(template.tags, { min: 2, max: 4 }),
-    badges,
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-/**
- * Seed products with images and reviews
- * All products belong to the seller user (tringuyen@yopmail.com)
- * Reviews are written by the buyer user (edyn@yopmail.com)
+ * Seed a small set of realistic products with images
+ * All products belong to seller (tringuyen@yopmail.com)
  */
 export async function seedProductsWithRelatedData(
   prisma: PrismaClient,
   users: Record<string, { id: number; email: string }>,
 ): Promise<void> {
-  console.log('🛍️ Seeding products with related data...');
+  console.log('🛍️ Seeding products...');
 
-  const TARGET_PRODUCTS = 300;
   const seller = users['tringuyen@yopmail.com'];
   const buyer = users['edyn@yopmail.com'];
 
@@ -361,116 +108,102 @@ export async function seedProductsWithRelatedData(
     return;
   }
 
-  try {
-    // Get categories matching our templates
-    const categories = await prisma.category.findMany({
-      where: { slug: { in: Object.keys(PRODUCT_TEMPLATES) } },
+  console.log(`  👤 Seller: ${seller.email} (id: ${seller.id})`);
+
+  // Get categories matching seed data
+  const categorySlugs = Array.from(new Set(SEED_PRODUCTS.map((p) => p.categorySlug)));
+  const categories = await prisma.category.findMany({
+    where: { slug: { in: categorySlugs } },
+  });
+
+  if (categories.length === 0) {
+    console.log('  ⚠️ No categories found. Please seed categories first.');
+    return;
+  }
+
+  const categoryMap = new Map(categories.map((c) => [c.slug, c.id]));
+  const now = BigInt(Date.now());
+  let productsCreated = 0;
+  let imagesCreated = 0;
+
+  for (const seed of SEED_PRODUCTS) {
+    const categoryId = categoryMap.get(seed.categorySlug);
+    if (!categoryId) {
+      console.log(`  ⚠️ Category "${seed.categorySlug}" not found, skipping`);
+      continue;
+    }
+
+    // Create product
+    const product = await prisma.product.create({
+      data: {
+        sellerId: seller.id,
+        categoryId,
+        title: seed.title,
+        description: seed.description,
+        price: seed.price,
+        originalPrice: seed.originalPrice,
+        condition: seed.condition,
+        location: seed.location,
+        stock: seed.stock,
+        availableStock: seed.stock,
+        status: PRODUCT_STATUS.ACTIVE,
+        rating: 0,
+        reviewCount: 0,
+        viewCount: 0,
+        salesCount: 0,
+        isFeatured: (seed.badges as number[]).includes(PRODUCT_BADGE.FEATURED),
+        isPromoted: false,
+        tags: seed.tags,
+        badges: seed.badges,
+        createdAt: now,
+        updatedAt: now,
+      },
     });
+    productsCreated++;
 
-    if (categories.length === 0) {
-      console.log('  ⚠️ No categories found. Please seed categories first.');
-      return;
+    // Create placeholder images
+    for (let i = 0; i < seed.images; i++) {
+      await prisma.productImage.create({
+        data: {
+          productId: product.id,
+          imageUrl: `https://picsum.photos/seed/${product.id}-${i}/800/600`,
+          displayOrder: i,
+          createdAt: now,
+        },
+      });
+      imagesCreated++;
     }
 
-    console.log(`  📋 Found ${categories.length} categories`);
-    console.log(`  👤 Seller: ${seller.email} (id: ${seller.id})`);
+    console.log(`  ✓ ${seed.title}`);
+  }
 
-    // Calculate products per category
-    const productsPerCategory = Math.floor(TARGET_PRODUCTS / categories.length);
-    let totalCreated = 0;
-
-    console.log(`📦 Seeding products (${productsPerCategory} per category)...`);
-
-    for (const category of categories) {
-      const productsInCategory = [];
-
-      for (let i = 0; i < productsPerCategory; i++) {
-        const productData = generateProductData(category.slug, category.id, seller.id);
-        if (productData) {
-          productsInCategory.push(productData);
-        }
-      }
-
-      if (productsInCategory.length > 0) {
-        await prisma.product.createMany({
-          data: productsInCategory,
-          skipDuplicates: true,
-        });
-        totalCreated += productsInCategory.length;
-        console.log(`  ✓ Created ${productsInCategory.length} products for "${category.name}"`);
-      }
-    }
-
-    // Get created products for images and reviews
-    const products = await prisma.product.findMany({
-      take: TARGET_PRODUCTS,
+  // Add a review from buyer on the first product
+  if (buyer) {
+    const firstProduct = await prisma.product.findFirst({
+      where: { sellerId: seller.id },
       orderBy: { createdAt: 'desc' },
     });
 
-    // Seed product images
-    console.log(`🖼️  Seeding product images...`);
-    const now = BigInt(Date.now());
-    let imagesCreated = 0;
-
-    for (const product of products) {
-      const imageCount = faker.number.int({ min: 2, max: 5 });
-
-      for (let i = 0; i < imageCount; i++) {
-        await prisma.productImage.create({
+    if (firstProduct) {
+      try {
+        await prisma.review.create({
           data: {
-            productId: product.id,
-            imageUrl: `https://picsum.photos/seed/${product.id}-${i}/800/600`,
-            displayOrder: i,
+            productId: firstProduct.id,
+            userId: buyer.id,
+            rating: 5,
+            title: 'Sản phẩm tốt',
+            comment: 'Hàng đúng mô tả, giao hàng nhanh. Rất hài lòng!',
+            isVerified: true,
             createdAt: now,
+            updatedAt: now,
           },
         });
-        imagesCreated++;
+        console.log(`  ✓ 1 review created`);
+      } catch {
+        // Skip if duplicate
       }
     }
-
-    console.log(`  ✓ Created ${imagesCreated} product images`);
-
-    // Seed reviews from buyer user
-    console.log(`⭐ Seeding product reviews...`);
-    let reviewsCreated = 0;
-
-    if (buyer) {
-      // Buyer reviews a random selection of products
-      const productsToReview = faker.helpers.arrayElements(products, {
-        min: 30,
-        max: Math.min(80, products.length),
-      });
-
-      for (const product of productsToReview) {
-        try {
-          await prisma.review.create({
-            data: {
-              productId: product.id,
-              userId: buyer.id,
-              rating: faker.number.int({ min: 3, max: 5 }),
-              title: faker.lorem.sentence(),
-              comment: faker.lorem.paragraph(),
-              isVerified: faker.datatype.boolean(0.7),
-              createdAt: now,
-              updatedAt: now,
-            },
-          });
-          reviewsCreated++;
-        } catch {
-          // Skip duplicates (unique constraint on productId+userId+orderId)
-        }
-      }
-    }
-
-    console.log(`  ✓ Created ${reviewsCreated} reviews`);
-
-    console.log(`\n  📊 Summary:`);
-    console.log(`     - 1 seller (${seller.email})`);
-    console.log(`     - ${totalCreated} products created`);
-    console.log(`     - ${imagesCreated} product images created`);
-    console.log(`     - ${reviewsCreated} reviews created`);
-  } catch (error) {
-    console.error('  ❌ Error seeding products:', error);
-    throw error;
   }
+
+  console.log(`\n  📊 Summary: ${productsCreated} products, ${imagesCreated} images`);
 }
