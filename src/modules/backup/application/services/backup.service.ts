@@ -51,7 +51,7 @@ export class BackupService {
     this.s3Client = new S3Client({
       region: this.configService.get<string>('AWS_REGION', 'ap-southeast-1'),
     });
-    this.s3Bucket = this.configService.get<string>('AWS_S3_BUCKET', '');
+    this.s3Bucket = this.configService.get<string>('AWS_S3_BUCKET', 'chogiare-backup-data');
     this.s3Prefix = this.configService.get<string>('AWS_S3_BACKUP_PREFIX', 'backups/');
   }
 
