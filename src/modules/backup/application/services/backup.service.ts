@@ -136,8 +136,9 @@ export class BackupService {
    * Create database backup: pg_dump (plain SQL) → sanitize → .zip
    * Post-processes the SQL to strip pg_dump 18+ incompatible directives
    * (\restrict, SET transaction_timeout) so the .sql runs cleanly on PG 16.
+   * Returns BackupResult with zipPath for direct download or S3 upload.
    */
-  private async createBackup(): Promise<BackupResult> {
+  async createBackup(): Promise<BackupResult> {
     const dbUrl = this.configService.get<string>('DATABASE_URL') || '';
     const parsed = this.parseDatabaseUrl(dbUrl);
 
@@ -356,7 +357,7 @@ export class BackupService {
   /**
    * Safely delete a temp file
    */
-  private cleanupFile(filePath: string): void {
+  cleanupFile(filePath: string): void {
     try {
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
