@@ -5,6 +5,7 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 
 const DAYS_TO_KEEP = 30;
+const INACTIVE_DAYS_THRESHOLD = 180;
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 @Injectable()
@@ -263,6 +264,60 @@ export class CleanupService {
     } catch (error) {
       this.logger.error(
         'Error cleaning up expired sessions',
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
+  }
+
+  /**
+   * Delete user accounts inactive for 180+ days.
+   * Uses lastLoginAt if available, falls back to createdAt.
+   * Admin users are excluded from auto-deletion.
+   * Prisma cascades handle related data deletion (orders, reviews, etc).
+   */
+  async cleanupInactiveAccounts(): Promise<void> {
+    try {
+      const cutoffMs = BigInt(Date.now() - INACTIVE_DAYS_THRESHOLD * MILLISECONDS_PER_DAY);
+
+      // Find admin role IDs to exclude
+      const adminRoles = await this.prisma.userRole.findMany({
+        where: { roleId: 1 }, // Admin role ID
+        select: { userId: true },
+      });
+      const adminUserIds = adminRoles.map((r) => r.userId);
+
+      // Find inactive non-admin users
+      const inactiveUsers = await this.prisma.user.findMany({
+        where: {
+          id: { notIn: adminUserIds.length > 0 ? adminUserIds : [-1] },
+          OR: [
+            // Has logged in but not within 180 days
+            { lastLoginAt: { lt: cutoffMs, not: null } },
+            // Never logged in and account created 180+ days ago
+            { lastLoginAt: null, createdAt: { lt: cutoffMs } },
+          ],
+        },
+        select: { id: true, email: true, lastLoginAt: true, createdAt: true },
+      });
+
+      if (inactiveUsers.length === 0) {
+        this.logger.log('No inactive accounts to clean up');
+        return;
+      }
+
+      const userIds = inactiveUsers.map((u) => u.id);
+
+      // Delete users - Prisma onDelete: Cascade handles related data
+      const result = await this.prisma.user.deleteMany({
+        where: { id: { in: userIds } },
+      });
+
+      this.logger.warn(
+        `Deleted ${result.count} inactive accounts (180+ days): ${inactiveUsers.map((u) => u.email).join(', ')}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        'Error cleaning up inactive accounts',
         error instanceof Error ? error.stack : undefined,
       );
     }

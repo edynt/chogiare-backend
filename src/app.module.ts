@@ -27,6 +27,7 @@ import { NotificationModule } from '@modules/notification/notification.module';
 import { SellerModule } from '@modules/seller/seller.module';
 import { SupportTicketModule } from '@modules/support-ticket/support-ticket.module';
 import { BackupModule } from '@modules/backup/backup.module';
+import { SeoModule } from '@modules/seo/seo.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { BackupModule } from '@modules/backup/backup.module';
     SellerModule,
     SupportTicketModule,
     BackupModule,
+    SeoModule,
   ],
   providers: [
     {

@@ -47,8 +47,9 @@ model User {
   sellerPolicies    Json    @default("{}") @map("seller_policies")
   sellerMetadata    Json    @default("{}") @map("seller_metadata")
 
-  createdAt BigInt @map("created_at")
-  updatedAt BigInt @map("updated_at")
+  lastLoginAt BigInt? @map("last_login_at")
+  createdAt   BigInt  @map("created_at")
+  updatedAt   BigInt  @map("updated_at")
 
   sessions           Session[]
   emailVerifications EmailVerification[]

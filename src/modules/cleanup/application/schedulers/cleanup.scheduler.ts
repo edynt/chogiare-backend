@@ -32,4 +32,11 @@ export class CleanupScheduler {
     this.logger.log('Starting scheduled cleanup of expired sessions');
     await this.cleanupService.cleanupExpiredSessions();
   }
+
+  // Run at 5 AM daily - delete accounts inactive for 180+ days
+  @Cron('0 5 * * *')
+  async handleInactiveAccountsCleanup() {
+    this.logger.log('Starting scheduled cleanup of inactive accounts (180+ days)');
+    await this.cleanupService.cleanupInactiveAccounts();
+  }
 }

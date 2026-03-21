@@ -175,6 +175,12 @@ export class AuthService {
 
     await this.saveRefreshToken(user.id, tokens.refreshToken);
 
+    // Track last login time for inactive account cleanup
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: BigInt(Date.now()) },
+    });
+
     return {
       user: {
         id: user.id,
@@ -235,6 +241,12 @@ export class AuthService {
     );
 
     await this.saveRefreshToken(user.id, tokens.refreshToken);
+
+    // Track last login time
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: BigInt(Date.now()) },
+    });
 
     const permissions = await this.getUserPermissions(user.id);
 
@@ -519,6 +531,12 @@ export class AuthService {
       userRoles.map((ur) => ur.roleId),
     );
     await this.saveRefreshToken(updatedUser.id, tokens.refreshToken);
+
+    // Track last login time
+    await this.prisma.user.update({
+      where: { id: updatedUser.id },
+      data: { lastLoginAt: BigInt(Date.now()) },
+    });
 
     return {
       user: {
@@ -1093,6 +1111,12 @@ export class AuthService {
         userRoles.map((ur) => ur.roleId),
       );
       await this.saveRefreshToken(user.id, tokens.refreshToken);
+
+      // Track last login time
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: BigInt(Date.now()) },
+      });
 
       const roles = userRoles.map((ur) => ur.role.name);
 
