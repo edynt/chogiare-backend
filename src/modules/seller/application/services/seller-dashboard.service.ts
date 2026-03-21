@@ -55,6 +55,7 @@ export interface DashboardStats {
   totalCustomers: number;
   activeProducts: number;
   soldProducts: number;
+  lowStockProducts: number;
 }
 
 @Injectable()
@@ -134,6 +135,11 @@ export class SellerDashboardService {
     // Get products sold count (from completed orders)
     const soldProducts = completedOrders;
 
+    // Get low stock products (stock <= 5 and still active)
+    const lowStockProducts = await this.prisma.product.count({
+      where: { sellerId, status: 1, stock: { lte: 5, gt: 0 } },
+    });
+
     // Get views from products
     const viewsResult = await this.prisma.product.aggregate({
       where: { sellerId },
@@ -175,6 +181,7 @@ export class SellerDashboardService {
       totalCustomers,
       activeProducts,
       soldProducts,
+      lowStockProducts,
     };
   }
 
