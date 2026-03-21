@@ -1,0 +1,17 @@
+node_modules
+dist
+logs
+.env
+.env.*
+*.log
+.git
+.github
+.claude
+plans
+docs
+coverage
+test
+__tests__
+*.md
+docker-compose*.yml
+.dockerignore

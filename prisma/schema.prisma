@@ -652,29 +652,6 @@ model SystemSetting {
   @@map("system_settings")
 }
 
-// ==================== API KEYS ====================
-
-model ApiKey {
-  id          Int      @id @default(autoincrement())
-  name        String   @db.VarChar(255)
-  key         String   @unique @db.VarChar(255)
-  secret      String   @db.VarChar(500)
-  permissions String[] @default([])
-  rateLimit   Int      @default(1000) @map("rate_limit")
-  isActive    Boolean  @default(true) @map("is_active")
-  lastUsedAt  BigInt?  @map("last_used_at")
-  expiresAt   BigInt?  @map("expires_at")
-  createdBy   Int      @map("created_by")
-  metadata    Json     @default("{}")
-  createdAt   BigInt   @map("created_at")
-  updatedAt   BigInt   @map("updated_at")
-
-  @@index([key])
-  @@index([isActive])
-  @@index([createdBy])
-  @@map("api_keys")
-}
-
 // ==================== DEPOSIT PACKAGES ====================
 
 model DepositPackage {
