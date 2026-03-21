@@ -84,6 +84,23 @@ export class ReviewController {
     };
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('eligibility/:productId')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Check if user can review a product' })
+  @ApiParam({ name: 'productId', type: String })
+  async checkEligibility(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('productId', ParseIntPipe) productId: number,
+  ) {
+    const result = await this.reviewService.checkEligibility(user.id, productId);
+    return {
+      message: MESSAGES.SUCCESS,
+      data: result,
+    };
+  }
+
   @Public()
   @Get('stats')
   @HttpCode(HttpStatus.OK)

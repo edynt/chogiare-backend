@@ -197,6 +197,38 @@ export class ReviewService {
     await this.updateProductRating(review.productId);
   }
 
+  /**
+   * Check if user can review a product:
+   * - Must have a completed order containing the product
+   * - Must not have already reviewed this product
+   */
+  async checkEligibility(userId: number, productId: number) {
+    // Find a completed order with this product by this buyer
+    const completedOrder = await this.prisma.order.findFirst({
+      where: {
+        buyerId: userId,
+        status: 4, // ORDER_STATUS.COMPLETED
+        items: { some: { productId } },
+      },
+      select: { id: true },
+    });
+
+    if (!completedOrder) {
+      return { canReview: false, reason: 'no_purchase' };
+    }
+
+    // Check if already reviewed
+    const existingReview = await this.prisma.review.findFirst({
+      where: { productId, userId },
+    });
+
+    if (existingReview) {
+      return { canReview: false, reason: 'already_reviewed' };
+    }
+
+    return { canReview: true, orderId: completedOrder.id };
+  }
+
   async getStats(productId?: number, sellerId?: number, userId?: number) {
     const where: Record<string, unknown> = {};
 
