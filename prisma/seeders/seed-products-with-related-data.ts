@@ -177,32 +177,52 @@ export async function seedProductsWithRelatedData(
     console.log(`  ✓ ${seed.title}`);
   }
 
-  // Add a review from buyer on the first product
+  // Add reviews from buyer to multiple products and update product stats
   if (buyer) {
-    const firstProduct = await prisma.product.findFirst({
+    const sellerProducts = await prisma.product.findMany({
       where: { sellerId: seller.id },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
     });
 
-    if (firstProduct) {
+    const sampleReviews = [
+      { rating: 5, title: 'Sản phẩm tốt', comment: 'Hàng đúng mô tả, giao hàng nhanh. Rất hài lòng!' },
+      { rating: 4, title: 'Chất lượng ổn', comment: 'Sản phẩm tốt so với giá tiền. Đóng gói cẩn thận.' },
+      { rating: 5, title: 'Xuất sắc', comment: 'Mình rất hài lòng, sẽ ủng hộ lần sau. Giao hàng nhanh, đúng mô tả.' },
+      { rating: 3, title: 'Tạm được', comment: 'Sản phẩm OK nhưng giao hàng hơi chậm.' },
+      { rating: 4, title: 'Đáng mua', comment: 'Giá hợp lý, chất lượng tương xứng. Recommend cho mọi người.' },
+    ];
+
+    let reviewsCreated = 0;
+    for (let i = 0; i < Math.min(sellerProducts.length, sampleReviews.length); i++) {
+      const product = sellerProducts[i];
+      const review = sampleReviews[i];
       try {
         await prisma.review.create({
           data: {
-            productId: firstProduct.id,
+            productId: product.id,
             userId: buyer.id,
-            rating: 5,
-            title: 'Sản phẩm tốt',
-            comment: 'Hàng đúng mô tả, giao hàng nhanh. Rất hài lòng!',
+            rating: review.rating,
+            title: review.title,
+            comment: review.comment,
             isVerified: true,
             createdAt: now,
             updatedAt: now,
           },
         });
-        console.log(`  ✓ 1 review created`);
+
+        // Update product rating and reviewCount
+        await prisma.product.update({
+          where: { id: product.id },
+          data: { rating: review.rating, reviewCount: 1 },
+        });
+
+        reviewsCreated++;
       } catch {
         // Skip if duplicate
       }
     }
+
+    console.log(`  ✓ ${reviewsCreated} reviews created`);
   }
 
   console.log(`\n  📊 Summary: ${productsCreated} products, ${imagesCreated} images`);

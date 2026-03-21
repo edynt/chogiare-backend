@@ -735,77 +735,6 @@ export class StorageSettingsDto {
   allowedFileTypes: string[];
 }
 
-export class BackupSettingsDto {
-  @ApiProperty()
-  @IsBoolean()
-  enabled: boolean;
-
-  @ApiProperty()
-  @IsString()
-  frequency: string;
-
-  @ApiProperty()
-  @IsString()
-  time: string;
-
-  @ApiProperty()
-  @IsNumber()
-  retention: number;
-
-  @ApiProperty()
-  @IsBoolean()
-  includeDatabase: boolean;
-
-  @ApiProperty()
-  @IsBoolean()
-  includeUploads: boolean;
-
-  @ApiProperty()
-  @IsBoolean()
-  includeLogs: boolean;
-
-  @ApiProperty()
-  @IsString()
-  storageProvider: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  s3Bucket?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  googleDriveFolder?: string;
-
-  @ApiProperty()
-  @IsBoolean()
-  encryptBackup: boolean;
-
-  @ApiProperty()
-  @IsBoolean()
-  notifyOnSuccess: boolean;
-
-  @ApiProperty()
-  @IsBoolean()
-  notifyOnFailure: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  lastBackup?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  lastBackupSize?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  lastBackupStatus?: string;
-}
-
 export class CacheSettingsDto {
   @ApiProperty()
   @IsBoolean()
@@ -1078,9 +1007,6 @@ export class SystemSettingsDto {
 
   @ApiProperty()
   @ValidateNested()
-  @Type(() => BackupSettingsDto)
-  backup: BackupSettingsDto;
-
   @ApiProperty()
   @ValidateNested()
   @Type(() => CacheSettingsDto)

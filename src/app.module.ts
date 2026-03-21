@@ -26,7 +26,6 @@ import { ReportsModule } from '@modules/reports/reports.module';
 import { NotificationModule } from '@modules/notification/notification.module';
 import { SellerModule } from '@modules/seller/seller.module';
 import { SupportTicketModule } from '@modules/support-ticket/support-ticket.module';
-import { BackupModule } from '@modules/backup/backup.module';
 import { SeoModule } from '@modules/seo/seo.module';
 
 @Module({
@@ -52,7 +51,6 @@ import { SeoModule } from '@modules/seo/seo.module';
     NotificationModule,
     SellerModule,
     SupportTicketModule,
-    BackupModule,
     SeoModule,
   ],
   providers: [
