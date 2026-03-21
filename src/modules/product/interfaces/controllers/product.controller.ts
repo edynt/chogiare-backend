@@ -115,6 +115,20 @@ export class ProductController {
     };
   }
 
+  @Public()
+  @Get(':id/price-history')
+  @ApiOperation({ summary: 'Get product price history' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiQuery({ name: 'days', required: false, type: Number, description: 'Number of days to look back (default: 90)' })
+  async getPriceHistory(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('days') days?: string,
+  ) {
+    const parsedDays = days ? parseInt(days, 10) : 90;
+    const safeDays = Math.min(Math.max(1, isNaN(parsedDays) ? 90 : parsedDays), 365);
+    return await this.productService.getPriceHistory(id, safeDays);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get(':id/boost-status')
   @ApiBearerAuth('JWT-auth')
