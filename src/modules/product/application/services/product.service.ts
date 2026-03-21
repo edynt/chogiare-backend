@@ -290,9 +290,37 @@ export class ProductService {
       options.isPromoted = queryDto.isPromoted;
     }
 
-    // Prioritize boosted products for public (non-authenticated) requests
-    // This shows boosted products first, sorted by package duration (higher duration = higher priority)
-    if (!userId && !queryDto.cursor) {
+    // Additional filters
+    if (queryDto.minPrice !== undefined) {
+      (options as Record<string, unknown>).minPrice = queryDto.minPrice;
+    }
+    if (queryDto.maxPrice !== undefined) {
+      (options as Record<string, unknown>).maxPrice = queryDto.maxPrice;
+    }
+    if (queryDto.condition !== undefined) {
+      // Convert condition string to number if needed
+      const conditionValue = typeof queryDto.condition === 'string'
+        ? this.convertConditionToNumber(queryDto.condition)
+        : queryDto.condition;
+      (options as Record<string, unknown>).condition = conditionValue;
+    }
+    if (queryDto.location) {
+      (options as Record<string, unknown>).location = queryDto.location;
+    }
+    if (queryDto.sortBy) {
+      (options as Record<string, unknown>).sortBy = queryDto.sortBy;
+    }
+    if (queryDto.sortOrder) {
+      (options as Record<string, unknown>).sortOrder = queryDto.sortOrder;
+    }
+    if (queryDto.rating !== undefined && queryDto.rating > 0) {
+      (options as Record<string, unknown>).rating = queryDto.rating;
+    }
+
+    // Prioritize boosted products only for default sort (no explicit user sort)
+    // When user explicitly sorts by price/rating/etc, respect their sort preference
+    const hasExplicitSort = queryDto.sortBy && queryDto.sortBy !== 'createdAt';
+    if (!userId && !queryDto.cursor && !hasExplicitSort) {
       options.prioritizeBoosted = true;
     }
 

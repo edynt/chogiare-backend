@@ -63,6 +63,13 @@ export class ProductRepository implements IProductRepository {
     prioritizeBoosted?: boolean;
     isPromoted?: boolean;
     cursor?: number;
+    minPrice?: number;
+    maxPrice?: number;
+    condition?: number;
+    location?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    rating?: number;
   }): Promise<{ items: Product[]; total: number; nextCursor?: number | null }> {
     const where: Prisma.ProductWhereInput = {};
 
@@ -85,6 +92,32 @@ export class ProductRepository implements IProductRepository {
       ];
     }
 
+    // Price range filter
+    if (options?.minPrice !== undefined || options?.maxPrice !== undefined) {
+      where.price = {};
+      if (options?.minPrice !== undefined) {
+        where.price.gte = options.minPrice;
+      }
+      if (options?.maxPrice !== undefined) {
+        where.price.lte = options.maxPrice;
+      }
+    }
+
+    // Condition filter
+    if (options?.condition !== undefined) {
+      where.condition = options.condition;
+    }
+
+    // Location filter
+    if (options?.location) {
+      where.location = { contains: options.location, mode: 'insensitive' };
+    }
+
+    // Rating filter
+    if (options?.rating !== undefined && options.rating > 0) {
+      where.rating = { gte: options.rating };
+    }
+
     // Filter by promoted status - only show active boosted products
     if (options?.isPromoted !== undefined) {
       where.isPromoted = options.isPromoted;
@@ -96,6 +129,14 @@ export class ProductRepository implements IProductRepository {
 
     const pageSize = options?.pageSize || 10;
 
+    // Build orderBy from sortBy/sortOrder
+    const sortField = options?.sortBy || 'createdAt';
+    const sortDirection = options?.sortOrder || 'desc';
+    const allowedSortFields = ['createdAt', 'price', 'rating', 'viewCount', 'salesCount', 'reviewCount'];
+    const orderBy: Record<string, 'asc' | 'desc'> = allowedSortFields.includes(sortField)
+      ? { [sortField]: sortDirection }
+      : { createdAt: 'desc' };
+
     // Cursor-based pagination: use Prisma cursor API for efficient pagination
     if (options?.cursor) {
       const products = await this.prisma.product.findMany({
@@ -103,7 +144,7 @@ export class ProductRepository implements IProductRepository {
         take: pageSize,
         skip: 1, // skip the cursor item itself
         cursor: { id: options.cursor },
-        orderBy: { id: 'desc' },
+        orderBy,
       });
       const total = await this.prisma.product.count({ where });
       const items = products.map((p) => this.toDomain(p));
@@ -124,7 +165,7 @@ export class ProductRepository implements IProductRepository {
         where,
         skip,
         take: pageSize,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
       }),
       this.prisma.product.count({ where }),
     ]);
