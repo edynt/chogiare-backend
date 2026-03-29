@@ -10,6 +10,7 @@ on:
       - 'package*.json'
       - 'tsconfig*.json'
       - 'nest-cli.json'
+      - '.github/workflows/**'
 
 # Only one deployment at a time; cancel in-progress if new push arrives
 concurrency:
