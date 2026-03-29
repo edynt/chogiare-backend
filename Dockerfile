@@ -10,7 +10,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install dependencies
+# Install production dependencies only
 RUN npm ci --only=production && \
     npm cache clean --force
 
@@ -30,8 +30,8 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Generate Prisma Client
-RUN npx prisma generate
+# Generate Prisma Client (dummy URL — generate doesn't connect to DB)
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
 
 # Build application
 RUN npm run build
@@ -48,13 +48,16 @@ RUN apk add --no-cache dumb-init
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nestjs -u 1001
 
-# Copy production dependencies
+# Copy production dependencies (includes prisma CLI)
 COPY --from=dependencies --chown=nestjs:nodejs /app/node_modules ./node_modules
 
 # Copy built application
 COPY --from=build --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=build --chown=nestjs:nodejs /app/package*.json ./
+
+# Copy prisma files for runtime migrations
 COPY --from=build --chown=nestjs:nodejs /app/prisma ./prisma
+COPY --from=build --chown=nestjs:nodejs /app/prisma.config.ts ./
 COPY --from=build --chown=nestjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 
 # Switch to non-root user
@@ -67,8 +70,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Start application
+# Run migrations then start application
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/main.js"]
-
-
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
