@@ -20,7 +20,7 @@ env:
   AWS_REGION: ap-southeast-1
   ECR_REPOSITORY: chogiare-backend
   ECS_CLUSTER: chogiare-cluster
-  ECS_SERVICE: chogiare-backend-service
+  ECS_SERVICE: chogiare-backend-task-service-26ewixup
   ECS_TASK_DEFINITION: chogiare-backend-task
 
 jobs:
