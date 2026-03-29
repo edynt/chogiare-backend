@@ -229,6 +229,16 @@ export class ProductService {
 
       await this.categoryRepository.updateProductCount(createProductDto.categoryId, 1);
 
+      // Record initial price in price history
+      await tx.priceHistory.create({
+        data: {
+          productId: product.id,
+          oldPrice: createProductDto.price,
+          newPrice: createProductDto.price,
+          createdAt: now,
+        },
+      });
+
       return product;
     });
   }
@@ -280,9 +290,37 @@ export class ProductService {
       options.isPromoted = queryDto.isPromoted;
     }
 
-    // Prioritize boosted products for public (non-authenticated) requests
-    // This shows boosted products first, sorted by package duration (higher duration = higher priority)
-    if (!userId && !queryDto.cursor) {
+    // Additional filters
+    if (queryDto.minPrice !== undefined) {
+      (options as Record<string, unknown>).minPrice = queryDto.minPrice;
+    }
+    if (queryDto.maxPrice !== undefined) {
+      (options as Record<string, unknown>).maxPrice = queryDto.maxPrice;
+    }
+    if (queryDto.condition !== undefined) {
+      // Convert condition string to number if needed
+      const conditionValue = typeof queryDto.condition === 'string'
+        ? this.convertConditionToNumber(queryDto.condition)
+        : queryDto.condition;
+      (options as Record<string, unknown>).condition = conditionValue;
+    }
+    if (queryDto.location) {
+      (options as Record<string, unknown>).location = queryDto.location;
+    }
+    if (queryDto.sortBy) {
+      (options as Record<string, unknown>).sortBy = queryDto.sortBy;
+    }
+    if (queryDto.sortOrder) {
+      (options as Record<string, unknown>).sortOrder = queryDto.sortOrder;
+    }
+    if (queryDto.rating !== undefined && queryDto.rating > 0) {
+      (options as Record<string, unknown>).rating = queryDto.rating;
+    }
+
+    // Prioritize boosted products only for default sort (no explicit user sort)
+    // When user explicitly sorts by price/rating/etc, respect their sort preference
+    const hasExplicitSort = queryDto.sortBy && queryDto.sortBy !== 'createdAt';
+    if (!userId && !queryDto.cursor && !hasExplicitSort) {
       options.prioritizeBoosted = true;
     }
 
@@ -486,9 +524,10 @@ export class ProductService {
 
     // Remove images from updateData to prevent it from being passed to Prisma update
     const { images: _unusedImages, ...updateDtoWithoutImages } = updateProductDto;
+    const now = BigInt(Date.now());
     const updateData: Record<string, unknown> = {
       ...updateDtoWithoutImages,
-      updatedAt: BigInt(Date.now()),
+      updatedAt: now,
     };
 
     if (updateProductDto.sellingPrice !== undefined || updateProductDto.costPrice !== undefined) {
@@ -508,6 +547,10 @@ export class ProductService {
       updateData.availableStock = updateProductDto.stock - product.reservedStock;
     }
 
+    // Track price change if price is being updated
+    const priceChanged = updateProductDto.price !== undefined &&
+      Number(updateProductDto.price) !== Number(product.price);
+
     // Handle image updates with transaction
     if (updateProductDto.images !== undefined) {
       return await this.prisma.$transaction(async (tx) => {
@@ -523,7 +566,6 @@ export class ProductService {
 
         // Insert new images if provided
         if (updateProductDto.images && updateProductDto.images.length > 0) {
-          const now = BigInt(Date.now());
           await tx.productImage.createMany({
             data: updateProductDto.images.map((url, index) => ({
               productId: id,
@@ -539,6 +581,18 @@ export class ProductService {
           where: { id },
           data: updateData,
         });
+
+        // Record price change in history
+        if (priceChanged) {
+          await tx.priceHistory.create({
+            data: {
+              productId: id,
+              oldPrice: Number(product.price),
+              newPrice: Number(updateProductDto.price),
+              createdAt: now,
+            },
+          });
+        }
 
         // Delete old images from Cloudinary (do this after transaction succeeds)
         // Use Promise.allSettled to not block on deletion failures
@@ -561,9 +615,27 @@ export class ProductService {
       });
     }
 
-    // No image updates, just update product
-    const updatedProduct = await this.productRepository.update(id, updateData);
-    return updatedProduct;
+    // No image updates — use transaction if price changed for atomicity
+    if (priceChanged) {
+      const now = BigInt(Date.now());
+      return await this.prisma.$transaction(async (tx) => {
+        const updatedProduct = await tx.product.update({
+          where: { id },
+          data: updateData,
+        });
+        await tx.priceHistory.create({
+          data: {
+            productId: id,
+            oldPrice: Number(product.price),
+            newPrice: Number(updateProductDto.price),
+            createdAt: now,
+          },
+        });
+        return updatedProduct;
+      });
+    }
+
+    return await this.productRepository.update(id, updateData);
   }
 
   async remove(id: number, userId: number) {
@@ -709,6 +781,71 @@ export class ProductService {
       views,
       sales,
       rating,
+    };
+  }
+
+  /**
+   * Get price history for a product (last 90 days by default).
+   * Auto-cleans stale entries: if price stable for 30+ days, keeps only latest record.
+   */
+  async getPriceHistory(productId: number, days = 90) {
+    const product = await this.productRepository.findById(productId);
+    if (!product) {
+      throw new NotFoundException({
+        message: MESSAGES.PRODUCT.NOT_FOUND,
+        errorCode: ERROR_CODES.PRODUCT_NOT_FOUND,
+      });
+    }
+
+    const nowMs = Date.now();
+    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+
+    // Fetch all history for this product (for cleanup evaluation)
+    const allHistory = await this.prisma.priceHistory.findMany({
+      where: { productId },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // Auto-cleanup: if latest price change is older than 30 days, price is stable
+    // Delete all old entries, keep only the most recent one
+    if (allHistory.length > 1) {
+      const latestEntry = allHistory[allHistory.length - 1];
+      const latestTimestamp = Number(latestEntry.createdAt);
+
+      if (nowMs - latestTimestamp > thirtyDaysMs) {
+        // Price stable for 30+ days — delete all except the latest
+        const idsToDelete = allHistory.slice(0, -1).map((h) => h.id);
+        await this.prisma.priceHistory.deleteMany({
+          where: { id: { in: idsToDelete } },
+        });
+
+        // Return only the latest entry
+        return {
+          productId,
+          currentPrice: Number(product.price),
+          history: [{
+            id: latestEntry.id,
+            oldPrice: Number(latestEntry.oldPrice),
+            newPrice: Number(latestEntry.newPrice),
+            createdAt: latestEntry.createdAt.toString(),
+          }],
+        };
+      }
+    }
+
+    // Filter by requested days range
+    const sinceTimestamp = BigInt(nowMs - days * 24 * 60 * 60 * 1000);
+    const filtered = allHistory.filter((h) => h.createdAt >= sinceTimestamp);
+
+    return {
+      productId,
+      currentPrice: Number(product.price),
+      history: filtered.map((h) => ({
+        id: h.id,
+        oldPrice: Number(h.oldPrice),
+        newPrice: Number(h.newPrice),
+        createdAt: h.createdAt.toString(),
+      })),
     };
   }
 

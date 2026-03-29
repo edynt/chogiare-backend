@@ -69,64 +69,42 @@ export async function seedCategories(prisma: PrismaClient): Promise<void> {
   console.log('📁 Seeding categories...');
 
   const now = BigInt(Date.now());
-  let createdCount = 0;
-  let skippedCount = 0;
+  let count = 0;
 
   for (const category of CATEGORIES) {
-    const existingParent = await prisma.category.findUnique({
-      where: { slug: category.slug },
+    const parent = await prisma.category.create({
+      data: {
+        name: category.name,
+        slug: category.slug,
+        description: category.description || null,
+        displayOrder: category.displayOrder,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      },
     });
-
-    let parentId: number;
-
-    if (existingParent) {
-      parentId = existingParent.id;
-      skippedCount++;
-      console.log(`  ⚠ "${category.name}" already exists`);
-    } else {
-      const parent = await prisma.category.create({
-        data: {
-          name: category.name,
-          slug: category.slug,
-          description: category.description || null,
-          displayOrder: category.displayOrder,
-          isActive: true,
-          createdAt: now,
-          updatedAt: now,
-        },
-      });
-      parentId = parent.id;
-      createdCount++;
-      console.log(`  ✓ Created "${category.name}"`);
-    }
+    count++;
+    console.log(`  ✓ ${category.name}`);
 
     if (category.children) {
       for (const child of category.children) {
-        const existingChild = await prisma.category.findUnique({
-          where: { slug: child.slug },
+        await prisma.category.create({
+          data: {
+            name: child.name,
+            slug: child.slug,
+            description: child.description || null,
+            parentId: parent.id,
+            displayOrder: child.displayOrder,
+            isActive: true,
+            createdAt: now,
+            updatedAt: now,
+          },
         });
-
-        if (existingChild) {
-          skippedCount++;
-        } else {
-          await prisma.category.create({
-            data: {
-              name: child.name,
-              slug: child.slug,
-              description: child.description || null,
-              parentId,
-              displayOrder: child.displayOrder,
-              isActive: true,
-              createdAt: now,
-              updatedAt: now,
-            },
-          });
-          createdCount++;
-          console.log(`    ✓ Created "${child.name}"`);
-        }
+        count++;
+        console.log(`    ✓ ${child.name}`);
       }
     }
   }
 
-  console.log(`  📊 Summary: ${createdCount} created, ${skippedCount} skipped`);
+  console.log(`  📊 ${count} categories created`);
 }

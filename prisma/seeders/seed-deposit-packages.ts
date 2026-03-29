@@ -15,17 +15,11 @@ export async function seedDepositPackages(prisma: PrismaClient) {
   const now = BigInt(Date.now());
 
   for (const pkg of DEPOSIT_PACKAGES) {
-    const existing = await prisma.depositPackage.findFirst({ where: { amount: pkg.amount } });
-
-    if (!existing) {
-      await prisma.depositPackage.create({
-        data: { name: pkg.name, amount: pkg.amount, displayOrder: pkg.displayOrder, isActive: true, createdAt: now, updatedAt: now },
-      });
-      console.log(`  ✓ Created: ${pkg.name}`);
-    } else {
-      console.log(`  - ${pkg.name} already exists`);
-    }
+    await prisma.depositPackage.create({
+      data: { name: pkg.name, amount: pkg.amount, displayOrder: pkg.displayOrder, isActive: true, createdAt: now, updatedAt: now },
+    });
+    console.log(`  ✓ ${pkg.name}`);
   }
 
-  console.log('  📊 Deposit packages done');
+  console.log(`  📊 ${DEPOSIT_PACKAGES.length} deposit packages created`);
 }

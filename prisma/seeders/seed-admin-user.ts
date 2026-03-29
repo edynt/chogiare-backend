@@ -48,78 +48,48 @@ export async function seedAdminUser(
   const now = BigInt(Date.now());
   const hashedPassword = await bcrypt.hash(PASSWORD, SALT_ROUNDS);
 
-  // Ensure roles exist
-  await prisma.role.upsert({
-    where: { id: ROLE_IDS.ADMIN },
-    update: {},
-    create: { id: ROLE_IDS.ADMIN, name: 'admin', description: 'Administrator with full system access', createdAt: now },
-  });
-  await prisma.role.upsert({
-    where: { id: ROLE_IDS.USER },
-    update: {},
-    create: { id: ROLE_IDS.USER, name: 'user', description: 'Regular user', createdAt: now },
-  });
-  console.log('  ✓ Roles ready');
+  // Create roles
+  await prisma.role.create({ data: { id: ROLE_IDS.ADMIN, name: 'admin', description: 'Administrator with full system access', createdAt: now } });
+  await prisma.role.create({ data: { id: ROLE_IDS.USER, name: 'user', description: 'Regular user', createdAt: now } });
+  console.log('  ✓ Roles created');
 
   const result: Record<string, { id: number; email: string }> = {};
 
   for (const userData of USERS) {
-    const existing = await prisma.user.findUnique({ where: { email: userData.email } });
-
-    let userId: number;
-
-    if (existing) {
-      userId = existing.id;
-      console.log(`  ⚠ "${userData.fullName}" already exists (id: ${userId})`);
-    } else {
-      const user = await prisma.user.create({
-        data: {
-          email: userData.email,
-          hashedPassword,
-          isVerified: true,
-          status: true,
-          language: 0,
-          fullName: userData.fullName,
-          country: 'Vietnam',
-          // Seller fields (only if provided)
-          ...(userData.sellerName && {
-            sellerName: userData.sellerName,
-            sellerSlug: userData.sellerSlug,
-            sellerDescription: userData.sellerDescription,
-            sellerIsVerified: userData.sellerIsVerified ?? false,
-          }),
-          createdAt: now,
-          updatedAt: now,
-        },
-      });
-      userId = user.id;
-      console.log(`  ✓ Created "${userData.fullName}" (id: ${userId})`);
-    }
+    const user = await prisma.user.create({
+      data: {
+        email: userData.email,
+        hashedPassword,
+        isVerified: true,
+        status: true,
+        language: 0,
+        fullName: userData.fullName,
+        country: 'Vietnam',
+        ...(userData.sellerName && {
+          sellerName: userData.sellerName,
+          sellerSlug: userData.sellerSlug,
+          sellerDescription: userData.sellerDescription,
+          sellerIsVerified: userData.sellerIsVerified ?? false,
+        }),
+        createdAt: now,
+        updatedAt: now,
+      },
+    });
+    console.log(`  ✓ Created "${userData.fullName}" (id: ${user.id})`);
 
     // Assign roles
     for (const roleId of userData.roles) {
-      const existingRole = await prisma.userRole.findUnique({
-        where: { userId_roleId: { userId, roleId } },
-      });
-      if (!existingRole) {
-        await prisma.userRole.create({ data: { userId, roleId } });
-      }
+      await prisma.userRole.create({ data: { userId: user.id, roleId } });
     }
 
-    result[userData.email] = { id: userId, email: userData.email };
+    result[userData.email] = { id: user.id, email: userData.email };
   }
 
-  // Seed wallet balance for the seller (tringuyen@yopmail.com)
+  // Seed wallet balance for seller
   const seller = result['tringuyen@yopmail.com'];
   if (seller) {
-    await prisma.userBalance.upsert({
-      where: { userId: seller.id },
-      update: {},
-      create: {
-        userId: seller.id,
-        balance: 5000000, // 5,000,000 VND
-        updatedAt: now,
-      },
+    await prisma.userBalance.create({
+      data: { userId: seller.id, balance: 5000000, updatedAt: now },
     });
     console.log(`  💰 Seller wallet: 5,000,000 VND`);
   }

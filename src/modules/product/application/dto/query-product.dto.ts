@@ -99,4 +99,38 @@ export class QueryProductDto {
   @IsInt({ message: VALIDATION_MESSAGES.IS_NUMBER })
   @Min(1, { message: VALIDATION_MESSAGES.MIN(1) })
   cursor?: number;
+
+  @ApiProperty({ description: 'Minimum price filter', required: false })
+  @IsOptional()
+  @Type(() => Number)
+  minPrice?: number;
+
+  @ApiProperty({ description: 'Maximum price filter', required: false })
+  @IsOptional()
+  @Type(() => Number)
+  maxPrice?: number;
+
+  @ApiProperty({ description: 'Filter by condition (new, like_new, good, fair, poor)', required: false })
+  @IsOptional()
+  condition?: string | number;
+
+  @ApiProperty({ description: 'Filter by location', required: false })
+  @IsOptional()
+  @IsString({ message: VALIDATION_MESSAGES.IS_STRING })
+  location?: string;
+
+  @ApiProperty({ description: 'Sort field', example: 'createdAt', required: false })
+  @IsOptional()
+  @IsString({ message: VALIDATION_MESSAGES.IS_STRING })
+  sortBy?: string;
+
+  @ApiProperty({ description: 'Sort order', enum: ['asc', 'desc'], required: false })
+  @IsOptional()
+  @IsEnum(['asc', 'desc'], { message: VALIDATION_MESSAGES.IS_ENUM })
+  sortOrder?: 'asc' | 'desc';
+
+  @ApiProperty({ description: 'Minimum rating filter', required: false })
+  @IsOptional()
+  @Type(() => Number)
+  rating?: number;
 }

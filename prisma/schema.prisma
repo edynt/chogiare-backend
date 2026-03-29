@@ -241,6 +241,7 @@ model Product {
   reviews        Review[]
   stockInRecords StockInRecord[]
   boosts         ProductBoost[]
+  priceHistory   PriceHistory[]
 
   @@index([sellerId])
   @@index([categoryId])
@@ -272,6 +273,20 @@ model ProductBoost {
   @@index([isActive])
   @@index([endAt])
   @@map("product_boosts")
+}
+
+model PriceHistory {
+  id        Int     @id @default(autoincrement())
+  productId Int     @map("product_id")
+  oldPrice  Decimal @map("old_price") @db.Decimal(15, 2)
+  newPrice  Decimal @map("new_price") @db.Decimal(15, 2)
+  createdAt BigInt  @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([productId, createdAt])
+  @@map("price_history")
 }
 
 model ProductImage {

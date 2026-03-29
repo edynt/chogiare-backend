@@ -64,22 +64,10 @@ export async function seedServicePackages(prisma: PrismaClient) {
     },
   ];
 
-  let created = 0;
-  let skipped = 0;
-
   for (const pkg of packages) {
-    const existing = await prisma.servicePackage.findFirst({ where: { name: pkg.name } });
-
-    if (existing) {
-      console.log(`  ⏭️  "${pkg.displayName}" already exists`);
-      skipped++;
-      continue;
-    }
-
     await prisma.servicePackage.create({ data: pkg });
-    console.log(`  ✅ Created: ${pkg.displayName} (${pkg.durationDays} ngày - ${pkg.price.toLocaleString('vi-VN')}₫)`);
-    created++;
+    console.log(`  ✓ ${pkg.displayName} (${pkg.durationDays} ngày - ${pkg.price.toLocaleString('vi-VN')}₫)`);
   }
 
-  console.log(`  📊 Service packages: ${created} created, ${skipped} skipped`);
+  console.log(`  📊 ${packages.length} service packages created`);
 }

@@ -12,7 +12,6 @@ export interface SystemSettingsData {
   seo: Record<string, unknown>;
   email: Record<string, unknown>;
   storage: Record<string, unknown>;
-  backup: Record<string, unknown>;
   cache: Record<string, unknown>;
   social: Record<string, unknown>;
   legal: Record<string, unknown>;
@@ -207,24 +206,6 @@ const DEFAULT_SETTINGS: SystemSettingsData = {
     thumbnailSizes: [150, 300, 600],
     maxUploadSize: 10,
     allowedFileTypes: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx'],
-  },
-  backup: {
-    enabled: true,
-    frequency: 'daily',
-    time: '03:00',
-    retention: 30,
-    includeDatabase: true,
-    includeUploads: true,
-    includeLogs: false,
-    storageProvider: 'local',
-    s3Bucket: '',
-    googleDriveFolder: '',
-    encryptBackup: true,
-    notifyOnSuccess: false,
-    notifyOnFailure: true,
-    lastBackup: null,
-    lastBackupSize: null,
-    lastBackupStatus: null,
   },
   cache: {
     enabled: true,
