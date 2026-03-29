@@ -20,6 +20,10 @@ async function bootstrap() {
   const port = configService.get<number>('app.port') || 3000;
   const nodeEnv = configService.get<string>('app.nodeEnv') || 'development';
 
+  // Health check endpoint (outside global prefix for Docker/ECS health checks)
+  const httpAdapter = app.getHttpAdapter();
+  httpAdapter.get('/health', (_req, res) => res.status(200).json({ status: 'ok' }));
+
   app.setGlobalPrefix(apiPrefix);
 
   app.useGlobalPipes(
