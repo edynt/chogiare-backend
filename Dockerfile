@@ -30,10 +30,6 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Generate Prisma Client (ARG only exists in build stage, not in final image)
-ARG DATABASE_URL="postgresql://build:build@localhost/build"
-RUN npx prisma generate
-
 # Build application
 RUN npm run build
 
