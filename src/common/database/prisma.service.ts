@@ -20,7 +20,12 @@ function createPrismaClientConfig(databaseUrl: string) {
     };
   }
 
-  const pool = new Pool({ connectionString: databaseUrl });
+  // Enable SSL for remote databases (e.g. AWS RDS)
+  const needsSsl = databaseUrl.includes('rds.amazonaws.com') || databaseUrl.includes('sslmode=require');
+  const pool = new Pool({
+    connectionString: databaseUrl,
+    ...(needsSsl && { ssl: { rejectUnauthorized: false } }),
+  });
   const adapter = new PrismaPg(pool);
   return {
     adapter,
