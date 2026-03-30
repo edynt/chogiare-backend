@@ -452,6 +452,8 @@ export class InventoryService {
       },
     ];
 
+    console.log('123');
+
     return {
       message: 'Inventory reports retrieved successfully',
       data: {
