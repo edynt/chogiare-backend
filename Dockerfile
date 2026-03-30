@@ -17,6 +17,9 @@ COPY . .
 # Generate Prisma Client and build
 RUN npx prisma generate && npm run build
 
+# Verify build output exists
+RUN test -f /app/dist/main.js || (echo "ERROR: dist/main.js not found!" && ls -la /app/dist/ && exit 1)
+
 # Remove dev dependencies after build
 RUN npm prune --production
 

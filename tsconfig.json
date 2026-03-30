@@ -32,6 +32,8 @@
       "@modules/*": ["src/modules/*"],
       "@database/*": ["src/database/*"]
     }
-  }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }
 
